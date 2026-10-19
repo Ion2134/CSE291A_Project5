@@ -79,4 +79,6 @@ def test_agent_loop_mcp_attack_on_model_tool_call():
         )
     )
     assert ep is not None
+    assert ep.attack_applied
     assert ep.examples[0].labels.output_correct is False
+    assert ep.examples[0].meta["operator"] == OperatorId.MCP_IO_MISMATCH.value

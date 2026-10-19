@@ -35,6 +35,7 @@ src/discovery_sim/sim/agent_tasks.py
 src/discovery_sim/sim/catalog.py
 src/discovery_sim/sim/context.py
 src/discovery_sim/sim/episode.py
+src/discovery_sim/sim/fault_schedule.py
 src/discovery_sim/sim/harness.py
 src/discovery_sim/sim/labels.py
 src/discovery_sim/sim/mandate.py
@@ -46,4 +47,5 @@ src/discovery_sim/sim/types.py
 tests/test_agent_loop.py
 tests/test_agents.py
 tests/test_attacks.py
+tests/test_fault_schedule.py
 tests/test_multistep_context.py

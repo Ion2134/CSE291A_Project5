@@ -20,7 +20,7 @@ Default ports: chatbot `8001`, bank `8002`, payment `8003`.
 
 ## Run attack episodes (no HTTP servers required)
 
-**Agent mode (default)** — LM Studio **tool-calling loop**: model → tool → tool result → model, until done or `--max-agent-steps`.
+**Agent mode (default)** — LM Studio **tool-calling loop**: model → tool → tool result → model, until done or `--max-agent-steps`. Attacks are scheduled on task-aware tool rounds (see `attack_applied` in `episodes.jsonl` / `baseline.json`).
 
 ```bash
 export LMSTUDIO_MODEL=your-model

@@ -17,6 +17,7 @@ from discovery_sim.sim.context import AgentContext
 from discovery_sim.sim.harness import AgentPool, execute_tool_call
 from discovery_sim.sim.labels import label_call, laya_state
 from discovery_sim.sim.operators import operator_catalog, pick_operator
+from discovery_sim.sim.fault_schedule import pick_agent_fault_call_index
 from discovery_sim.sim.orchestrator import AgentOrchestrator, agent_episode_outcome
 from discovery_sim.sim.run_config import RunConfig
 from discovery_sim.sim.scenarios import EpisodeScenario, all_scenarios, tool_call_from_planned
@@ -96,8 +97,8 @@ class EpisodeRunner:
         if fault_call_index_override is not None:
             fault_call_index = fault_call_index_override
         else:
-            fault_call_index = (
-                self.rng.randrange(self.config.max_agent_steps) if attack.operator != OperatorId.BENIGN else 0
+            fault_call_index = pick_agent_fault_call_index(
+                task, attack, self.rng, self.config.max_agent_steps
             )
 
         pool = AgentPool(SyntheticLedger())
@@ -217,6 +218,9 @@ class EpisodeRunner:
         absorbed = attack.operator != OperatorId.BENIGN and task_correct and task_completed
 
         fault_record = records[min(fault_call_index, len(records) - 1)]
+        attack_applied = attack.operator != OperatorId.BENIGN and any(
+            r.attack.operator != OperatorId.BENIGN for r in records
+        )
         return EpisodeOutcome(
             episode_id=f"ep_{uuid.uuid4().hex[:8]}",
             seed=self.seed,
@@ -231,6 +235,7 @@ class EpisodeRunner:
             fault_hop=attack.hop,
             fault_call_index=fault_call_index,
             failure_call_index=failure_call_index,
+            attack_applied=attack_applied,
             records=records,
             examples=examples,
         )
@@ -353,6 +358,7 @@ def _episode_to_json(ep: EpisodeOutcome) -> dict[str, Any]:
         "fault_hop": ep.fault_hop,
         "fault_call_index": ep.fault_call_index,
         "failure_call_index": ep.failure_call_index,
+        "attack_applied": ep.attack_applied,
         "num_calls": len(ep.records),
         "mode": ep.examples[0].meta.get("mode") if ep.examples else None,
     }
@@ -375,14 +381,19 @@ def _example_to_json(ex: LabeledExample) -> dict[str, Any]:
 
 def _baseline_from_episodes(episodes: list[EpisodeOutcome], seed: int, count: int) -> dict[str, Any]:
     attacked = [e for e in episodes if e.operator != OperatorId.BENIGN]
+    applied = [e for e in attacked if e.attack_applied]
     n = len(attacked) or 1
+    n_applied = len(applied) or 1
     return {
         "seed": seed,
         "episode_count": count,
         "episodes_written": len(episodes),
+        "attack_applied_rate": sum(1 for e in attacked if e.attack_applied) / n,
         "task_correct_rate": sum(1 for e in attacked if e.task_correct) / n,
         "silent_wrong_rate": sum(1 for e in attacked if e.silent_wrong) / n,
         "hard_fail_rate": sum(1 for e in attacked if e.hard_fail) / n,
+        "task_correct_rate_applied_only": sum(1 for e in applied if e.task_correct) / n_applied,
+        "silent_wrong_rate_applied_only": sum(1 for e in applied if e.silent_wrong) / n_applied,
         "by_operator": _group_rates(attacked, lambda e: e.operator.value),
         "by_hop": _group_rates(attacked, lambda e: e.fault_hop or "none"),
     }

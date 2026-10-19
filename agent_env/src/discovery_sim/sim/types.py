@@ -99,3 +99,4 @@ class EpisodeOutcome:
     failure_call_index: int | None
     records: list[CallRecord]
     examples: list[LabeledExample]
+    attack_applied: bool = False

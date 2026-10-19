@@ -229,6 +229,9 @@ def agent_episode_outcome(
     silent_wrong = run.task_completed and not run.task_correct
     hard_fail = not run.task_completed
     fault_rec = run.records[min(fault_call_index, len(run.records) - 1)] if run.records else None
+    attack_applied = attack.operator != OperatorId.BENIGN and any(
+        r.attack.operator != OperatorId.BENIGN for r in run.records
+    )
     return EpisodeOutcome(
         episode_id=f"ep_{uuid.uuid4().hex[:8]}",
         seed=seed,
@@ -243,6 +246,7 @@ def agent_episode_outcome(
         fault_hop=attack.hop,
         fault_call_index=fault_call_index,
         failure_call_index=run.failure_call_index,
+        attack_applied=attack_applied,
         records=run.records,
         examples=run.examples,
     )

@@ -7,6 +7,7 @@ Description-Content-Type: text/markdown
 Requires-Dist: httpx>=0.27
 Requires-Dist: starlette>=0.38
 Requires-Dist: uvicorn>=0.30
+Requires-Dist: tqdm
 Provides-Extra: dev
 Requires-Dist: pytest>=8.0; extra == "dev"
 Requires-Dist: pytest-asyncio>=0.24; extra == "dev"
@@ -33,7 +34,7 @@ Default ports: chatbot `8001`, bank `8002`, payment `8003`.
 
 ## Run attack episodes (no HTTP servers required)
 
-**Agent mode (default)** — LM Studio **tool-calling loop**: model → tool → tool result → model, until done or `--max-agent-steps`.
+**Agent mode (default)** — LM Studio **tool-calling loop**: model → tool → tool result → model, until done or `--max-agent-steps`. Attacks are scheduled on task-aware tool rounds (see `attack_applied` in `episodes.jsonl` / `baseline.json`).
 
 ```bash
 export LMSTUDIO_MODEL=your-model
