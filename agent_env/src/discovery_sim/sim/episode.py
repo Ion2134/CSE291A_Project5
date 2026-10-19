@@ -5,6 +5,7 @@ import random
 import uuid
 from pathlib import Path
 from typing import Any
+from tqdm import tqdm
 
 from discovery_sim.llm.base import LlmPlanner
 from discovery_sim.llm.chat import ChatClient, LmStudioChat
@@ -290,7 +291,7 @@ async def run_episodes(config: RunConfig, out_dir: Path) -> dict[str, Any]:
     runner = EpisodeRunner(seed=config.seed, config=config)
     episodes: list[EpisodeOutcome] = []
     dropped_llm = 0
-    for i in range(config.episodes):
+    for i in tqdm(range(config.episodes)):
         ep = await runner.run_one(episode_index=i)
         if ep is None:
             dropped_llm += 1
