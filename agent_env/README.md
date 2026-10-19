@@ -1,0 +1,44 @@
+# discovery-sim
+
+Local A2A 1.0 agents (chatbot, bank, payment) with MCP-backed bank and payment tools over a synthetic ledger.
+
+## Setup
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+```
+
+## Run agents
+
+```bash
+discovery-sim agents
+```
+
+Default ports: chatbot `8001`, bank `8002`, payment `8003`.
+
+## Run attack episodes (no HTTP servers required)
+
+**Agent mode (default)** — LM Studio **tool-calling loop**: model → tool → tool result → model, until done or `--max-agent-steps`.
+
+```bash
+export LMSTUDIO_MODEL=your-model
+discovery-sim run --episodes 20 --seed 42 --out data/runs/agent42
+```
+
+**Scripted mode (legacy harness)** — template steps + injected attacks (fast, no LLM):
+
+```bash
+discovery-sim run --mode scripted --episodes 100 --seed 42 --out data/runs/scripted42
+```
+
+Optional: `--llm-samples N` applies only to **scripted** benign planning (strict JSON match).
+
+Writes `episodes.jsonl`, `examples.jsonl`, `laya_train.jsonl`, `questions.json`, and `baseline.json`. Agent examples include `conversation`, `prior_calls`, `trusted`, and `ledger_snapshot`.
+
+## Tests
+
+```bash
+pytest
+```

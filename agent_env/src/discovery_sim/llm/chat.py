@@ -1,0 +1,105 @@
+from __future__ import annotations
+
+import json
+import os
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+from typing import Any
+
+import httpx
+
+
+@dataclass
+class ToolCallRequest:
+    id: str
+    name: str
+    arguments: dict[str, Any]
+
+
+@dataclass
+class ChatTurn:
+    content: str | None
+    tool_calls: list[ToolCallRequest] = field(default_factory=list)
+    raw: dict[str, Any] | None = None
+    error: str | None = None
+
+
+class ChatClient(ABC):
+    model_id: str = "unknown"
+
+    @abstractmethod
+    async def complete(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> ChatTurn:
+        raise NotImplementedError
+
+
+class LmStudioChat(ChatClient):
+    def __init__(
+        self,
+        base_url: str | None = None,
+        model: str | None = None,
+        timeout: float = 120.0,
+    ) -> None:
+        self.base_url = (base_url or os.environ.get("LMSTUDIO_BASE_URL", "http://127.0.0.1:1234/v1")).rstrip("/")
+        self.model = model or os.environ.get("LMSTUDIO_MODEL", "local-model")
+        self.timeout = timeout
+        self.model_id = self.model
+
+    async def complete(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> ChatTurn:
+        payload: dict[str, Any] = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": 0.2,
+            "tools": tools,
+            "tool_choice": "auto",
+        }
+        url = f"{self.base_url}/chat/completions"
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.post(url, json=payload)
+                response.raise_for_status()
+                body = response.json()
+        except Exception as exc:
+            return ChatTurn(content=None, error=str(exc))
+
+        choices = body.get("choices") or []
+        if not choices:
+            return ChatTurn(content=None, error="empty choices")
+        message = choices[0].get("message") or {}
+        tool_calls_raw = message.get("tool_calls") or []
+        tool_calls: list[ToolCallRequest] = []
+        for tc in tool_calls_raw:
+            fn = tc.get("function") or {}
+            args_text = fn.get("arguments") or "{}"
+            try:
+                args = json.loads(args_text) if isinstance(args_text, str) else dict(args_text)
+            except json.JSONDecodeError:
+                args = {}
+            tool_calls.append(
+                ToolCallRequest(
+                    id=str(tc.get("id", "")),
+                    name=str(fn.get("name", "")),
+                    arguments=args,
+                )
+            )
+        return ChatTurn(
+            content=message.get("content"),
+            tool_calls=tool_calls,
+            raw=body,
+        )
+
+
+class ScriptChatClient(ChatClient):
+    """Canned tool-call sequence for tests (no network)."""
+
+    model_id = "script"
+
+    def __init__(self, turns: list[ChatTurn]) -> None:
+        self._turns = list(turns)
+        self._index = 0
+
+    async def complete(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> ChatTurn:
+        if self._index >= len(self._turns):
+            return ChatTurn(content="Done.", tool_calls=[])
+        turn = self._turns[self._index]
+        self._index += 1
+        return turn
