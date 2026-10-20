@@ -6,6 +6,11 @@ from discovery_sim.sim.agent_tasks import AgentTask
 from discovery_sim.sim.types import AttackSpec, OperatorId
 
 
+_BANK_TEMPLATES = frozenset(
+    {"balance_lookup", "list_accounts", "transaction_history", "account_holder"}
+)
+
+
 def _expected_rounds_for_task(task: AgentTask) -> list[int]:
     if task.template == "balance_then_transfer":
         return [0, 1]
@@ -15,7 +20,7 @@ def _expected_rounds_for_task(task: AgentTask) -> list[int]:
 def _bank_rounds(task: AgentTask) -> list[int]:
     if task.template == "balance_then_transfer":
         return [0]
-    if task.template == "balance_lookup":
+    if task.template in _BANK_TEMPLATES:
         return [0]
     return []
 

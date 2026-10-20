@@ -4,6 +4,7 @@ import asyncio
 import json
 
 from discovery_sim.llm.chat import ChatTurn, ScriptChatClient, ToolCallRequest
+from discovery_sim.sim.agent_tasks import agent_task_index
 from discovery_sim.sim.episode import EpisodeRunner
 from discovery_sim.sim.run_config import RunConfig
 from discovery_sim.sim.types import OperatorId
@@ -44,7 +45,12 @@ def test_agent_loop_balance_then_transfer():
         config=RunConfig(mode="agent", multi_step=False),
         chat_client=chat,
     )
-    ep = asyncio.run(runner.run_one(operator_override=OperatorId.BENIGN, scenario_index=2))
+    ep = asyncio.run(
+        runner.run_one(
+            operator_override=OperatorId.BENIGN,
+            scenario_index=agent_task_index("agent_balance_then_pay"),
+        )
+    )
     assert ep is not None
     assert len(ep.records) == 2
     assert ep.task_completed

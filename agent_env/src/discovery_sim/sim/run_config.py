@@ -14,3 +14,5 @@ class RunConfig:
     llm_base_url: str | None = None
     llm_model: str | None = None
     multi_step: bool = True
+    overwrite_output: bool = False
+    concurrency: int = 1

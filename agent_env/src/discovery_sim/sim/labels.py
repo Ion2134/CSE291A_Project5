@@ -25,6 +25,14 @@ def _output_matches_mandate(
             and output.get("amount_cents") == m.get("amount_cents")
             and output.get("status") in ("completed", "pending")
         )
+    if task.tool_name == "list_accounts":
+        return isinstance(output.get("accounts"), list) and len(output["accounts"]) > 0
+    if task.tool_name == "get_transactions":
+        expected = task.mandate.get("account_id")
+        return output.get("account_id") == expected and isinstance(output.get("transactions"), list)
+    if task.tool_name == "get_account_holder":
+        expected = task.mandate.get("account_id")
+        return output.get("account_id") == expected and bool(output.get("holder_name"))
     return True
 
 

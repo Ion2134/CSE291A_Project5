@@ -30,7 +30,7 @@ def expected_arguments_for_tool(tool_name: str, mandate: dict[str, Any]) -> dict
 
 
 def mandate_satisfied(ledger: SyntheticLedger, mandate: dict[str, Any], template: str) -> bool:
-    if template == "balance_lookup":
+    if template in ("balance_lookup", "list_accounts", "transaction_history", "account_holder"):
         return True
     if template in ("transfer_under_cap", "balance_then_transfer"):
         amount = int(mandate.get("amount_cents", 0))

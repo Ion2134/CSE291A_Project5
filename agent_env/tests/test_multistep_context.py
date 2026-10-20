@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 
 from discovery_sim.sim.episode import EpisodeRunner
+from discovery_sim.sim.scenarios import scenario_index
 from discovery_sim.sim.run_config import RunConfig
 from discovery_sim.sim.types import OperatorId
 
@@ -12,7 +13,7 @@ def test_multi_step_produces_two_examples_with_prior_calls():
     ep = asyncio.run(
         runner.run_one(
             operator_override=OperatorId.BENIGN,
-            scenario_index=2,
+            scenario_index=scenario_index("balance_then_transfer"),
         )
     )
     assert ep is not None
@@ -30,7 +31,7 @@ def test_taint_on_second_step():
     ep = asyncio.run(
         runner.run_one(
             operator_override=OperatorId.TAINT_PRIOR_OUTPUT,
-            scenario_index=2,
+            scenario_index=scenario_index("balance_then_transfer"),
         )
     )
     assert ep is not None

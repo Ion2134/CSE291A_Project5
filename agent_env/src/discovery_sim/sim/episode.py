@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import random
 import uuid
 from pathlib import Path
 from typing import Any
+
 from tqdm import tqdm
+from tqdm.asyncio import tqdm_asyncio
 
 from discovery_sim.llm.base import LlmPlanner
 from discovery_sim.llm.chat import ChatClient, LmStudioChat
@@ -20,6 +23,7 @@ from discovery_sim.sim.operators import operator_catalog, pick_operator
 from discovery_sim.sim.fault_schedule import pick_agent_fault_call_index
 from discovery_sim.sim.orchestrator import AgentOrchestrator, agent_episode_outcome
 from discovery_sim.sim.run_config import RunConfig
+from discovery_sim.sim.run_output import resolve_run_dir, write_run_manifest
 from discovery_sim.sim.scenarios import EpisodeScenario, all_scenarios, tool_call_from_planned
 from discovery_sim.sim.types import AttackSpec, EpisodeOutcome, LabeledExample, OperatorId, ToolCall
 
@@ -57,6 +61,13 @@ class EpisodeRunner:
         self.config = config or RunConfig(seed=seed)
         self._chat_client = chat_client
 
+    @staticmethod
+    def _parallel_episode_rng(base_seed: int, episode_index: int) -> random.Random:
+        return random.Random(base_seed + episode_index * 1_000_003)
+
+    def _roll_rng(self, episode_rng: random.Random | None) -> random.Random:
+        return episode_rng if episode_rng is not None else self.rng
+
     def _chat_for_episode(self) -> ChatClient:
         if self._chat_client is not None:
             return self._chat_client
@@ -73,12 +84,19 @@ class EpisodeRunner:
         scenario_index: int | None = None,
         episode_index: int = 0,
         fault_call_index_override: int | None = None,
+        episode_rng: random.Random | None = None,
     ) -> EpisodeOutcome | None:
         if self.config.mode == "agent":
             return await self._run_one_agent(
-                operator_override, scenario_index, episode_index, fault_call_index_override
+                operator_override,
+                scenario_index,
+                episode_index,
+                fault_call_index_override,
+                episode_rng,
             )
-        return await self._run_one_scripted(operator_override, scenario_index, episode_index)
+        return await self._run_one_scripted(
+            operator_override, scenario_index, episode_index, episode_rng
+        )
 
     async def _run_one_agent(
         self,
@@ -86,19 +104,21 @@ class EpisodeRunner:
         scenario_index: int | None = None,
         episode_index: int = 0,
         fault_call_index_override: int | None = None,
+        episode_rng: random.Random | None = None,
     ) -> EpisodeOutcome | None:
+        rng = self._roll_rng(episode_rng)
         tasks = agent_tasks()
-        idx = scenario_index if scenario_index is not None else self.rng.randrange(len(tasks))
+        idx = scenario_index if scenario_index is not None else rng.randrange(len(tasks))
         task = tasks[idx]
         catalog = operator_catalog()
-        attack = catalog[operator_override] if operator_override else pick_operator(self.rng)
+        attack = catalog[operator_override] if operator_override else pick_operator(rng)
         if attack.operator == OperatorId.TAINT_PRIOR_OUTPUT:
             attack = catalog[OperatorId.BENIGN]
         if fault_call_index_override is not None:
             fault_call_index = fault_call_index_override
         else:
             fault_call_index = pick_agent_fault_call_index(
-                task, attack, self.rng, self.config.max_agent_steps
+                task, attack, rng, self.config.max_agent_steps
             )
 
         pool = AgentPool(SyntheticLedger())
@@ -113,9 +133,11 @@ class EpisodeRunner:
         operator_override: OperatorId | None = None,
         scenario_index: int | None = None,
         episode_index: int = 0,
+        episode_rng: random.Random | None = None,
     ) -> EpisodeOutcome | None:
+        rng = self._roll_rng(episode_rng)
         scenarios = all_scenarios(include_multi=self.config.multi_step)
-        idx = scenario_index if scenario_index is not None else self.rng.randrange(len(scenarios))
+        idx = scenario_index if scenario_index is not None else rng.randrange(len(scenarios))
         scenario = scenarios[idx]
         scenario = _clone_scenario(scenario)
 
@@ -123,12 +145,12 @@ class EpisodeRunner:
         if operator_override is not None:
             attack = catalog[operator_override]
         else:
-            attack = pick_operator(self.rng)
+            attack = pick_operator(rng)
 
         if attack.operator == OperatorId.TAINT_PRIOR_OUTPUT and len(scenario.steps) < 2:
             attack = catalog[OperatorId.BENIGN]
 
-        fault_call_index = self.rng.randrange(len(scenario.steps)) if attack.operator != OperatorId.BENIGN else 0
+        fault_call_index = rng.randrange(len(scenario.steps)) if attack.operator != OperatorId.BENIGN else 0
 
         pool = AgentPool(SyntheticLedger())
         context = scenario.context or AgentContext.from_mandate(scenario.user_message, scenario.mandate)
@@ -292,16 +314,45 @@ def _clone_scenario(scenario: EpisodeScenario) -> EpisodeScenario:
 
 
 async def run_episodes(config: RunConfig, out_dir: Path) -> dict[str, Any]:
+    out_dir = resolve_run_dir(out_dir, config.seed, overwrite=config.overwrite_output)
     out_dir.mkdir(parents=True, exist_ok=True)
     runner = EpisodeRunner(seed=config.seed, config=config)
     episodes: list[EpisodeOutcome] = []
     dropped_llm = 0
-    for i in tqdm(range(config.episodes)):
-        ep = await runner.run_one(episode_index=i)
-        if ep is None:
-            dropped_llm += 1
-            continue
-        episodes.append(ep)
+    workers = max(1, config.concurrency)
+
+    async def _run_episode_index(i: int) -> tuple[int, EpisodeOutcome | None]:
+        if workers > 1:
+            ep_rng = EpisodeRunner._parallel_episode_rng(config.seed, i)
+            ep = await runner.run_one(episode_index=i, episode_rng=ep_rng)
+        else:
+            ep = await runner.run_one(episode_index=i)
+        return i, ep
+
+    if workers > 1:
+        sem = asyncio.Semaphore(workers)
+
+        async def _limited(i: int) -> tuple[int, EpisodeOutcome | None]:
+            async with sem:
+                return await _run_episode_index(i)
+
+        indexed = await tqdm_asyncio.gather(
+            *[_limited(i) for i in range(config.episodes)],
+            desc="episodes",
+        )
+        indexed.sort(key=lambda pair: pair[0])
+        for _i, ep in indexed:
+            if ep is None:
+                dropped_llm += 1
+                continue
+            episodes.append(ep)
+    else:
+        for i in tqdm(range(config.episodes), desc="episodes"):
+            _i, ep = await _run_episode_index(i)
+            if ep is None:
+                dropped_llm += 1
+                continue
+            episodes.append(ep)
 
     episodes_path = out_dir / "episodes.jsonl"
     examples_path = out_dir / "examples.jsonl"
@@ -333,11 +384,27 @@ async def run_episodes(config: RunConfig, out_dir: Path) -> dict[str, Any]:
     baseline["dropped_llm_mismatch"] = dropped_llm
     baseline["llm_samples_requested"] = config.llm_samples
     baseline["max_agent_steps"] = config.max_agent_steps
+    baseline["concurrency"] = workers
     (out_dir / "baseline.json").write_text(json.dumps(baseline, indent=2))
+    write_run_manifest(
+        out_dir,
+        {
+            "seed": config.seed,
+            "episodes": config.episodes,
+            "mode": config.mode,
+            "max_agent_steps": config.max_agent_steps,
+            "multi_step": config.multi_step,
+            "llm_samples": config.llm_samples,
+            "concurrency": workers,
+            "task_count": len(agent_tasks()),
+            "out_dir": str(out_dir),
+        },
+    )
     return {
         "episodes": len(episodes),
         "requested": config.episodes,
         "dropped_llm": dropped_llm,
+        "concurrency": workers,
         "out_dir": str(out_dir),
         "baseline": baseline,
     }

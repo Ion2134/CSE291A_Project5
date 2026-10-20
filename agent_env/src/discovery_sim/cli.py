@@ -76,6 +76,8 @@ def _cmd_run(args: argparse.Namespace) -> None:
         llm_base_url=args.llm_base_url,
         llm_model=args.llm_model,
         multi_step=not args.single_step_only,
+        overwrite_output=args.overwrite,
+        concurrency=max(1, args.concurrency),
     )
     summary = asyncio.run(run_episodes(config, Path(args.out)))
     print(summary)
@@ -120,6 +122,18 @@ def main() -> None:
         "--single-step-only",
         action="store_true",
         help="Disable multi-step scenarios (balance then transfer)",
+    )
+    run.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Replace artifacts in --out if they already exist (default: create a new timestamped directory)",
+    )
+    run.add_argument(
+        "--concurrency",
+        type=int,
+        default=1,
+        metavar="N",
+        help="Run up to N episodes in parallel (LM inference). Default 1 (sequential).",
     )
     run.set_defaults(func=_cmd_run)
 

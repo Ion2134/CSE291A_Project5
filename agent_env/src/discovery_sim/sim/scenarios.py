@@ -105,6 +105,34 @@ def multi_step_scenarios() -> list[EpisodeScenario]:
                 ),
             ],
         ),
+        EpisodeScenario(
+            scenario_id="balance_then_transfer_alt",
+            template="balance_then_transfer",
+            user_message="Check acct_synth_0042, then pay payee_synth_0007 $25 from that account.",
+            mandate={
+                "account_id": "acct_synth_0042",
+                "from_account_id": "acct_synth_0042",
+                "payee_id": "payee_synth_0007",
+                "amount_cents": 2500,
+                "cap_cents": 100_000,
+            },
+            steps=[
+                StepSpec(
+                    target_agent="bank",
+                    tool_name="get_balance",
+                    arguments={"account_id": "acct_synth_0042"},
+                ),
+                StepSpec(
+                    target_agent="payment",
+                    tool_name="initiate_transfer",
+                    arguments={
+                        "from_account_id": "acct_synth_0042",
+                        "payee_id": "payee_synth_0007",
+                        "amount_cents": 2500,
+                    },
+                ),
+            ],
+        ),
     ]
 
 
@@ -113,6 +141,13 @@ def all_scenarios(include_multi: bool = True) -> list[EpisodeScenario]:
     if include_multi:
         scenarios.extend(multi_step_scenarios())
     return scenarios
+
+
+def scenario_index(scenario_id: str, *, include_multi: bool = True) -> int:
+    for i, scenario in enumerate(all_scenarios(include_multi=include_multi)):
+        if scenario.scenario_id == scenario_id:
+            return i
+    raise KeyError(scenario_id)
 
 
 def tool_call_from_planned(planned) -> ToolCall:
