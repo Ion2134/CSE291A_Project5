@@ -11,6 +11,7 @@ from discovery_sim.agents.chatbot import ChatbotAgent
 from discovery_sim.agents.payment import PaymentAgent
 from discovery_sim.ledger.store import SyntheticLedger
 from discovery_sim.sim.episode import run_episodes
+from discovery_sim.sim.prompt_data import PromptGenConfig, generate_prompt_data
 from discovery_sim.sim.run_config import RunConfig
 
 
@@ -83,6 +84,20 @@ def _cmd_run(args: argparse.Namespace) -> None:
     print(summary)
 
 
+def _cmd_prompts(args: argparse.Namespace) -> None:
+    config = PromptGenConfig(
+        count=args.count,
+        seed=args.seed,
+        llm_paraphrases=args.llm_paraphrases,
+        llm_base_url=args.llm_base_url,
+        llm_model=args.llm_model,
+        overwrite=args.overwrite,
+        concurrency=max(1, args.concurrency),
+    )
+    summary = asyncio.run(generate_prompt_data(config, Path(args.out)))
+    print(summary)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Discovery simulation CLI")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -136,6 +151,36 @@ def main() -> None:
         help="Run up to N episodes in parallel (LM inference). Default 1 (sequential).",
     )
     run.set_defaults(func=_cmd_run)
+
+    prompts = sub.add_parser(
+        "prompts",
+        help="Generate labeled initial-prompt data for training the prompt-injection gate",
+    )
+    prompts.add_argument("--count", type=int, default=1000, help="Target number of rows")
+    prompts.add_argument("--seed", type=int, default=0)
+    prompts.add_argument("--out", default="data/runs/prompts_0")
+    prompts.add_argument(
+        "--llm-paraphrases",
+        type=int,
+        default=0,
+        metavar="N",
+        help="Add N LM Studio paraphrases per task template to the safe pool (0 = deterministic only)",
+    )
+    prompts.add_argument("--llm-base-url", default=None, help="OpenAI-compatible base URL (default LM Studio)")
+    prompts.add_argument("--llm-model", default=None, help="Model id (default LMSTUDIO_MODEL env or local-model)")
+    prompts.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Replace artifacts in --out if they already exist (default: create a new timestamped directory)",
+    )
+    prompts.add_argument(
+        "--concurrency",
+        type=int,
+        default=1,
+        metavar="N",
+        help="Run up to N paraphrase calls in parallel (LM inference). Default 1 (sequential).",
+    )
+    prompts.set_defaults(func=_cmd_prompts)
 
     args = parser.parse_args()
     args.func(args)

@@ -49,9 +49,10 @@ class LmStudioChat(ChatClient):
             "model": self.model,
             "messages": messages,
             "temperature": 0.2,
-            "tools": tools,
-            "tool_choice": "auto",
         }
+        if tools:
+            payload["tools"] = tools
+            payload["tool_choice"] = "auto"
         url = f"{self.base_url}/chat/completions"
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:

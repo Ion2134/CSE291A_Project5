@@ -7,10 +7,10 @@ from typing import Any
 RUN_MARKER = "episodes.jsonl"
 
 
-def resolve_run_dir(requested: Path, seed: int, *, overwrite: bool) -> Path:
+def resolve_run_dir(requested: Path, seed: int, *, overwrite: bool, marker: str = RUN_MARKER) -> Path:
     """Use ``requested`` when empty; otherwise create a sibling dir so runs do not clobber."""
     requested = Path(requested)
-    if overwrite or not (requested / RUN_MARKER).exists():
+    if overwrite or not (requested / marker).exists():
         return requested
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
     name = requested.name or "run"

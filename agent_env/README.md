@@ -65,6 +65,43 @@ discovery-sim run --mode scripted --episodes 100 --seed 42 --out data/runs/scrip
 
 There are 10 banking tasks: balance lookup on two accounts, list accounts, transaction history, account holder lookup, three transfer variants, and two "check balance, then pay" flows. They are defined in `src/discovery_sim/sim/task_defs.py`.
 
+## Generate prompt-gate data
+
+`discovery-sim prompts` writes a labeled dataset of **initial user prompts** — safe and unsafe variants of the ten task templates — for training an input-gate classifier that screens the first user message before the agent runs. This covers *direct* prompt injection at the user hop only; indirect injection through tool outputs is what the episode-level Laya data covers. The episode engine is untouched.
+
+```bash
+# Deterministic only, fully reproducible
+discovery-sim prompts --count 1000 --seed 42 --out data/runs/prompts42
+
+# Add LM Studio paraphrases to diversify the safe pool
+discovery-sim prompts --count 2000 --seed 42 --llm-paraphrases 20 --out data/runs/prompts42_llm
+```
+
+| Flag | Default | Meaning |
+|------|---------|---------|
+| `--count N` | 1000 | Target number of rows, sampled ~50/50 safe/unsafe (deterministic safe pool is a few hundred rows; larger counts need `--llm-paraphrases` to stay balanced) |
+| `--seed S` | 0 | Random seed for sampling, splits, and holdout selection |
+| `--out DIR` | `data/runs/prompts_0` | Output directory |
+| `--llm-paraphrases N` | 0 | Add N LM Studio paraphrases per template to the safe pool. Paraphrases that drop an account/payee id or drift into injection phrasing are rejected |
+| `--llm-base-url`, `--llm-model` | env | Override `LMSTUDIO_BASE_URL` and `LMSTUDIO_MODEL` |
+| `--overwrite` | off | Write into `--out` even if it has a run; otherwise a timestamped sibling is created |
+| `--concurrency N` | 1 | Run up to N paraphrase calls in parallel. Row order is stable, so results match a sequential run modulo LM output variance. A tqdm bar tracks paraphrase progress |
+
+### `prompt_train.jsonl`
+
+One row per prompt:
+
+```json
+{"text": "...", "label": "safe", "attack_family": null, "base_task_id": "agent_transfer", "source": "mutation", "split": "train", "seed": 42}
+```
+
+- **`label`**: `safe` or `unsafe` — what the gate should answer.
+- **`attack_family`**: one of `instruction_override`, `mandate_forgery`, `authority_claim`, `system_probe`, `delimiter_escape`, `encoding_trick` (`null` for safe rows).
+- **`source`**: `template` (raw task text), `mutation` (tone/register rewrites), `hard_negative` (benign phrasing with bait words like "ignore" or "admin", labeled `safe`), `llm_paraphrase`, or `attack`.
+- **`split`**: two whole templates are held out as `test` (stable per seed), so you can measure whether the classifier generalizes to unseen phrasings rather than memorizing templates; the rest split 80/20 into `train`/`val`.
+
+`prompt_manifest.json` records the seed, counts by label/family/source/split, holdout template ids, and LM settings.
+
 ## Output files
 
 Each run directory contains six files. There is one row per **episode** in `episodes.jsonl`, and one row per **tool call** in `examples.jsonl` and `laya_train.jsonl`, so an episode with two tool calls produces two training rows.
