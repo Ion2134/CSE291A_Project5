@@ -5,20 +5,29 @@ from typing import Any
 from discovery_sim.ledger.store import SyntheticLedger
 
 
+def mandate_account_id(mandate: dict[str, Any]) -> str | None:
+    """The account a read tool should target. Transfer mandates name it ``from_account_id``, so a
+    balance check before paying (``get_balance(account_id=<from_account_id>)``) is on-mandate."""
+    return mandate.get("account_id") or mandate.get("from_account_id")
+
+
 def expected_arguments_for_tool(tool_name: str, mandate: dict[str, Any]) -> dict[str, Any]:
+    """Correct arguments for ``tool_name`` under ``mandate``. Never raises: a value the mandate
+    doesn't authorize comes back as None, so an off-mandate call is labeled wrong instead of crashing."""
     if tool_name == "get_balance":
-        return {"account_id": mandate["account_id"]}
+        return {"account_id": mandate_account_id(mandate)}
     if tool_name == "list_accounts":
         return {}
     if tool_name == "get_transactions":
-        return {"account_id": mandate.get("account_id", ""), "limit": 10}
+        return {"account_id": mandate_account_id(mandate) or "", "limit": 10}
     if tool_name == "get_account_holder":
-        return {"account_id": mandate.get("account_id", "")}
+        return {"account_id": mandate_account_id(mandate) or ""}
     if tool_name == "initiate_transfer":
+        amount = mandate.get("amount_cents")
         return {
-            "from_account_id": mandate["from_account_id"],
-            "payee_id": mandate["payee_id"],
-            "amount_cents": int(mandate["amount_cents"]),
+            "from_account_id": mandate.get("from_account_id"),
+            "payee_id": mandate.get("payee_id"),
+            "amount_cents": int(amount) if amount is not None else None,
         }
     if tool_name == "get_payment_status":
         return {"payment_id": mandate.get("payment_id", "")}

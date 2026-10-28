@@ -4,6 +4,7 @@ from typing import Any
 
 from discovery_sim.ledger.store import SyntheticLedger
 from discovery_sim.sim.context import AgentContext
+from discovery_sim.sim.mandate import mandate_account_id
 from discovery_sim.sim.types import AttackSpec, BaseTask, CallRecord, Cause, Labels, OperatorId
 
 
@@ -11,8 +12,8 @@ def _output_matches_mandate(
     task: BaseTask, output: dict[str, Any], ledger: SyntheticLedger | None = None
 ) -> bool:
     if task.tool_name == "get_balance":
-        expected = task.mandate.get("account_id")
-        if output.get("account_id") != expected or "balance_cents" not in output:
+        expected = mandate_account_id(task.mandate)
+        if expected is None or output.get("account_id") != expected or "balance_cents" not in output:
             return False
         if ledger is not None:
             return output.get("balance_cents") == ledger.get_balance(str(expected))["balance_cents"]
@@ -28,11 +29,11 @@ def _output_matches_mandate(
     if task.tool_name == "list_accounts":
         return isinstance(output.get("accounts"), list) and len(output["accounts"]) > 0
     if task.tool_name == "get_transactions":
-        expected = task.mandate.get("account_id")
-        return output.get("account_id") == expected and isinstance(output.get("transactions"), list)
+        expected = mandate_account_id(task.mandate)
+        return expected is not None and output.get("account_id") == expected and isinstance(output.get("transactions"), list)
     if task.tool_name == "get_account_holder":
-        expected = task.mandate.get("account_id")
-        return output.get("account_id") == expected and bool(output.get("holder_name"))
+        expected = mandate_account_id(task.mandate)
+        return expected is not None and output.get("account_id") == expected and bool(output.get("holder_name"))
     return True
 
 

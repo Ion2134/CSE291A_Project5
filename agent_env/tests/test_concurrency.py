@@ -4,7 +4,7 @@ import asyncio
 import json
 
 from discovery_sim.llm.chat import ChatTurn, ToolCallRequest
-from discovery_sim.sim import episode
+from discovery_sim.sim import episode, orchestrator
 from discovery_sim.sim.episode import ERRORS_FILE, run_episodes
 from discovery_sim.sim.run_config import RunConfig
 
@@ -23,7 +23,7 @@ def test_concurrent_scripted_run(tmp_path):
 
 
 class _AlwaysCheckBalanceChat:
-    """Calls get_balance first on every task, which crashes on mandates without account_id."""
+    """Calls get_balance first on every task."""
 
     model_id = "fake"
 
@@ -40,8 +40,14 @@ class _AlwaysCheckBalanceChat:
         return ChatTurn(content="Done.", tool_calls=[])
 
 
+def _buggy_expected_arguments(tool_name, mandate):
+    # Reintroduces the old mandate.py bug (fixed since) to stand in for any simulator crash.
+    return {"account_id": mandate["account_id"]}
+
+
 def test_crashing_episode_is_logged_not_fatal(tmp_path, monkeypatch):
     monkeypatch.setattr(episode, "make_chat_client", lambda *a, **k: _AlwaysCheckBalanceChat())
+    monkeypatch.setattr(orchestrator, "expected_arguments_for_tool", _buggy_expected_arguments)
     out = tmp_path / "crash"
     summary = asyncio.run(run_episodes(RunConfig(episodes=30, seed=1, mode="agent", concurrency=4), out))
 
