@@ -6,7 +6,7 @@ A simulated banking stack for generating labeled training data for **Laya**, a m
 
 There are two models with different jobs:
 
-- **The banking agent** (an LM served by LM Studio) receives a request such as "Pay payee_synth_0007 $50 from acct_synth_0031" and completes it by calling bank and payment tools. This is the system under test.
+- **The banking agent** (an LM served by LM Studio or the TritonAI API) receives a request such as "Pay payee_synth_0007 $50 from acct_synth_0031" and completes it by calling bank and payment tools. This is the system under test.
 - **Laya** (the model you fine-tune on this data) does not do banking. It reads one tool call at a time and answers two questions: did this step produce the correct result, and if not, was the banking agent at fault or did something tamper with the call?
 
 Each episode runs one banking task against a fresh synthetic ledger. Most episodes also inject one **attack** on one tool call, at one of three hops:
@@ -31,13 +31,36 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 ```
 
-## Generate data
+## Model backends
 
-**Agent mode (default):** the LM runs a real tool-calling loop (model, then tool, then tool result back to the model) until it stops calling tools or hits `--max-agent-steps`. Requires LM Studio running with a tool-capable model.
+LM calls go through a chat client chosen with `--llm-backend` on both `run` and `prompts`. Both backends speak the OpenAI `/chat/completions` format.
+
+| Backend | Settings | Notes |
+|---------|----------|-------|
+| `lmstudio` (default) | `LMSTUDIO_BASE_URL` (default `http://127.0.0.1:1234/v1`), `LMSTUDIO_MODEL` | Local LM Studio server, no API key |
+| `triton` | `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `OPENAI_MODEL` | TritonAI hosted API, sent as a Bearer token |
+
+For `triton`, keep the key out of git by putting it in `agent_env/.env`, which is gitignored:
 
 ```bash
+cp .env.example .env   # then fill in the three OPENAI_* values
+```
+
+The client loads `.env` on startup. Variables already set in your shell take precedence. `--llm-base-url` and `--llm-model` override the URL and model for either backend.
+<!-- 
+Agent mode needs a model that supports native tool calling (`tools` / `tool_calls`). To add another backend, subclass `ChatClient` and register it in `make_chat_client` in `src/discovery_sim/llm/chat.py`. -->
+
+## Generate data
+
+**Agent mode (default):** the LM runs a real tool-calling loop (model, then tool, then tool result back to the model) until it stops calling tools or hits `--max-agent-steps`. Requires a tool-capable model on one of the [model backends](#model-backends).
+
+```bash
+# LM Studio
 export LMSTUDIO_MODEL=your-model
 discovery-sim run --episodes 50 --seed 42 --concurrency 4 --out data/runs/run_1
+
+# TritonAI (reads agent_env/.env)
+discovery-sim run --llm-backend triton --episodes 50 --seed 42 --concurrency 4 --out data/runs/triton42
 ```
 
 **Scripted mode:** fixed tool-call templates with injected attacks and no LM. Fast and deterministic, useful for smoke tests.
@@ -58,8 +81,9 @@ discovery-sim run --mode scripted --episodes 100 --seed 42 --out data/runs/scrip
 | `--max-agent-steps N` | 8 | Maximum model turns per episode |
 | `--overwrite` | off | Write into `--out` even if it already has a run. Without this flag, an existing run is kept and the new one goes to a sibling directory such as `run_1-20261020T183045-seed42` |
 | `--single-step-only` | off | Scripted mode only: skip multi-step scenarios |
-| `--llm-samples N` | 0 | Scripted mode only: plan the first N benign episodes with the LM |
-| `--llm-base-url`, `--llm-model` | env | Override `LMSTUDIO_BASE_URL` and `LMSTUDIO_MODEL` |
+| `--llm-samples N` | 0 | Scripted mode only: plan the first N benign episodes with LM Studio (always LM Studio, regardless of `--llm-backend`) |
+| `--llm-backend lmstudio\|triton` | `lmstudio` | Chat client for agent mode (see [Model backends](#model-backends)) |
+| `--llm-base-url`, `--llm-model` | env | Override the backend's base URL and model env vars |
 
 ### Tasks
 
@@ -73,7 +97,7 @@ There are 10 banking tasks: balance lookup on two accounts, list accounts, trans
 # Deterministic only, fully reproducible
 discovery-sim prompts --count 1000 --seed 42 --out data/runs/prompts42
 
-# Add LM Studio paraphrases to diversify the safe pool
+# Add LM paraphrases to diversify the safe pool (add --llm-backend triton to use TritonAI)
 discovery-sim prompts --count 2000 --seed 42 --llm-paraphrases 20 --out data/runs/prompts42_llm
 ```
 
@@ -82,8 +106,9 @@ discovery-sim prompts --count 2000 --seed 42 --llm-paraphrases 20 --out data/run
 | `--count N` | 1000 | Target number of rows, sampled ~50/50 safe/unsafe (deterministic safe pool is a few hundred rows; larger counts need `--llm-paraphrases` to stay balanced) |
 | `--seed S` | 0 | Random seed for sampling, splits, and holdout selection |
 | `--out DIR` | `data/runs/prompts_0` | Output directory |
-| `--llm-paraphrases N` | 0 | Add N LM Studio paraphrases per template to the safe pool. Paraphrases that drop an account/payee id or drift into injection phrasing are rejected |
-| `--llm-base-url`, `--llm-model` | env | Override `LMSTUDIO_BASE_URL` and `LMSTUDIO_MODEL` |
+| `--llm-paraphrases N` | 0 | Add N LM paraphrases per template to the safe pool. Paraphrases that drop an account/payee id or drift into injection phrasing are rejected |
+| `--llm-backend lmstudio\|triton` | `lmstudio` | Chat client for paraphrases (see [Model backends](#model-backends)) |
+| `--llm-base-url`, `--llm-model` | env | Override the backend's base URL and model env vars |
 | `--overwrite` | off | Write into `--out` even if it has a run; otherwise a timestamped sibling is created |
 | `--concurrency N` | 1 | Run up to N paraphrase calls in parallel. Row order is stable, so results match a sequential run modulo LM output variance. A tqdm bar tracks paraphrase progress |
 
@@ -100,7 +125,7 @@ One row per prompt:
 - **`source`**: `template` (raw task text), `mutation` (tone/register rewrites), `hard_negative` (benign phrasing with bait words like "ignore" or "admin", labeled `safe`), `llm_paraphrase`, or `attack`.
 - **`split`**: two whole templates are held out as `test` (stable per seed), so you can measure whether the classifier generalizes to unseen phrasings rather than memorizing templates; the rest split 80/20 into `train`/`val`.
 
-`prompt_manifest.json` records the seed, counts by label/family/source/split, holdout template ids, and LM settings.
+`prompt_manifest.json` records the seed, counts by label/family/source/split, holdout template ids, and LM settings (backend and model).
 
 ## Output files
 
