@@ -89,6 +89,32 @@ class LmStudioChat(ChatClient):
         )
 
 
+class TritonAPIChatClient(ChatClient):
+    def __init__(
+        self,
+        base_url: str | None = None,
+        model: str | None = None,
+        api_key: str | None = None,
+        timeout: float = 120.0,
+    ) -> None:
+        self.base_url = (base_url or os.environ.get("TRITON_BASE_URL", "")).rstrip("/")
+        self.model = model or os.environ.get("TRITON_MODEL", "")
+        self.api_key = api_key or os.environ.get("TRITON_API_KEY")
+        self.timeout = timeout
+        self.model_id = self.model
+
+    async def complete(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> ChatTurn:
+        # TODO: build request payload from messages/tools, POST it, and parse into ChatTurn.
+        # Return ChatTurn(content=None, error=str(exc)) on failure so the orchestrator stops cleanly.
+        raise NotImplementedError
+
+    def _build_payload(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> dict[str, Any]:
+        raise NotImplementedError
+
+    def _parse_response(self, body: dict[str, Any]) -> ChatTurn:
+        raise NotImplementedError
+
+
 class ScriptChatClient(ChatClient):
     """Canned tool-call sequence for tests (no network)."""
 
