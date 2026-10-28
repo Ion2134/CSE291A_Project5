@@ -1,3 +1,0 @@
-[console_scripts]
-discovery-sim = discovery_sim.cli:main
-discovery-sim-agents = discovery_sim.cli:agents_main

@@ -4,9 +4,13 @@ import json
 import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 import httpx
+
+# agent_env/.env (chat.py -> llm -> discovery_sim -> src -> agent_env)
+DEFAULT_ENV_PATH = Path(__file__).resolve().parents[3] / ".env"
 
 
 @dataclass
@@ -22,6 +26,45 @@ class ChatTurn:
     tool_calls: list[ToolCallRequest] = field(default_factory=list)
     raw: dict[str, Any] | None = None
     error: str | None = None
+
+def _parse_chat_completion(body: dict[str, Any]) -> ChatTurn:
+    choices = body.get("choices") or []
+    if not choices:
+        return ChatTurn(content=None, error="empty choices")
+    message = choices[0].get("message") or {}
+    tool_calls_raw = message.get("tool_calls") or []
+    tool_calls: list[ToolCallRequest] = []
+    for tc in tool_calls_raw:
+        fn = tc.get("function") or {}
+        args_text = fn.get("arguments") or "{}"
+        try:
+            args = json.loads(args_text) if isinstance(args_text, str) else dict(args_text)
+        except json.JSONDecodeError:
+            args = {}
+        tool_calls.append(
+            ToolCallRequest(
+                id=str(tc.get("id", "")),
+                name=str(fn.get("name", "")),
+                arguments=args,
+            )
+        )
+    return ChatTurn(
+        content=message.get("content"),
+        tool_calls=tool_calls,
+        raw=body,
+    )
+
+def load_dotenv(path: Path = DEFAULT_ENV_PATH) -> None:
+    if not path.is_file():
+        return
+    for line in path.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip().removeprefix("export ").strip()
+        value = value.strip().strip('"').strip("'")
+        os.environ.setdefault(key, value)
 
 
 class ChatClient(ABC):
@@ -61,35 +104,13 @@ class LmStudioChat(ChatClient):
                 body = response.json()
         except Exception as exc:
             return ChatTurn(content=None, error=str(exc))
-
-        choices = body.get("choices") or []
-        if not choices:
-            return ChatTurn(content=None, error="empty choices")
-        message = choices[0].get("message") or {}
-        tool_calls_raw = message.get("tool_calls") or []
-        tool_calls: list[ToolCallRequest] = []
-        for tc in tool_calls_raw:
-            fn = tc.get("function") or {}
-            args_text = fn.get("arguments") or "{}"
-            try:
-                args = json.loads(args_text) if isinstance(args_text, str) else dict(args_text)
-            except json.JSONDecodeError:
-                args = {}
-            tool_calls.append(
-                ToolCallRequest(
-                    id=str(tc.get("id", "")),
-                    name=str(fn.get("name", "")),
-                    arguments=args,
-                )
-            )
-        return ChatTurn(
-            content=message.get("content"),
-            tool_calls=tool_calls,
-            raw=body,
-        )
+        return _parse_chat_completion(body)
 
 
 class TritonAPIChatClient(ChatClient):
+    """OpenAI-compatible TritonAI endpoint. Reads OPENAI_API_KEY / OPENAI_BASE_URL / OPENAI_MODEL,
+    falling back to agent_env/.env (gitignored) for any that aren't already set."""
+
     def __init__(
         self,
         base_url: str | None = None,
@@ -97,23 +118,36 @@ class TritonAPIChatClient(ChatClient):
         api_key: str | None = None,
         timeout: float = 120.0,
     ) -> None:
-        self.base_url = (base_url or os.environ.get("TRITON_BASE_URL", "")).rstrip("/")
-        self.model = model or os.environ.get("TRITON_MODEL", "")
-        self.api_key = api_key or os.environ.get("TRITON_API_KEY")
+        load_dotenv()
+        self.base_url = (base_url or os.environ.get("OPENAI_BASE_URL", "")).rstrip("/")
+        self.model = model or os.environ.get("OPENAI_MODEL", "")
+        self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
         self.timeout = timeout
         self.model_id = self.model
+        if not self.base_url or not self.api_key or not self.model:
+            raise ValueError("TritonAPIChatClient needs OPENAI_BASE_URL, OPENAI_API_KEY and OPENAI_MODEL (env or .env)")
 
     async def complete(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> ChatTurn:
-        # TODO: build request payload from messages/tools, POST it, and parse into ChatTurn.
-        # Return ChatTurn(content=None, error=str(exc)) on failure so the orchestrator stops cleanly.
-        raise NotImplementedError
-
-    def _build_payload(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> dict[str, Any]:
-        raise NotImplementedError
-
-    def _parse_response(self, body: dict[str, Any]) -> ChatTurn:
-        raise NotImplementedError
-
+        payload: dict[str, Any] = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": 0.2,
+        }
+        if tools:
+            payload["tools"] = tools
+            payload["tool_choice"] = "auto"
+        url = f"{self.base_url}/chat/completions"
+        headers = {"Authorization": f"Bearer {self.api_key}"}
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.post(url, json=payload, headers=headers)
+                response.raise_for_status()
+                body = response.json()
+        except httpx.HTTPStatusError as exc:
+            return ChatTurn(content=None, error=f"{exc.response.status_code}: {exc.response.text[:500]}")
+        except Exception as exc:
+            return ChatTurn(content=None, error=str(exc))
+        return _parse_chat_completion(body)
 
 class ScriptChatClient(ChatClient):
     """Canned tool-call sequence for tests (no network)."""
