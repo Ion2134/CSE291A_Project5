@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
+from discovery_sim.llm.chat import ChatBackend
+
 
 @dataclass
 class RunConfig:
@@ -11,6 +13,7 @@ class RunConfig:
     mode: Literal["agent", "scripted"] = "agent"
     max_agent_steps: int = 8
     llm_samples: int = 0
+    llm_backend: ChatBackend = "lmstudio"
     llm_base_url: str | None = None
     llm_model: str | None = None
     multi_step: bool = True

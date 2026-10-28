@@ -5,13 +5,9 @@ import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import httpx
-
-# agent_env/.env (chat.py -> llm -> discovery_sim -> src -> agent_env)
-DEFAULT_ENV_PATH = Path(__file__).resolve().parents[3] / ".env"
-
 
 @dataclass
 class ToolCallRequest:
@@ -26,6 +22,21 @@ class ChatTurn:
     tool_calls: list[ToolCallRequest] = field(default_factory=list)
     raw: dict[str, Any] | None = None
     error: str | None = None
+
+
+# agent_env/.env (chat.py -> llm -> discovery_sim -> src -> agent_env)
+DEFAULT_ENV_PATH = Path(__file__).resolve().parents[3] / ".env"
+
+ChatBackend = Literal["lmstudio", "triton"]
+CHAT_BACKENDS: tuple[str, ...] = ("lmstudio", "triton")
+
+
+def make_chat_client(backend: ChatBackend, base_url: str | None = None, model: str | None = None) -> ChatClient:
+    if backend == "lmstudio":
+        return LmStudioChat(base_url=base_url, model=model)
+    if backend == "triton":
+        return TritonAPIChat(base_url=base_url, model=model)
+    raise ValueError(f"unknown chat backend {backend!r}; expected one of {CHAT_BACKENDS}")
 
 def _parse_chat_completion(body: dict[str, Any]) -> ChatTurn:
     choices = body.get("choices") or []
@@ -107,7 +118,7 @@ class LmStudioChat(ChatClient):
         return _parse_chat_completion(body)
 
 
-class TritonAPIChatClient(ChatClient):
+class TritonAPIChat(ChatClient):
     """OpenAI-compatible TritonAI endpoint. Reads OPENAI_API_KEY / OPENAI_BASE_URL / OPENAI_MODEL,
     falling back to agent_env/.env (gitignored) for any that aren't already set."""
 

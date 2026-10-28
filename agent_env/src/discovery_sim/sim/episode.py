@@ -11,7 +11,7 @@ from tqdm import tqdm
 from tqdm.asyncio import tqdm_asyncio
 
 from discovery_sim.llm.base import LlmPlanner
-from discovery_sim.llm.chat import ChatClient, LmStudioChat
+from discovery_sim.llm.chat import ChatClient, make_chat_client
 from discovery_sim.llm.lmstudio import LmStudioPlanner
 from discovery_sim.llm.template import TemplatePlanner
 from discovery_sim.ledger.store import SyntheticLedger
@@ -71,7 +71,7 @@ class EpisodeRunner:
     def _chat_for_episode(self) -> ChatClient:
         if self._chat_client is not None:
             return self._chat_client
-        return LmStudioChat(base_url=self.config.llm_base_url, model=self.config.llm_model)
+        return make_chat_client(self.config.llm_backend, base_url=self.config.llm_base_url, model=self.config.llm_model)
 
     def _planner_for_episode(self, episode_index: int) -> LlmPlanner:
         if episode_index < self.config.llm_samples:

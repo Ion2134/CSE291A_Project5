@@ -10,6 +10,7 @@ from discovery_sim.agents.bank import BankAgent
 from discovery_sim.agents.chatbot import ChatbotAgent
 from discovery_sim.agents.payment import PaymentAgent
 from discovery_sim.ledger.store import SyntheticLedger
+from discovery_sim.llm.chat import CHAT_BACKENDS
 from discovery_sim.sim.episode import run_episodes
 from discovery_sim.sim.prompt_data import PromptGenConfig, generate_prompt_data
 from discovery_sim.sim.run_config import RunConfig
@@ -74,6 +75,7 @@ def _cmd_run(args: argparse.Namespace) -> None:
         mode=args.mode,
         max_agent_steps=args.max_agent_steps,
         llm_samples=args.llm_samples,
+        llm_backend=args.llm_backend,
         llm_base_url=args.llm_base_url,
         llm_model=args.llm_model,
         multi_step=not args.single_step_only,
@@ -89,6 +91,7 @@ def _cmd_prompts(args: argparse.Namespace) -> None:
         count=args.count,
         seed=args.seed,
         llm_paraphrases=args.llm_paraphrases,
+        llm_backend=args.llm_backend,
         llm_base_url=args.llm_base_url,
         llm_model=args.llm_model,
         overwrite=args.overwrite,
@@ -131,6 +134,12 @@ def main() -> None:
         default=0,
         help="First N episodes plan tool calls via LM Studio (benign only; mismatches dropped)",
     )
+    run.add_argument(
+        "--llm-backend",
+        choices=CHAT_BACKENDS,
+        default="lmstudio",
+        help="Chat client for agent mode: lmstudio (local) or triton (OPENAI_* env / .env)",
+    )
     run.add_argument("--llm-base-url", default=None, help="OpenAI-compatible base URL (default LM Studio)")
     run.add_argument("--llm-model", default=None, help="Model id (default LMSTUDIO_MODEL env or local-model)")
     run.add_argument(
@@ -165,6 +174,12 @@ def main() -> None:
         default=0,
         metavar="N",
         help="Add N LM Studio paraphrases per task template to the safe pool (0 = deterministic only)",
+    )
+    prompts.add_argument(
+        "--llm-backend",
+        choices=CHAT_BACKENDS,
+        default="lmstudio",
+        help="Chat client for paraphrases: lmstudio (local) or triton (OPENAI_* env / .env)",
     )
     prompts.add_argument("--llm-base-url", default=None, help="OpenAI-compatible base URL (default LM Studio)")
     prompts.add_argument("--llm-model", default=None, help="Model id (default LMSTUDIO_MODEL env or local-model)")

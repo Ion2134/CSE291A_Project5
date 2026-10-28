@@ -105,7 +105,7 @@ class _EchoChat:
 
 
 def test_llm_paraphrases_accepted_with_concurrency(tmp_path, monkeypatch):
-    monkeypatch.setattr(prompt_data, "LmStudioChat", _FakeChat)
+    monkeypatch.setattr(prompt_data, "make_chat_client", lambda *a, **k: _FakeChat())
     out = tmp_path / "llm"
     summary = asyncio.run(
         prompt_data.generate_prompt_data(
@@ -120,7 +120,7 @@ def test_llm_paraphrases_accepted_with_concurrency(tmp_path, monkeypatch):
 
 
 def test_llm_paraphrases_rejected_when_invalid(tmp_path, monkeypatch):
-    monkeypatch.setattr(prompt_data, "LmStudioChat", _EchoChat)
+    monkeypatch.setattr(prompt_data, "make_chat_client", lambda *a, **k: _EchoChat())
     out = tmp_path / "echo"
     asyncio.run(
         prompt_data.generate_prompt_data(

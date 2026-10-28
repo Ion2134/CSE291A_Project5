@@ -19,6 +19,7 @@ class StepSpec:
         return dict(self.arguments)
 
     def to_base_task(self, scenario: EpisodeScenario, step_index: int) -> BaseTask:
+        assert scenario.context is not None
         args = self.resolve_arguments(scenario.context)
         return BaseTask(
             task_id=f"{scenario.scenario_id}_step{step_index}",

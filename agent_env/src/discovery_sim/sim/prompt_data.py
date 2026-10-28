@@ -21,7 +21,7 @@ from typing import Any
 from tqdm import tqdm
 from tqdm.asyncio import tqdm_asyncio
 
-from discovery_sim.llm.chat import LmStudioChat
+from discovery_sim.llm.chat import ChatBackend, make_chat_client
 from discovery_sim.sim.run_output import resolve_run_dir
 from discovery_sim.sim.task_defs import TaskDef, all_task_defs
 
@@ -65,6 +65,7 @@ class PromptGenConfig:
     count: int = 1000
     seed: int = 0
     llm_paraphrases: int = 0
+    llm_backend: ChatBackend = "lmstudio"
     llm_base_url: str | None = None
     llm_model: str | None = None
     overwrite: bool = False
@@ -323,7 +324,7 @@ def _valid_paraphrase(source: str, paraphrase: str) -> bool:
 
 
 async def _llm_paraphrase_rows(config: PromptGenConfig, tasks: list[TaskDef]) -> list[PromptRow]:
-    chat = LmStudioChat(base_url=config.llm_base_url, model=config.llm_model)
+    chat = make_chat_client(config.llm_backend, base_url=config.llm_base_url, model=config.llm_model)
     jobs = [task for task in tasks for _ in range(config.llm_paraphrases)]
 
     async def _paraphrase(task: TaskDef) -> PromptRow | None:
@@ -466,6 +467,7 @@ async def generate_prompt_data(config: PromptGenConfig, out_dir: Path) -> dict[s
         "split_counts": dict(Counter(row.split for row in rows)),
         "holdout_task_ids": sorted(holdout_ids),
         "llm_paraphrases": config.llm_paraphrases,
+        "llm_backend": config.llm_backend,
         "llm_model": config.llm_model,
         "concurrency": max(1, config.concurrency),
         "out_dir": str(out_dir),
