@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from discovery_sim.llm.chat import ChatClient, ChatTurn, ToolCallRequest
-from discovery_sim.mcp.openai_tools import all_openai_tools, parse_tool_name
+from discovery_sim.mcp.openai_tools import all_openai_tools, parse_tool_name, validate_tool_call
 from discovery_sim.sim.context import AgentContext
 from discovery_sim.sim.harness import AgentPool, execute_tool_call
 from discovery_sim.sim.labels import label_call, laya_state
@@ -29,11 +29,28 @@ Call tools as needed to fulfill the user request. Use tool names exactly as prov
 When the task is complete, reply with a short summary and do not call more tools."""
 
 
+class ToolCallError(Exception):
+    def __init__(
+        self,
+        call_index: int,
+        tool_name: str,
+        arguments: dict[str, Any],
+        conversation: list[dict[str, Any]],
+    ) -> None:
+        super().__init__(f"tool call {call_index} ({tool_name}) failed")
+        self.call_index = call_index
+        self.tool_name = tool_name
+        self.arguments = arguments
+        self.conversation = conversation
+
+
 @dataclass
 class AgentRunResult:
     records: list[CallRecord] = field(default_factory=list)
     examples: list[LabeledExample] = field(default_factory=list)
     messages: list[dict[str, Any]] = field(default_factory=list)
+    # Tool calls the model malformed; each was answered with an error so the model could retry.
+    malformed_calls: list[dict[str, Any]] = field(default_factory=list)
     task_completed: bool = False
     task_correct: bool = False
     failure_call_index: int | None = None
@@ -70,7 +87,7 @@ class AgentOrchestrator:
         result = AgentRunResult(messages=messages, planner_id=getattr(self.chat, "model_id", "unknown"))
         tool_round = 0
 
-        for _step in range(self.max_steps):
+        for step in range(self.max_steps):
             turn = await self.chat.complete(messages, self.tools)
             if turn.error:
                 result.failure_call_index = tool_round
@@ -78,6 +95,8 @@ class AgentOrchestrator:
 
             if turn.tool_calls:
                 tc = turn.tool_calls[0]
+                # Echo back what the model actually sent, so a retry sees its own mistake.
+                sent_args = tc.raw_arguments if tc.raw_arguments is not None else json.dumps(tc.arguments)
                 messages.append(
                     {
                         "role": "assistant",
@@ -86,22 +105,50 @@ class AgentOrchestrator:
                             {
                                 "id": tc.id,
                                 "type": "function",
-                                "function": {"name": tc.name, "arguments": json.dumps(tc.arguments)},
+                                "function": {"name": tc.name, "arguments": sent_args},
                             }
                         ],
                     }
                 )
+                problem = tc.parse_error or validate_tool_call(tc.name, tc.arguments)
+                if problem:
+                    # Model failure: report the error to the model and let it retry. Doesn't
+                    # consume a tool round, so the attack schedule still targets real calls.
+                    result.malformed_calls.append(
+                        {
+                            "task_id": task.task_id,
+                            "step": step,
+                            "tool_round": tool_round,
+                            "tool_name": tc.name,
+                            "raw_arguments": sent_args,
+                            "error": problem,
+                            "conversation": _conversation_snapshot(messages),
+                        }
+                    )
+                    messages.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": tc.id,
+                            "content": json.dumps({"error": f"invalid tool call: {problem}"}),
+                        }
+                    )
+                    continue
                 step_attack = attack if tool_round == fault_call_index else catalog[OperatorId.BENIGN]
-                record, example = await self._execute_model_tool_call(
-                    task,
-                    pool,
-                    context,
-                    tc,
-                    step_attack,
-                    tool_round,
-                    seed,
-                    messages,
-                )
+                try:
+                    record, example = await self._execute_model_tool_call(
+                        task,
+                        pool,
+                        context,
+                        tc,
+                        step_attack,
+                        tool_round,
+                        seed,
+                        messages,
+                    )
+                except Exception as exc:
+                    raise ToolCallError(
+                        tool_round, tc.name, tc.arguments, _conversation_snapshot(messages)
+                    ) from exc
                 result.records.append(record)
                 result.examples.append(example)
                 messages.append(
@@ -249,4 +296,7 @@ def agent_episode_outcome(
         attack_applied=attack_applied,
         records=run.records,
         examples=run.examples,
+        malformed_calls=run.malformed_calls,
+        # Not an attack: the model itself malformed a call and the episode didn't recover.
+        model_failure=bool(run.malformed_calls) and not run.task_correct,
     )

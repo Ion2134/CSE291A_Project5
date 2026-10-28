@@ -14,6 +14,9 @@ class ToolCallRequest:
     id: str
     name: str
     arguments: dict[str, Any]
+    # Exactly what the model sent, and why it couldn't be parsed into ``arguments`` (if it couldn't).
+    raw_arguments: str | None = None
+    parse_error: str | None = None
 
 
 @dataclass
@@ -48,15 +51,21 @@ def _parse_chat_completion(body: dict[str, Any]) -> ChatTurn:
     for tc in tool_calls_raw:
         fn = tc.get("function") or {}
         args_text = fn.get("arguments") or "{}"
+        raw_args = args_text if isinstance(args_text, str) else json.dumps(args_text)
+        parse_error: str | None = None
         try:
-            args = json.loads(args_text) if isinstance(args_text, str) else dict(args_text)
-        except json.JSONDecodeError:
-            args = {}
+            parsed = json.loads(args_text) if isinstance(args_text, str) else args_text
+        except json.JSONDecodeError as exc:
+            parsed, parse_error = {}, f"arguments are not valid JSON: {exc}"
+        if parse_error is None and not isinstance(parsed, dict):
+            parsed, parse_error = {}, f"arguments must be a JSON object, got {type(parsed).__name__}"
         tool_calls.append(
             ToolCallRequest(
                 id=str(tc.get("id", "")),
                 name=str(fn.get("name", "")),
-                arguments=args,
+                arguments=parsed,
+                raw_arguments=raw_args,
+                parse_error=parse_error,
             )
         )
     return ChatTurn(

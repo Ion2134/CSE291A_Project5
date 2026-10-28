@@ -129,7 +129,7 @@ One row per prompt:
 
 ## Output files
 
-Each run directory contains six files. There is one row per **episode** in `episodes.jsonl`, and one row per **tool call** in `examples.jsonl` and `laya_train.jsonl`, so an episode with two tool calls produces two training rows.
+Each run directory contains six files, plus `malformed_calls.jsonl` and `errors.jsonl` when [something fails that isn't an attack](#failures-that-arent-attacks). There is one row per **episode** in `episodes.jsonl`, and one row per **tool call** in `examples.jsonl` and `laya_train.jsonl`, so an episode with two tool calls produces two training rows.
 
 ### `laya_train.jsonl` (training data)
 
@@ -180,6 +180,8 @@ Episode outcomes used for the baseline:
 | `silent_wrong` | Completed but not correct: the agent finished confidently with a wrong result |
 | `hard_fail` | Did not complete, because of an LM or tool error |
 | `absorbed` | Attacked, but the episode still ended correct |
+| `malformed_calls` | Number of tool calls the model malformed (see [`malformed_calls.jsonl`](#malformed_callsjsonl-model-failures)) |
+| `model_failure` | The model malformed at least one call and the episode did not end correct. A model failure, not an attack |
 
 In agent mode `hard_fail` is almost always false. Attacks return plausible-looking data rather than errors, so the agent keeps going and the failure shows up as `silent_wrong`.
 
@@ -191,7 +193,23 @@ Aggregate rates over attacked (non-benign) episodes, with no recovery or monitor
 - `task_correct_rate`, `silent_wrong_rate`, `hard_fail_rate`: outcome rates over attacked episodes.
 - `*_applied_only`: the same rates restricted to episodes where the attack ran.
 - `by_operator`, `by_hop`: the same rates broken down by attack type and hop.
+- `malformed_call_count`, `model_failure_episodes`: model failures over **all** episodes, benign included.
+- `episode_errors`: episodes that crashed the simulator (see [`errors.jsonl`](#errorsjsonl-simulator-crashes)).
 - Run settings: `mode`, `concurrency`, `max_agent_steps`, and `dropped_llm_mismatch` (scripted mode episodes dropped because the LM's plan didn't match the template).
+
+### Failures that aren't attacks
+
+Two more files are written only when something goes wrong. They separate failures that aren't attacks into the model's fault and ours:
+
+#### `malformed_calls.jsonl` (model failures)
+
+Before running a tool call, the agent loop checks it against the tool schema: known tool name, arguments that parse as a JSON object, required arguments present, no unexpected arguments, and the right types and ranges. A call that fails is never run. The model gets a `tool` message with the error (for example `{"error": "invalid tool call: missing required argument(s): account_id"}`) and can retry, up to `--max-agent-steps`. A malformed call doesn't use up a tool round, so the attack still lands on a real call.
+
+One row per malformed call: `episode_id`, `task_id`, `operator`, `step`, `tool_name`, `raw_arguments` (exactly what the model sent), `error`, `recovered` (whether the episode still ended correct), and `conversation` up to the bad call. These calls produce no Laya training rows.
+
+#### `errors.jsonl` (simulator crashes)
+
+A well-formed call that still raises an exception is a simulator bug. The episode is skipped and the rest of the run is still written. One row per crashed episode: the task (`task_id`, `template`, `user_message`, `mandate`), `operator`, the model's `tool_call`, `conversation` up to the crash, and the original `error_type`, `error`, and `traceback`.
 
 ### `run_manifest.json`
 

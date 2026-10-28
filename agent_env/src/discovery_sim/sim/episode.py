@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import random
+import traceback
 import uuid
 from pathlib import Path
 from typing import Any
@@ -21,7 +22,7 @@ from discovery_sim.sim.harness import AgentPool, execute_tool_call
 from discovery_sim.sim.labels import label_call, laya_state
 from discovery_sim.sim.operators import operator_catalog, pick_operator
 from discovery_sim.sim.fault_schedule import pick_agent_fault_call_index
-from discovery_sim.sim.orchestrator import AgentOrchestrator, agent_episode_outcome
+from discovery_sim.sim.orchestrator import AgentOrchestrator, ToolCallError, agent_episode_outcome
 from discovery_sim.sim.run_config import RunConfig
 from discovery_sim.sim.run_output import resolve_run_dir, write_run_manifest
 from discovery_sim.sim.scenarios import EpisodeScenario, all_scenarios, tool_call_from_planned
@@ -47,6 +48,32 @@ LAYA_QUESTIONS = {
         },
     },
 }
+
+
+# Simulator crashes (our bugs) vs. tool calls the model malformed (model failures).
+ERRORS_FILE = "errors.jsonl"
+MALFORMED_CALLS_FILE = "malformed_calls.jsonl"
+
+
+class EpisodeError(Exception):
+    def __init__(self, details: dict[str, Any]) -> None:
+        super().__init__(f"episode failed on task {details.get('task_id')}")
+        self.details = details
+
+
+def _error_record(episode_index: int, exc: Exception) -> dict[str, Any]:
+    details = exc.details if isinstance(exc, EpisodeError) else {}
+    # Report the innermost exception (e.g. the KeyError), not our wrappers.
+    root: BaseException = exc
+    while isinstance(root, (EpisodeError, ToolCallError)) and root.__cause__ is not None:
+        root = root.__cause__
+    return {
+        "episode_index": episode_index,
+        **details,
+        "error_type": type(root).__name__,
+        "error": str(root),
+        "traceback": "".join(traceback.format_exception(type(root), root, root.__traceback__)),
+    }
 
 
 class EpisodeRunner:
@@ -123,8 +150,26 @@ class EpisodeRunner:
 
         pool = AgentPool(SyntheticLedger())
         orchestrator = AgentOrchestrator(self._chat_for_episode(), max_steps=self.config.max_agent_steps)
-        run = await orchestrator.run_episode(task, pool, attack, fault_call_index, self.seed)
-        if not run.records and not run.task_completed:
+        try:
+            run = await orchestrator.run_episode(task, pool, attack, fault_call_index, self.seed)
+        except Exception as exc:
+            details: dict[str, Any] = {
+                "task_id": task.task_id,
+                "template": task.template,
+                "user_message": task.user_message,
+                "mandate": task.mandate,
+                "operator": attack.operator.value,
+                "fault_call_index": fault_call_index,
+            }
+            if isinstance(exc, ToolCallError):
+                details["tool_call"] = {
+                    "call_index": exc.call_index,
+                    "tool_name": exc.tool_name,
+                    "arguments": exc.arguments,
+                }
+                details["conversation"] = exc.conversation
+            raise EpisodeError(details) from exc
+        if not run.records and not run.task_completed and not run.malformed_calls:
             return None
         return agent_episode_outcome(task, attack, fault_call_index, self.seed, run)
 
@@ -318,15 +363,26 @@ async def run_episodes(config: RunConfig, out_dir: Path) -> dict[str, Any]:
     out_dir.mkdir(parents=True, exist_ok=True)
     runner = EpisodeRunner(seed=config.seed, config=config)
     episodes: list[EpisodeOutcome] = []
+    errors: list[dict[str, Any]] = []
     dropped_llm = 0
     workers = max(1, config.concurrency)
 
     async def _run_episode_index(i: int) -> tuple[int, EpisodeOutcome | None]:
-        if workers > 1:
-            ep_rng = EpisodeRunner._parallel_episode_rng(config.seed, i)
-            ep = await runner.run_one(episode_index=i, episode_rng=ep_rng)
-        else:
-            ep = await runner.run_one(episode_index=i)
+        try:
+            if workers > 1:
+                ep_rng = EpisodeRunner._parallel_episode_rng(config.seed, i)
+                ep = await runner.run_one(episode_index=i, episode_rng=ep_rng)
+            else:
+                ep = await runner.run_one(episode_index=i)
+        except Exception as exc:
+            # One crashing episode must not discard the rest of the run.
+            record = _error_record(i, exc)
+            errors.append(record)
+            tqdm.write(
+                f"episode {i} failed ({record.get('task_id', '?')}): "
+                f"{record['error_type']}: {record['error']}"
+            )
+            return i, None
         return i, ep
 
     if workers > 1:
@@ -353,6 +409,24 @@ async def run_episodes(config: RunConfig, out_dir: Path) -> dict[str, Any]:
                 dropped_llm += 1
                 continue
             episodes.append(ep)
+    # Crashed episodes also come back as None; don't count them as LM-plan mismatches.
+    dropped_llm -= len(errors)
+    errors.sort(key=lambda rec: rec["episode_index"])
+
+    if errors:
+        with (out_dir / ERRORS_FILE).open("w") as fh:
+            for rec in errors:
+                fh.write(json.dumps(rec) + "\n")
+
+    malformed = [
+        {"episode_id": ep.episode_id, "operator": ep.operator.value, "recovered": not ep.model_failure, **call}
+        for ep in episodes
+        for call in ep.malformed_calls
+    ]
+    if malformed:
+        with (out_dir / MALFORMED_CALLS_FILE).open("w") as fh:
+            for rec in malformed:
+                fh.write(json.dumps(rec) + "\n")
 
     episodes_path = out_dir / "episodes.jsonl"
     examples_path = out_dir / "examples.jsonl"
@@ -382,6 +456,7 @@ async def run_episodes(config: RunConfig, out_dir: Path) -> dict[str, Any]:
     baseline = _baseline_from_episodes(episodes, config.seed, config.episodes)
     baseline["mode"] = config.mode
     baseline["dropped_llm_mismatch"] = dropped_llm
+    baseline["episode_errors"] = len(errors)
     baseline["llm_samples_requested"] = config.llm_samples
     baseline["max_agent_steps"] = config.max_agent_steps
     baseline["concurrency"] = workers
@@ -404,6 +479,8 @@ async def run_episodes(config: RunConfig, out_dir: Path) -> dict[str, Any]:
         "episodes": len(episodes),
         "requested": config.episodes,
         "dropped_llm": dropped_llm,
+        "errors": len(errors),
+        "model_failures": baseline["model_failure_episodes"],
         "concurrency": workers,
         "out_dir": str(out_dir),
         "baseline": baseline,
@@ -427,6 +504,8 @@ def _episode_to_json(ep: EpisodeOutcome) -> dict[str, Any]:
         "failure_call_index": ep.failure_call_index,
         "attack_applied": ep.attack_applied,
         "num_calls": len(ep.records),
+        "malformed_calls": len(ep.malformed_calls),
+        "model_failure": ep.model_failure,
         "mode": ep.examples[0].meta.get("mode") if ep.examples else None,
     }
 
@@ -461,6 +540,9 @@ def _baseline_from_episodes(episodes: list[EpisodeOutcome], seed: int, count: in
         "hard_fail_rate": sum(1 for e in attacked if e.hard_fail) / n,
         "task_correct_rate_applied_only": sum(1 for e in applied if e.task_correct) / n_applied,
         "silent_wrong_rate_applied_only": sum(1 for e in applied if e.silent_wrong) / n_applied,
+        # Over all episodes (benign included): the model malformed calls, independent of any attack.
+        "malformed_call_count": sum(len(e.malformed_calls) for e in episodes),
+        "model_failure_episodes": sum(1 for e in episodes if e.model_failure),
         "by_operator": _group_rates(attacked, lambda e: e.operator.value),
         "by_hop": _group_rates(attacked, lambda e: e.fault_hop or "none"),
     }

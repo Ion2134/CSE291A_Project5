@@ -100,3 +100,5 @@ class EpisodeOutcome:
     records: list[CallRecord]
     examples: list[LabeledExample]
     attack_applied: bool = False
+    malformed_calls: list[dict[str, Any]] = field(default_factory=list)
+    model_failure: bool = False
