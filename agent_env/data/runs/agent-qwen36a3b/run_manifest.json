@@ -1,0 +1,11 @@
+{
+  "seed": 42,
+  "episodes": 50,
+  "mode": "agent",
+  "max_agent_steps": 8,
+  "multi_step": true,
+  "llm_samples": 0,
+  "concurrency": 4,
+  "task_count": 10,
+  "out_dir": "data/runs/agent-qwen36a3b"
+}

@@ -1,0 +1,66 @@
+{
+  "seed": 42,
+  "episode_count": 20,
+  "episodes_written": 20,
+  "task_correct_rate": 0.8235294117647058,
+  "silent_wrong_rate": 0.17647058823529413,
+  "hard_fail_rate": 0.0,
+  "by_operator": {
+    "llm_wrong_account": {
+      "count": 4,
+      "silent_wrong_rate": 0.5,
+      "hard_fail_rate": 0.0
+    },
+    "a2a_toolset_mismatch": {
+      "count": 2,
+      "silent_wrong_rate": 0.0,
+      "hard_fail_rate": 0.0
+    },
+    "llm_wrong_amount": {
+      "count": 2,
+      "silent_wrong_rate": 0.0,
+      "hard_fail_rate": 0.0
+    },
+    "mcp_output_injection": {
+      "count": 2,
+      "silent_wrong_rate": 0.5,
+      "hard_fail_rate": 0.0
+    },
+    "a2a_call_intercepted": {
+      "count": 2,
+      "silent_wrong_rate": 0.0,
+      "hard_fail_rate": 0.0
+    },
+    "hard_negative_reencode": {
+      "count": 2,
+      "silent_wrong_rate": 0.0,
+      "hard_fail_rate": 0.0
+    },
+    "mcp_io_mismatch": {
+      "count": 3,
+      "silent_wrong_rate": 0.0,
+      "hard_fail_rate": 0.0
+    }
+  },
+  "by_hop": {
+    "llm": {
+      "count": 6,
+      "silent_wrong_rate": 0.3333333333333333,
+      "hard_fail_rate": 0.0
+    },
+    "a2a": {
+      "count": 6,
+      "silent_wrong_rate": 0.0,
+      "hard_fail_rate": 0.0
+    },
+    "mcp": {
+      "count": 5,
+      "silent_wrong_rate": 0.2,
+      "hard_fail_rate": 0.0
+    }
+  },
+  "mode": "agent",
+  "dropped_llm_mismatch": 0,
+  "llm_samples_requested": 0,
+  "max_agent_steps": 8
+}
