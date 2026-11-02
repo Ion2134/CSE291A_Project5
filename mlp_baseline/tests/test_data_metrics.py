@@ -103,4 +103,3 @@ def test_mlp_vocabulary_does_not_learn_from_validation(tmp_path, rows):
     after = load_mlp(tmp_path).predict(splits["test"])
     for x, y in zip(before, after):
         np.testing.assert_array_equal(x, y)
-
