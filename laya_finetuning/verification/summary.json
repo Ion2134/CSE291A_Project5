@@ -1,0 +1,22 @@
+{
+  "status": "passed",
+  "test_count": 10,
+  "test_command": "python -m pytest -q laya_finetuning/tests",
+  "python": "3.12.4",
+  "platform": "Darwin arm64",
+  "environment": "isolated project .venv-training",
+  "pretrained_parameters_from_safetensors_header": 421293830,
+  "pretrained_weights_loaded": false,
+  "pretrained_training_run": false,
+  "cuda_training_tested": false,
+  "tiny_random_checkpoint_training_tested": [
+    "full encoder and head: injection",
+    "frozen encoder: injection",
+    "full encoder and head: banking"
+  ],
+  "real_data_checks": {
+    "injection": "8893/1064/1178, no skipped questions, no truncated states",
+    "banking": "31/10/11, no skipped questions, no truncated states"
+  },
+  "script_sha256": "514a585d170dc2430d8df127493393ce1a3cb68fafd65d36b44b3137eac7fbf7"
+}
