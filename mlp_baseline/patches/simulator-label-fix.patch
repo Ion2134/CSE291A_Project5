@@ -1,0 +1,15 @@
+diff --git a/agent_env/src/discovery_sim/sim/labels.py b/agent_env/src/discovery_sim/sim/labels.py
+index 6eb9034..6704630 100644
+--- a/agent_env/src/discovery_sim/sim/labels.py
++++ b/agent_env/src/discovery_sim/sim/labels.py
+@@ -93,7 +93,9 @@ def label_call(task: BaseTask, record: CallRecord, ledger: SyntheticLedger | Non
+                 severity="high",
+             )
+ 
+-    if attack.operator == OperatorId.MCP_IO_MISMATCH and llm_ok:
++    # The IO attack only changes balance lookups. Other tools (and equal-valued
++    # balances) can return a correct result even when this attack was scheduled.
++    if attack.operator == OperatorId.MCP_IO_MISMATCH and llm_ok and not output_correct:
+         return Labels(
+             output_correct=False,
+             cause="adversary",

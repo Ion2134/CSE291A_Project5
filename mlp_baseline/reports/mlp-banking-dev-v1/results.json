@@ -1,0 +1,518 @@
+{
+  "status": "complete",
+  "task": "banking_monitor",
+  "development_only": true,
+  "device": "cpu",
+  "seed": 42,
+  "data": {
+    "seed": 42,
+    "strategy": "group_by_normalized_user_request",
+    "fractions_requested": {
+      "val": 0.2,
+      "test": 0.2
+    },
+    "splits": {
+      "val": {
+        "rows": 10,
+        "groups": [
+          "7468b6e1d8566448bd1cbe906ae132e699dee775dd798b8961f92a6d7af65918",
+          "03c4abf619084ae21105b002a62f57529a6a3f982591983a3567ce5ab8e671f0"
+        ],
+        "input_ids": [
+          "efb78b4ca3ceaa956c4e65ec62ee4baa73f7d3ac1449a80b41f24e799c9652c5",
+          "255acb9b28bedba5a714aff59780183d2292f47e9d240e48fb15fc26558e3711",
+          "c909551a7914502e3a87e831fd93cdd42cb79adec78c931c34615aa8ab107696",
+          "9022d8aacc4fce0fc8c274f9cfc4777babf428d6e7a45a64f2848857fdbd8f69",
+          "e4ffb389ed8bb1921a9cf47c65485ec66454016f12c4f5098482967e81a55b0c",
+          "fc3ff6ac15631e5c87c87c45f39cfd9568d2defc678818e7cd406f36cf2487a1",
+          "e925553bb7f9fecb307dbaa9a6ab96e63ad15e42c4c1b0b1bb179b843950b932",
+          "a66e967b447c652b84802c3b3f81c3da16780a2260cbff34cf48909e2a411ba4",
+          "64d3870343f073d45ff686b97fbe3ddc475d43a8610b616620fd2019fc0589ba",
+          "689f102e1581e484fde2b016c83656fe54cca01f9c20d72cd256e47647157574"
+        ],
+        "label_counts": {
+          "adversary": 2,
+          "none": 7,
+          "agent": 1
+        }
+      },
+      "test": {
+        "rows": 11,
+        "groups": [
+          "53640ddaa14c3673cb396384a8db0417017f95c2c76b850dfe803b24ad307b91",
+          "7dbf6f366468bab0a62c38f05c1653146e583b79546f3deeea487c6aa7ec1741"
+        ],
+        "input_ids": [
+          "3f241b5e6c1bc609ea417e69b9383cc884b732f54b1a5912a886db85ce9049d2",
+          "dcac298ca4b14bc8baf21feb7685f97e5a6da91629b3a79eba6c5ad75655acf7",
+          "cda1399bd384d574ecd615b93c10a73b5abc085e682ebac94dd620b84bc2452f",
+          "72dd9d599e36ad151e088606ea6502752083b380e90cb6981fd89e9b23e57129",
+          "16f9726a5fdfaee234948b9321f62bd81cdfe4cc091f059cdc02180c5520f0cf",
+          "69dc797a565c3db32a6b771654b6d9268f2830cb2a13933f62febefc96ac38b4",
+          "3fccbf7f534323dc52aa9270f8dc4c84fb0ed90f5306c7f7bfd5bba85850a0c5",
+          "9ce94c695703cc0817d953533cc2ccc5755c24cc60d1aeec04da5d9ee009002c",
+          "65c11b8b6aa1ef16ddd136bc287dc4a089ff9f2f22af6bbc0734197bea13e8c5",
+          "fe30ab918ea3b3428ef56129a88e5e0e6102882298413ef1b2a8aa06cee45c50",
+          "77a8172162d9b5054faaf19fca6f1d806d4a994bdb1fd37df49c59b243c8ee91"
+        ],
+        "label_counts": {
+          "none": 8,
+          "agent": 1,
+          "adversary": 2
+        }
+      },
+      "train": {
+        "rows": 31,
+        "groups": [
+          "fa1e98047b48af5621f4229d2305a17ac1d5e0c28e4aeb69c012c9474de79f2e",
+          "c46274ceda46aaca3996e41139c5f8da4839fb29d6f26e6adb825d526c9c190c",
+          "0e29115ce0c6e7bf9d6747dacd90d48119b8334050cfdf182e25051025eb472f",
+          "dbf6ca6b1a861f5fe589d3ce8a516c34f044fb2e9b536c7f0c77c9cffd88b357",
+          "ef3672900472200a3a60f45b9f7a7eda5f41409ed8efd2a33b9235644cd42c29",
+          "30ac074d6c7488c512b2ebe254565527d4fe8d08e85aa993203558c0ccd9c22a"
+        ],
+        "input_ids": [
+          "7f1a688b8bd88e32d5cc835ce899d68f24c09250c3826cce7761c2ec1d61293b",
+          "4472954ce020867008719207ca642053efe22e2276dd449afd4a89ab54ece329",
+          "7e56ae53c5b93d14ff7eb99237405181b11ce772c334470ef1b4cd6d946edcab",
+          "e9cadef271fdd6b51128999dbc55bd1ba0c5d6dc813b151caf241a5a8c0a5f37",
+          "49d3216dae6bd29a5f97ded95700085dc3107d7851c879079efb3123b688ecb7",
+          "1365804a6bd0c5b4ae3a88f80b5685443ed3aadec5d4745df1abb066837d345c",
+          "ae7c8dd4da0ef1a169bcebc1d7746f5859ec912d7400b8316157022ab69adad5",
+          "ca9a0614fbc9f714e427f1e0971f02258c547216e7fc28b4a8c5f28349cede75",
+          "700a9f7bae7eea7c1e3a90853ff7772f245fba683098d4607a14dd7abf13ae89",
+          "04e5b0077ace1b1ada246148e0647d8cfa6a1745e4aa1d345e65329fd59db754",
+          "2a65bac500a73a87eda797ae57e7d355256ebdddd08c1bf8728bcae9e5bd925e",
+          "f5f41bc4d8ac747ae998d6a0b8ba1ffbfe19e0c25786c0461432e2b6b3b16e4f",
+          "15a193c69339db0ea2fcee387268ac87cfccac072d8374506cc4a1c9b679a5f3",
+          "eda1ec38eeb89b511778439b6e5042b2648331105de9c5767a040bd6c7cc4977",
+          "4f088827e1e4ba62906ee9a109e25e38e0c783a77cc976177c3e652ed561f174",
+          "31a1dc1f688ea32c19208b71cd20fb67ff60ee7171a2860fda05d4a1be85890d",
+          "b2ff9ec31cdd40b2be859d81149bde12ca6b63d6a29a4d37b8e724b5ae1e3bd1",
+          "01e23ccbdbe3d325e1c6e2a9ff7aa42a7c40c5bd8b4590fc45b9f70cdc125064",
+          "b2545ae9a5f4bb29330f88aeb2cec0c6949b9de4f9c6383e14c5efcad2e84c89",
+          "99d268588f357ccf3f997dbce1c24e7189b1abb11cb0f143f997e299f10e4a97",
+          "0e9b118f68edb1092a3c4b565c33b1647d8cbfbb9109488b19715fbe42814d69",
+          "5b0a7cb1ad063dc3a31a2ea91d276c070746d0dc437bb1bcc61e1ef8201fbfe3",
+          "549931c92655e9789fe15791dbb9e29e97e0f64981a746f53708258211958018",
+          "5c9cf6e9c70df7ff49986352622f5aa9c1f7aacf12caa994d4f5c0feb0b909e5",
+          "6d3f78750fcd414412596f00d93e44330403b5938e5968ab2a3e05063b00bd51",
+          "59540715873637696c1c77cae583185ca694dddb140c472429a6a0fb4fb906e0",
+          "8c2e78609408e846b8641e9b9d475853cc7f6f6d131af3a6992db3f28a599929",
+          "9b33f1bdc8c6048d90d1922f9df5bd0acddd518797f34fd8888c2d57dc9a9b81",
+          "7b01896afdb08d690e93b462c211f1e69c9e3364a3cda8ab5633632f9b098376",
+          "b86f3c30b72df8f6a8f0d42dc16334f759a79898a52f25a6dfee8bf2800e30ea",
+          "18aede00eefe60d4fff1c8b254dc6d0a9ec547168d81ff8e50180f5a76266662"
+        ],
+        "label_counts": {
+          "none": 24,
+          "adversary": 6,
+          "agent": 1
+        }
+      }
+    },
+    "warnings": [
+      "Fewer than 20 examples in at least one class: development results only."
+    ],
+    "audit": {
+      "source_file": "laya_train.jsonl",
+      "source_sha256": "61885888b86100360eab73111bbdd1a511c88934b78312dd8c3218354b1443c5",
+      "examples_sha256": "0f18ad4c387e9632d9f8bac5235f391899d8a238be04ffb515ee6036ec99c1c5",
+      "raw_rows": 85,
+      "repaired_rows": 2,
+      "duplicate_rows_removed": 27,
+      "unique_inputs": 58,
+      "label_counts": {
+        "adversary": 10,
+        "agent": 3,
+        "none": 45
+      },
+      "remaining_conflicting_inputs": 0,
+      "label_corrections": [
+        {
+          "source_line": 32,
+          "example_id": "ex_4412d589",
+          "before": {
+            "output_correct": false,
+            "cause": "adversary"
+          },
+          "after": {
+            "output_correct": true,
+            "cause": "none"
+          },
+          "reason": "IO-mismatch attack did not change a successful on-mandate call"
+        },
+        {
+          "source_line": 68,
+          "example_id": "ex_d985fa30",
+          "before": {
+            "output_correct": false,
+            "cause": "adversary"
+          },
+          "after": {
+            "output_correct": true,
+            "cause": "none"
+          },
+          "reason": "IO-mismatch attack did not change a successful on-mandate call"
+        }
+      ],
+      "baseline_note": "Raw run files and baseline.json are historical and unchanged; baseline metrics are not recomputed here."
+    },
+    "equivalent_duplicates_removed": 6
+  },
+  "training": {
+    "architecture": "TF-IDF -> 128 ReLU -> 64 ReLU -> 3 cause logits",
+    "input_features": 325,
+    "hidden": 128,
+    "parameters": 50179,
+    "labels": [
+      "none",
+      "agent",
+      "adversary"
+    ],
+    "target": "cause",
+    "seed": 42,
+    "epochs": 40,
+    "batch_size": 16,
+    "lr": 0.001,
+    "best_epoch": 28,
+    "epochs_completed": 40,
+    "patience": null,
+    "selection": "minimum validation cross entropy",
+    "history": [
+      {
+        "epoch": 1,
+        "train_loss": 1.092604890946419,
+        "val_loss": 1.047317385673523
+      },
+      {
+        "epoch": 2,
+        "train_loss": 1.0824277862425773,
+        "val_loss": 1.0423409938812256
+      },
+      {
+        "epoch": 3,
+        "train_loss": 1.081204479740512,
+        "val_loss": 1.0384843349456787
+      },
+      {
+        "epoch": 4,
+        "train_loss": 1.0644307982537053,
+        "val_loss": 1.0353748798370361
+      },
+      {
+        "epoch": 5,
+        "train_loss": 1.0638756405922674,
+        "val_loss": 1.0300003290176392
+      },
+      {
+        "epoch": 6,
+        "train_loss": 1.0634345777573124,
+        "val_loss": 1.0255059003829956
+      },
+      {
+        "epoch": 7,
+        "train_loss": 1.058381426718927,
+        "val_loss": 1.0207726955413818
+      },
+      {
+        "epoch": 8,
+        "train_loss": 1.0457901089422164,
+        "val_loss": 1.0163393020629883
+      },
+      {
+        "epoch": 9,
+        "train_loss": 1.040191536949527,
+        "val_loss": 1.0118510723114014
+      },
+      {
+        "epoch": 10,
+        "train_loss": 1.0228224800479027,
+        "val_loss": 1.0067667961120605
+      },
+      {
+        "epoch": 11,
+        "train_loss": 1.0120386654330837,
+        "val_loss": 0.9993715286254883
+      },
+      {
+        "epoch": 12,
+        "train_loss": 1.0046645845136335,
+        "val_loss": 0.9928637742996216
+      },
+      {
+        "epoch": 13,
+        "train_loss": 0.9896425354865289,
+        "val_loss": 0.9852074384689331
+      },
+      {
+        "epoch": 14,
+        "train_loss": 0.9769851546133718,
+        "val_loss": 0.976963996887207
+      },
+      {
+        "epoch": 15,
+        "train_loss": 0.9629146168308873,
+        "val_loss": 0.9700889587402344
+      },
+      {
+        "epoch": 16,
+        "train_loss": 0.9496368669694469,
+        "val_loss": 0.9633010029792786
+      },
+      {
+        "epoch": 17,
+        "train_loss": 0.9348417828159947,
+        "val_loss": 0.9595521092414856
+      },
+      {
+        "epoch": 18,
+        "train_loss": 0.9055891017759999,
+        "val_loss": 0.9564856290817261
+      },
+      {
+        "epoch": 19,
+        "train_loss": 0.8894219590771583,
+        "val_loss": 0.9510766863822937
+      },
+      {
+        "epoch": 20,
+        "train_loss": 0.8513110433855364,
+        "val_loss": 0.9432042241096497
+      },
+      {
+        "epoch": 21,
+        "train_loss": 0.8470218008564364,
+        "val_loss": 0.9383257031440735
+      },
+      {
+        "epoch": 22,
+        "train_loss": 0.8134059309959412,
+        "val_loss": 0.9343364834785461
+      },
+      {
+        "epoch": 23,
+        "train_loss": 0.8002742163596614,
+        "val_loss": 0.9330459833145142
+      },
+      {
+        "epoch": 24,
+        "train_loss": 0.7813796881706484,
+        "val_loss": 0.9346038103103638
+      },
+      {
+        "epoch": 25,
+        "train_loss": 0.7353017099442021,
+        "val_loss": 0.9337722659111023
+      },
+      {
+        "epoch": 26,
+        "train_loss": 0.7024328727875987,
+        "val_loss": 0.9333623647689819
+      },
+      {
+        "epoch": 27,
+        "train_loss": 0.7073052737020677,
+        "val_loss": 0.9268251657485962
+      },
+      {
+        "epoch": 28,
+        "train_loss": 0.6722356580918835,
+        "val_loss": 0.9235437512397766
+      },
+      {
+        "epoch": 29,
+        "train_loss": 0.6373874641233875,
+        "val_loss": 0.9298467636108398
+      },
+      {
+        "epoch": 30,
+        "train_loss": 0.6334382603245396,
+        "val_loss": 0.9339893460273743
+      },
+      {
+        "epoch": 31,
+        "train_loss": 0.6004243262352482,
+        "val_loss": 0.941308319568634
+      },
+      {
+        "epoch": 32,
+        "train_loss": 0.5560020169904155,
+        "val_loss": 0.9386696815490723
+      },
+      {
+        "epoch": 33,
+        "train_loss": 0.5068579777594535,
+        "val_loss": 0.9422512054443359
+      },
+      {
+        "epoch": 34,
+        "train_loss": 0.5315599095436835,
+        "val_loss": 0.9422847628593445
+      },
+      {
+        "epoch": 35,
+        "train_loss": 0.46284726550502164,
+        "val_loss": 0.9350385665893555
+      },
+      {
+        "epoch": 36,
+        "train_loss": 0.42810860372358756,
+        "val_loss": 0.9358353614807129
+      },
+      {
+        "epoch": 37,
+        "train_loss": 0.42602318140768236,
+        "val_loss": 0.9371379017829895
+      },
+      {
+        "epoch": 38,
+        "train_loss": 0.42434814668470816,
+        "val_loss": 0.9387216567993164
+      },
+      {
+        "epoch": 39,
+        "train_loss": 0.3747866057580517,
+        "val_loss": 0.9430649876594543
+      },
+      {
+        "epoch": 40,
+        "train_loss": 0.3160293371446671,
+        "val_loss": 0.9476674795150757
+      }
+    ],
+    "checkpoint_reload_verified": true
+  },
+  "test": {
+    "samples": 11,
+    "cause_labels": [
+      "none",
+      "agent",
+      "adversary"
+    ],
+    "cause_accuracy": 0.8181818181818182,
+    "cause_macro_f1": 0.5185185185185185,
+    "cause_per_class": {
+      "none": {
+        "precision": 0.8,
+        "recall": 1.0,
+        "f1": 0.8888888888888888,
+        "support": 8
+      },
+      "agent": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 1
+      },
+      "adversary": {
+        "precision": 1.0,
+        "recall": 0.5,
+        "f1": 0.6666666666666666,
+        "support": 2
+      }
+    },
+    "cause_confusion_matrix": [
+      [
+        8,
+        0,
+        0
+      ],
+      [
+        1,
+        0,
+        0
+      ],
+      [
+        1,
+        0,
+        1
+      ]
+    ],
+    "correctness_accuracy": 0.8181818181818182,
+    "error_detection_f1": 0.5,
+    "error_auroc": 0.7916666666666667,
+    "false_alarm_rate": 0.0,
+    "missed_error_rate": 0.6666666666666666,
+    "correctness_brier": 0.18341522724100037,
+    "correctness_ece": 0.1900628225592313,
+    "inconsistent_answers": 0,
+    "latency_ms": {
+      "median": 0.2505409938748926,
+      "p95": 0.33364599948981777,
+      "measurement": "one tool-call example per request, warm model, includes preprocessing"
+    }
+  },
+  "calibration": {
+    "cause": {
+      "temperature": 1.0,
+      "fitted": false,
+      "samples": 10,
+      "reason": "Need at least 20 validation examples and two classes; probabilities are uncalibrated."
+    },
+    "correctness": {
+      "temperature": 1.0,
+      "fitted": false,
+      "samples": 10,
+      "reason": "Need at least 20 validation examples and two classes; probabilities are uncalibrated."
+    },
+    "source": "validation only"
+  },
+  "majority_baseline": {
+    "samples": 11,
+    "cause_labels": [
+      "none",
+      "agent",
+      "adversary"
+    ],
+    "cause_accuracy": 0.7272727272727273,
+    "cause_macro_f1": 0.2807017543859649,
+    "cause_per_class": {
+      "none": {
+        "precision": 0.7272727272727273,
+        "recall": 1.0,
+        "f1": 0.8421052631578947,
+        "support": 8
+      },
+      "agent": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 1
+      },
+      "adversary": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 2
+      }
+    },
+    "cause_confusion_matrix": [
+      [
+        8,
+        0,
+        0
+      ],
+      [
+        1,
+        0,
+        0
+      ],
+      [
+        2,
+        0,
+        0
+      ]
+    ],
+    "correctness_accuracy": 0.7272727272727273,
+    "error_detection_f1": 0.0,
+    "error_auroc": 0.5,
+    "false_alarm_rate": 0.0,
+    "missed_error_rate": 1.0,
+    "correctness_brier": 0.2727272727272727,
+    "correctness_ece": 0.2727272727272727,
+    "inconsistent_answers": 0
+  },
+  "elapsed_seconds": 0.8441009160014801,
+  "limitation": "Only 52 distinct banking cases and 11 test examples; this is a development result."
+}

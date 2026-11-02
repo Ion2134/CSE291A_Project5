@@ -1,0 +1,44 @@
+MLP epoch 1/40: train_loss=1.0926, val_loss=1.0473
+MLP epoch 2/40: train_loss=1.0824, val_loss=1.0423
+MLP epoch 3/40: train_loss=1.0812, val_loss=1.0385
+MLP epoch 4/40: train_loss=1.0644, val_loss=1.0354
+MLP epoch 5/40: train_loss=1.0639, val_loss=1.0300
+MLP epoch 6/40: train_loss=1.0634, val_loss=1.0255
+MLP epoch 7/40: train_loss=1.0584, val_loss=1.0208
+MLP epoch 8/40: train_loss=1.0458, val_loss=1.0163
+MLP epoch 9/40: train_loss=1.0402, val_loss=1.0119
+MLP epoch 10/40: train_loss=1.0228, val_loss=1.0068
+MLP epoch 11/40: train_loss=1.0120, val_loss=0.9994
+MLP epoch 12/40: train_loss=1.0047, val_loss=0.9929
+MLP epoch 13/40: train_loss=0.9896, val_loss=0.9852
+MLP epoch 14/40: train_loss=0.9770, val_loss=0.9770
+MLP epoch 15/40: train_loss=0.9629, val_loss=0.9701
+MLP epoch 16/40: train_loss=0.9496, val_loss=0.9633
+MLP epoch 17/40: train_loss=0.9348, val_loss=0.9596
+MLP epoch 18/40: train_loss=0.9056, val_loss=0.9565
+MLP epoch 19/40: train_loss=0.8894, val_loss=0.9511
+MLP epoch 20/40: train_loss=0.8513, val_loss=0.9432
+MLP epoch 21/40: train_loss=0.8470, val_loss=0.9383
+MLP epoch 22/40: train_loss=0.8134, val_loss=0.9343
+MLP epoch 23/40: train_loss=0.8003, val_loss=0.9330
+MLP epoch 24/40: train_loss=0.7814, val_loss=0.9346
+MLP epoch 25/40: train_loss=0.7353, val_loss=0.9338
+MLP epoch 26/40: train_loss=0.7024, val_loss=0.9334
+MLP epoch 27/40: train_loss=0.7073, val_loss=0.9268
+MLP epoch 28/40: train_loss=0.6722, val_loss=0.9235
+MLP epoch 29/40: train_loss=0.6374, val_loss=0.9298
+MLP epoch 30/40: train_loss=0.6334, val_loss=0.9340
+MLP epoch 31/40: train_loss=0.6004, val_loss=0.9413
+MLP epoch 32/40: train_loss=0.5560, val_loss=0.9387
+MLP epoch 33/40: train_loss=0.5069, val_loss=0.9423
+MLP epoch 34/40: train_loss=0.5316, val_loss=0.9423
+MLP epoch 35/40: train_loss=0.4628, val_loss=0.9350
+MLP epoch 36/40: train_loss=0.4281, val_loss=0.9358
+MLP epoch 37/40: train_loss=0.4260, val_loss=0.9371
+MLP epoch 38/40: train_loss=0.4243, val_loss=0.9387
+MLP epoch 39/40: train_loss=0.3748, val_loss=0.9431
+MLP epoch 40/40: train_loss=0.3160, val_loss=0.9477
+{
+  "status": "complete",
+  "results": "runs/reproduced-banking/results.json"
+}

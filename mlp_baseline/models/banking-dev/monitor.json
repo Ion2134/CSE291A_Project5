@@ -1,0 +1,24 @@
+{
+  "kind": "mlp",
+  "task": "banking_monitor",
+  "labels": [
+    "none",
+    "agent",
+    "adversary"
+  ],
+  "calibration": {
+    "cause": {
+      "temperature": 1.0,
+      "fitted": false,
+      "samples": 10,
+      "reason": "Need at least 20 validation examples and two classes; probabilities are uncalibrated."
+    },
+    "correctness": {
+      "temperature": 1.0,
+      "fitted": false,
+      "samples": 10,
+      "reason": "Need at least 20 validation examples and two classes; probabilities are uncalibrated."
+    },
+    "source": "validation only"
+  }
+}

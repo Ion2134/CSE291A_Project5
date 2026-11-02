@@ -1,0 +1,26 @@
+{
+  "agentic5k": {
+    "dataset": "3nesdeniz/agentic-prompt-injection-5k",
+    "revision": "e658d94dcafc133e3a4483f9f9aa13507f3848c4",
+    "license": "CC-BY-4.0",
+    "author": "Enes Deniz",
+    "url": "https://huggingface.co/datasets/3nesdeniz/agentic-prompt-injection-5k",
+    "usage": "training, validation, and test"
+  },
+  "agentguard": {
+    "dataset": "Nizba/agentguard-benchmark-v1",
+    "revision": "4951a8a0a04591e25b71d61fedd3fef1fd69c3a4",
+    "license": "Apache-2.0",
+    "author": "AgentGuard / Nizba",
+    "url": "https://huggingface.co/datasets/Nizba/agentguard-benchmark-v1",
+    "usage": "training, validation, and test"
+  },
+  "toolfault": {
+    "dataset": "ATTY57/toolfault-bench",
+    "revision": "57554086b6a5122471e95c7cc3872f61b566c91f",
+    "license": "CC-BY-4.0",
+    "author": "Atharva Vichare",
+    "url": "https://huggingface.co/datasets/ATTY57/toolfault-bench",
+    "usage": "diagnostic evaluation only"
+  }
+}

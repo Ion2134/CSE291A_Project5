@@ -1,0 +1,17 @@
+{
+  "kind": "mlp",
+  "task": "injection_detection",
+  "labels": [
+    "benign",
+    "injection"
+  ],
+  "calibration": {
+    "temperature": 0.8705505632961241,
+    "fitted": true,
+    "samples": 1064,
+    "source": "validation only"
+  },
+  "input_fields": [
+    "state"
+  ]
+}

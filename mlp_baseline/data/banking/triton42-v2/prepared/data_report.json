@@ -1,0 +1,44 @@
+{
+  "source_file": "laya_train.jsonl",
+  "source_sha256": "61885888b86100360eab73111bbdd1a511c88934b78312dd8c3218354b1443c5",
+  "examples_sha256": "0f18ad4c387e9632d9f8bac5235f391899d8a238be04ffb515ee6036ec99c1c5",
+  "raw_rows": 85,
+  "repaired_rows": 2,
+  "duplicate_rows_removed": 27,
+  "unique_inputs": 58,
+  "label_counts": {
+    "adversary": 10,
+    "agent": 3,
+    "none": 45
+  },
+  "remaining_conflicting_inputs": 0,
+  "label_corrections": [
+    {
+      "source_line": 32,
+      "example_id": "ex_4412d589",
+      "before": {
+        "output_correct": false,
+        "cause": "adversary"
+      },
+      "after": {
+        "output_correct": true,
+        "cause": "none"
+      },
+      "reason": "IO-mismatch attack did not change a successful on-mandate call"
+    },
+    {
+      "source_line": 68,
+      "example_id": "ex_d985fa30",
+      "before": {
+        "output_correct": false,
+        "cause": "adversary"
+      },
+      "after": {
+        "output_correct": true,
+        "cause": "none"
+      },
+      "reason": "IO-mismatch attack did not change a successful on-mandate call"
+    }
+  ],
+  "baseline_note": "Raw run files and baseline.json are historical and unchanged; baseline metrics are not recomputed here."
+}

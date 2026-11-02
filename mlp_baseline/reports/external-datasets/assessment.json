@@ -1,0 +1,124 @@
+{
+  "status": "Audit complete; Agentic 5K and AgentGuard processed and used for local MLP injection training.",
+  "environment": {
+    "venv": "agent_env/.venv-training",
+    "python": "3.12.4",
+    "pyarrow": "26.0.0"
+  },
+  "current_task": {
+    "unit": "one banking tool call",
+    "targets": [
+      "output_correct: true/false",
+      "cause: none/agent/adversary"
+    ]
+  },
+  "recommendations": {
+    "agentic5k": {
+      "priority": 1,
+      "use": "Auxiliary injection-detection training, then banking-specific fine-tuning.",
+      "input_fields": [
+        "text"
+      ],
+      "target_fields": [
+        "label",
+        "attack_family"
+      ],
+      "preserve_partitions": {
+        "train": 3923,
+        "validation": 467,
+        "test": 545
+      },
+      "limitations": [
+        "Labels identify injection presence, not observed tool-call correctness or successful compromise.",
+        "Templated synthetic text; row count does not equal independent real-world incidents."
+      ]
+    },
+    "agentguard": {
+      "priority": 2,
+      "use": "Supplemental inter-agent injection detection; create grouped train/validation/test sets.",
+      "input_fields": [
+        "message_text"
+      ],
+      "target_fields": [
+        "label",
+        "attack_class"
+      ],
+      "limitations": [
+        "No official train/validation/test split is provided in the downloaded repository.",
+        "Benign and adversarial files have different schemas: normalize fields and never feed label/reasoning/category columns as inputs.",
+        "No observed banking result or agent-error attribution."
+      ]
+    },
+    "toolfault": {
+      "priority": 3,
+      "use": "Separate diagnostic evaluation with a fault-label adapter; keep the official test set held out.",
+      "preserve_partitions": {
+        "validation": 81,
+        "test": 441
+      },
+      "input_fields": [
+        "tools",
+        "messages",
+        "current_time"
+      ],
+      "target_fields": [
+        "fault_type",
+        "next_action",
+        "acceptable_next_actions",
+        "critical_next_actions"
+      ],
+      "limitations": [
+        "The author explicitly intends this small benchmark for evaluation, not training.",
+        "Thirteen classes include none; the other twelve are fault categories.",
+        "Timeouts, rate limits, and ordinary server failures do not imply an adversary or an agent-planning error.",
+        "Gold recovery, rationale, fault_type and meta must not be features."
+      ]
+    },
+    "aftraj": {
+      "priority": 4,
+      "use": "Optional auxiliary online-failure localization with prefix extraction and task-level grouping.",
+      "input_fields": [
+        "task",
+        "tools",
+        "turns up to the current decision point"
+      ],
+      "target_fields": [
+        "safe/unsafe trajectory label",
+        "mistake_step",
+        "mistake_agent"
+      ],
+      "limitations": [
+        "safe and unsafe are label partitions, not training and test splits.",
+        "unsafe_source=injected means a controlled decisive-error intervention; it is not a malicious-adversary label.",
+        "Do not label every turn in an unsafe trajectory as incorrect or include future turns or gold annotations in the input.",
+        "Long traces require a deliberate prefix/window policy for Laya rather than silent truncation.",
+        "The named responsible agent is not the same label as our agent-versus-adversary cause."
+      ],
+      "holdout_audit": {
+        "official_paper_holdout_trajectories": 332,
+        "tasks_shared_with_remaining_records": 19,
+        "remaining_records_sharing_holdout_tasks": 127,
+        "action": "If training on the remainder, exclude or regroup tasks matching the held-out tasks; keep safe/unsafe variants together."
+      }
+    }
+  },
+  "integration_required": "No dataset can be dropped unchanged into the current three-cause banking trainer. Add explicit task adapters/auxiliary targets; do not invent missing banking labels.",
+  "suggested_sequence": [
+    "Add injection-detection adapters for Agentic 5K and AgentGuard.",
+    "Train both model families on the auxiliary task using controlled splits.",
+    "Fine-tune the banking correctness/cause task on additional simulator data.",
+    "Evaluate on untouched banking test episodes and separately adapted ToolFault diagnostics."
+  ],
+  "audit_limits": [
+    "Exact and normalized duplicate checks do not establish absence of near-duplicate templates.",
+    "Dataset cards and sampled record semantics were inspected; external labels were not independently re-annotated."
+  ],
+  "raw_download_location": ".cache/sources",
+  "quantitative_audit": "reports/external-datasets/audit.json",
+  "implementation_status": {
+    "injection_adapter": "implemented and tested",
+    "local_mlp_training": "complete, seeds 42/43/44",
+    "summary": "reports/mlp-injection-v1/summary.json",
+    "laya": "handled by teammate; shared typed data can be reused"
+  }
+}
