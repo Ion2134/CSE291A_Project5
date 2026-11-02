@@ -1,0 +1,8 @@
+{
+  "model": "multinomial logistic regression",
+  "class_weight": "balanced",
+  "seed": 42,
+  "max_features": 4096,
+  "features": "calibrated injection probability + TF-IDF",
+  "selection": "fixed hyperparameters; CV used for calibration and fold metrics"
+}

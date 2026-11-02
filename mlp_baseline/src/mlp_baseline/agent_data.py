@@ -17,7 +17,17 @@ from .banking_data import _read_jsonl, _repair_noop_io_label
 from .cv import stratified_group_partition
 from .data import LABELS, input_id, request_group, write_json, write_jsonl
 
-COMBINED_RUNS = ("agent-qwen36a3b", "agent42", "agent42-v2", "run_1", "triton42", "triton42-v2")
+COMBINED_RUNS = (
+    "agent-qwen36a3b",
+    "agent42",
+    "agent42-v2",
+    "triton42",
+    "triton42-v2",
+    "triton44",
+    "triton45",
+    "triton46",
+    "triton47",
+)
 TASK = "banking_monitor"
 
 

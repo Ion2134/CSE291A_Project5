@@ -101,17 +101,18 @@ scenario. Run from the repository root layout (the runs live in `../agent_env/da
 
 ```bash
 mlp-baseline prepare-agent-data --runs ../agent_env/data/runs \
-  --out data/agent-combined-v1 --seed 42
-mlp-baseline run-agent-comparison --data data/agent-combined-v1 \
-  --out reports/agent-combined-v1 --seed 42 --k 5 \
+  --out data/agent-combined-v2 --seed 42
+mlp-baseline run-agent-comparison --data data/agent-combined-v2 \
+  --out reports/agent-combined-v2 --seed 42 --k 5 \
   --injection-checkpoint models/injection/seed42
 ```
 
-`prepare-agent-data` merges all non-empty runs, applies the legacy no-op IO repair per run
-(13 repairs), deduplicates identical normalized inputs across runs (376 raw rows become 75
-unique examples), and writes a fixed group-disjoint train/test split with per-run provenance.
-`run-agent-comparison` then compares two scenarios with group-stratified cross-validation
-(requested k=5 degrades to k=3 so every fold keeps every class):
+`prepare-agent-data` merges the runs named in `COMBINED_RUNS` (currently 8 runs across three
+agent models: `qwen/qwen3.6-35b-a3b`, `api-muse-glimmer-30b`, `api-glm-5.3-flash`), applies
+the legacy no-op IO repair per run (18 repairs), deduplicates identical normalized inputs
+across runs (519 raw rows become 134 unique examples), and writes a fixed group-disjoint
+train/test split with per-run provenance. `run-agent-comparison` then compares two scenarios
+with group-stratified cross-validation (k=5, every fold keeps every class):
 
 - **scenario_a_first_party_mlp**: a three-class TF-IDF MLP trained on the first-party train
   pool only; the epoch count is selected by CV and the final model refits on the full pool.
@@ -124,11 +125,11 @@ Both scenarios fit temperature calibration on out-of-fold train-pool predictions
 test) and are evaluated once on the same 15 held-out test rows, alongside a majority
 baseline, with per-source-run breakdowns and error-type attribution accuracy (whether the
 predicted cause type was right, overall and when an error was detected). Outputs:
-`reports/agent-combined-v1/{results.json,metrics.csv,test_predictions.jsonl}` and trained
-artifacts under `reports/agent-combined-v1/models/`.
+`reports/agent-combined-v2/{results.json,metrics.csv,test_predictions.jsonl}` and trained
+artifacts under `reports/agent-combined-v2/models/`.
 
-With 75 unique examples and a single agent-error test row, this is a development
-comparison, not a benchmark claim.
+With 134 unique examples, 2 agent-error test rows, and only 10 independent request groups,
+this remains a development comparison, not a benchmark claim. (v1: 75 uniques, 6 runs.)
 
 ## Contents
 
@@ -138,7 +139,8 @@ comparison, not a benchmark claim.
 | `tests/` | Focused regression tests, including both two-class and three-class MLPs |
 | `data/injection-v1/` | 8,893 train / 1,064 validation / 1,178 test cases and separate ToolFault diagnostics |
 | `data/banking/triton42-v2/` | Original synthetic run, repaired data, and provenance |
-| `data/agent-combined-v1/` | Combined first-party runs: 75 unique examples, fixed train/test split, provenance |
+| `data/agent-combined-v2/` | Combined first-party runs (8 runs, 3 agent models): 134 unique examples, fixed train/test split, provenance |
+| `data/agent-combined-v1/` | Superseded combine (6 runs incl. deleted `run_1`): 75 unique examples |
 | `models/injection/seed{42,43,44}/` | Trained weights and complete inference metadata |
 | `models/banking-dev/` | Separate small-data banking checkpoint |
 | `logs/` | Captured training output and structured epoch histories |
