@@ -33,6 +33,22 @@ def main():
     bank.add_argument("--epochs", type=int, default=40)
     bank.add_argument("--batch-size", type=int, default=16)
     bank.add_argument("--threads", type=int, default=4)
+    combine = sub.add_parser("prepare-agent-data", help="Combine first-party agent runs into one pruned dataset")
+    combine.add_argument("--runs", type=Path, required=True)
+    combine.add_argument("--out", type=Path, required=True)
+    combine.add_argument("--seed", type=int, default=42)
+    combine.add_argument("--test-fraction", type=float, default=0.2)
+    compare = sub.add_parser("run-agent-comparison", help="Head-to-head first-party MLP vs hybrid stacking")
+    compare.add_argument("--data", type=Path, required=True)
+    compare.add_argument("--out", type=Path, required=True)
+    compare.add_argument("--seed", type=int, default=42)
+    compare.add_argument("--k", type=int, default=5)
+    compare.add_argument("--epochs", type=int, default=40)
+    compare.add_argument("--batch-size", type=int, default=16)
+    compare.add_argument("--max-features", type=int, default=4096)
+    compare.add_argument("--threads", type=int, default=4)
+    compare.add_argument("--injection-checkpoint", type=Path, default=Path("models/injection/seed42"))
+    compare.add_argument("--verbose", action="store_true")
     predict = sub.add_parser("predict", help="Load an exported checkpoint and predict JSONL examples")
     predict.add_argument("--checkpoint", type=Path, required=True)
     predict.add_argument("--data", type=Path, required=True)
@@ -59,6 +75,20 @@ def main():
         options.pop("command")
         result = run_banking(**options)
         print(json.dumps({"status": result["status"], "results": str(args.out / "results.json")}, indent=2))
+    elif args.command == "prepare-agent-data":
+        from .agent_data import combine_agent_runs
+        manifest = combine_agent_runs(args.runs, args.out, seed=args.seed, test_fraction=args.test_fraction)
+        print(json.dumps({"unique_inputs": manifest["unique_inputs"], "splits": {
+            name: {"rows": split["rows"], "label_counts": split["label_counts"]}
+            for name, split in manifest["splits"].items()}}, indent=2))
+    elif args.command == "run-agent-comparison":
+        from .compare import run_agent_comparison
+        options = vars(args).copy()
+        options.pop("command")
+        result = run_agent_comparison(**options)
+        print(json.dumps({"status": result["status"],
+                          "head_to_head": result["head_to_head"],
+                          "results": str(args.out / "results.json")}, indent=2))
     elif args.command == "verify":
         from .verify import verify_release
         print(json.dumps(verify_release(args.root), indent=2))

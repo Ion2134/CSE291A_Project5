@@ -460,6 +460,11 @@ async def run_episodes(config: RunConfig, out_dir: Path) -> dict[str, Any]:
     baseline["llm_samples_requested"] = config.llm_samples
     baseline["max_agent_steps"] = config.max_agent_steps
     baseline["concurrency"] = workers
+    planners = sorted(
+        {str(ex.meta["planner"]) for ep in episodes for ex in ep.examples if ex.meta.get("planner")}
+    )
+    baseline["models"] = planners
+    baseline["model"] = planners[0] if len(planners) == 1 else None
     (out_dir / "baseline.json").write_text(json.dumps(baseline, indent=2))
     write_run_manifest(
         out_dir,
@@ -467,6 +472,8 @@ async def run_episodes(config: RunConfig, out_dir: Path) -> dict[str, Any]:
             "seed": config.seed,
             "episodes": config.episodes,
             "mode": config.mode,
+            "model": baseline["model"],
+            "models": planners,
             "max_agent_steps": config.max_agent_steps,
             "multi_step": config.multi_step,
             "llm_samples": config.llm_samples,

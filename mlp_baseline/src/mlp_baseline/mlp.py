@@ -42,15 +42,24 @@ class MLPPredictor:
 def train_mlp(train, val, out: Path, *, seed=42, epochs=40, batch_size=16,
               max_features=4096, hidden=128, lr=1e-3, device="cpu",
               labels=LABELS, target="cause", patience=None, verbose=False):
+    """Train the TF-IDF MLP.
+
+    With ``val`` rows, the checkpoint is selected by minimum validation cross
+    entropy. With ``val=None`` (used when cross-validation already selected the
+    epoch count), training runs for exactly ``epochs`` epochs and the final
+    state is saved.
+    """
     if min(epochs, batch_size, max_features, hidden) < 1 or lr <= 0:
         raise ValueError("MLP training parameters must be positive")
+    if val is None and patience:
+        raise ValueError("Early stopping requires validation rows")
     torch.manual_seed(seed)
     vectorizer = TfidfVectorizer(max_features=max_features, ngram_range=(1, 2), dtype=np.float32)
     # Learn vocabulary and IDF only from training, never from either holdout.
     x_train = torch.from_numpy(vectorizer.fit_transform([row["state"] for row in train]).toarray()).to(device)
-    x_val = torch.from_numpy(vectorizer.transform([row["state"] for row in val]).toarray()).to(device)
+    x_val = None if val is None else torch.from_numpy(vectorizer.transform([row["state"] for row in val]).toarray()).to(device)
     y_train = torch.tensor([labels.index(row["expected"][target]) for row in train], device=device)
-    y_val = torch.tensor([labels.index(row["expected"][target]) for row in val], device=device)
+    y_val = None if val is None else torch.tensor([labels.index(row["expected"][target]) for row in val], device=device)
     model = MLP(x_train.shape[1], hidden, len(labels)).to(device)
     weights = len(train) / (len(labels) * torch.bincount(y_train, minlength=len(labels)).clamp_min(1).float())
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=0.01)
@@ -69,15 +78,21 @@ def train_mlp(train, val, out: Path, *, seed=42, epochs=40, batch_size=16,
             optimizer.step()
             total += float(loss.detach()) * len(indices)
         model.eval()
-        with torch.no_grad():
-            val_loss = float(nn.functional.cross_entropy(model(x_val), y_val))
+        if val is None:
+            val_loss = None
+            best_epoch = epoch + 1
+            best_state = copy.deepcopy({key: value.detach().cpu() for key, value in model.state_dict().items()})
+        else:
+            with torch.no_grad():
+                val_loss = float(nn.functional.cross_entropy(model(x_val), y_val))
+            if val_loss < best_loss:
+                best_loss, best_epoch = val_loss, epoch + 1
+                best_state = copy.deepcopy({key: value.detach().cpu() for key, value in model.state_dict().items()})
         history.append({"epoch": epoch + 1, "train_loss": total / len(train), "val_loss": val_loss})
         if verbose:
-            print(f"MLP epoch {epoch + 1}/{epochs}: train_loss={total / len(train):.4f}, val_loss={val_loss:.4f}", flush=True)
-        if val_loss < best_loss:
-            best_loss, best_epoch = val_loss, epoch + 1
-            best_state = copy.deepcopy({key: value.detach().cpu() for key, value in model.state_dict().items()})
-        if patience and epoch + 1 - best_epoch >= patience:
+            shown = f"{val_loss:.4f}" if val_loss is not None else "n/a"
+            print(f"MLP epoch {epoch + 1}/{epochs}: train_loss={total / len(train):.4f}, val_loss={shown}", flush=True)
+        if patience and val is not None and epoch + 1 - best_epoch >= patience:
             break
     out.mkdir(parents=True, exist_ok=True)
     torch.save(best_state, out / "model.pt")
@@ -88,7 +103,9 @@ def train_mlp(train, val, out: Path, *, seed=42, epochs=40, batch_size=16,
               "parameters": sum(p.numel() for p in model.parameters()), "labels": list(labels), "target": target,
               "seed": seed, "epochs": epochs, "batch_size": batch_size, "lr": lr,
               "best_epoch": best_epoch, "epochs_completed": len(history), "patience": patience,
-              "selection": "minimum validation cross entropy", "history": history}
+              "selection": ("minimum validation cross entropy" if val is not None
+                            else "fixed epoch count selected by cross-validation"),
+              "history": history}
     write_json(out / "model_config.json", report)
     return report
 

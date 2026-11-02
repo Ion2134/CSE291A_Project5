@@ -67,6 +67,36 @@ def test_metrics_count_false_alarms_and_missed_errors(rows):
     assert result["cause_confusion_matrix"] == [[0, 1, 0], [1, 0, 0], [0, 0, 1]]
 
 
+def test_metrics_error_type_attribution(rows):
+    targets = [LABELS.index(row["expected"]["cause"]) for row in rows]
+    correct = [row["expected"]["output_correct"] for row in rows]
+    perfect = evaluate(rows, np.eye(3)[targets], correct)
+    assert perfect["error_type_accuracy"] == 1
+    assert perfect["error_type_support"] == 20
+    assert perfect["error_type_accuracy_when_detected"] == 1
+    assert perfect["error_type_detected_support"] == 20
+    # Predicting "none" everywhere: attribution is zero and nothing is detected.
+    missed = evaluate(rows, np.tile([1.0, 0, 0], (len(rows), 1)), [1.0] * len(rows))
+    assert missed["error_type_accuracy"] == 0
+    assert missed["error_type_accuracy_when_detected"] is None
+    assert missed["error_type_detected_support"] == 0
+    json.dumps(missed, allow_nan=False)
+    # Swapped agent/adversary: errors are detected but attributed to the wrong type.
+    swap = {"agent": "adversary", "adversary": "agent"}
+    swapped = np.eye(3)[[LABELS.index(swap.get(row["expected"]["cause"], "none")) for row in rows]]
+    confused = evaluate(rows, swapped, correct)
+    assert confused["error_type_accuracy"] == 0
+    assert confused["error_type_accuracy_when_detected"] == 0
+    assert confused["error_type_detected_support"] == 20
+    # No error rows at all: both metrics are guarded.
+    correct_only = [row for row in rows if row["expected"]["cause"] == "none"]
+    clean = evaluate(correct_only, np.eye(3)[[0] * len(correct_only)], [1.0] * len(correct_only))
+    assert clean["error_type_accuracy"] is None
+    assert clean["error_type_support"] == 0
+    assert clean["error_type_accuracy_when_detected"] is None
+    json.dumps(clean, allow_nan=False)
+
+
 def test_small_validation_does_not_claim_calibration():
     calibration = fit_temperature([[0.2, 0.8]], [1])
     assert calibration["fitted"] is False

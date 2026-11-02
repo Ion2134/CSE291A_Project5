@@ -65,5 +65,9 @@
   "mode": "agent",
   "dropped_llm_mismatch": 0,
   "llm_samples_requested": 0,
-  "max_agent_steps": 8
+  "max_agent_steps": 8,
+  "models": [
+    "qwen/qwen3.6-35b-a3b"
+  ],
+  "model": "qwen/qwen3.6-35b-a3b"
 }

@@ -92,6 +92,44 @@ of scheduled IO attacks that do not change a valid tool result. Apply it from th
 root with `git apply mlp_baseline/patches/simulator-label-fix.patch` if that fix has not already
 been incorporated. The prepared data bundled here already includes the corrections.
 
+## First-party head-to-head experiment
+
+This experiment evaluates the three-class monitor task (`none` / `agent` / `adversary`,
+with correctness as `P(cause=none)`) on **first-party agent runs only**. External datasets
+never appear in any evaluation; they may only train the frozen binary base of the hybrid
+scenario. Run from the repository root layout (the runs live in `../agent_env/data/runs`):
+
+```bash
+mlp-baseline prepare-agent-data --runs ../agent_env/data/runs \
+  --out data/agent-combined-v1 --seed 42
+mlp-baseline run-agent-comparison --data data/agent-combined-v1 \
+  --out reports/agent-combined-v1 --seed 42 --k 5 \
+  --injection-checkpoint models/injection/seed42
+```
+
+`prepare-agent-data` merges all non-empty runs, applies the legacy no-op IO repair per run
+(13 repairs), deduplicates identical normalized inputs across runs (376 raw rows become 75
+unique examples), and writes a fixed group-disjoint train/test split with per-run provenance.
+`run-agent-comparison` then compares two scenarios with group-stratified cross-validation
+(requested k=5 degrades to k=3 so every fold keeps every class):
+
+- **scenario_a_first_party_mlp**: a three-class TF-IDF MLP trained on the first-party train
+  pool only; the epoch count is selected by CV and the final model refits on the full pool.
+- **scenario_b_hybrid_stacking**: the frozen external injection MLP (seed 42) acts as a
+  feature generator; a first-party multinomial logistic regression stacks the calibrated
+  injection probability with TF-IDF features to predict the three causes. Stacking lets
+  first-party labels teach that a resisted attack is `none`, not `adversary`.
+
+Both scenarios fit temperature calibration on out-of-fold train-pool predictions (never on
+test) and are evaluated once on the same 15 held-out test rows, alongside a majority
+baseline, with per-source-run breakdowns and error-type attribution accuracy (whether the
+predicted cause type was right, overall and when an error was detected). Outputs:
+`reports/agent-combined-v1/{results.json,metrics.csv,test_predictions.jsonl}` and trained
+artifacts under `reports/agent-combined-v1/models/`.
+
+With 75 unique examples and a single agent-error test row, this is a development
+comparison, not a benchmark claim.
+
 ## Contents
 
 | Path | Contents |
@@ -100,6 +138,7 @@ been incorporated. The prepared data bundled here already includes the correctio
 | `tests/` | Focused regression tests, including both two-class and three-class MLPs |
 | `data/injection-v1/` | 8,893 train / 1,064 validation / 1,178 test cases and separate ToolFault diagnostics |
 | `data/banking/triton42-v2/` | Original synthetic run, repaired data, and provenance |
+| `data/agent-combined-v1/` | Combined first-party runs: 75 unique examples, fixed train/test split, provenance |
 | `models/injection/seed{42,43,44}/` | Trained weights and complete inference metadata |
 | `models/banking-dev/` | Separate small-data banking checkpoint |
 | `logs/` | Captured training output and structured epoch histories |

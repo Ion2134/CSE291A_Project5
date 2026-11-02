@@ -46,6 +46,11 @@ def evaluate(rows, cause_probs, correct_probs, latencies_ms=None):
         cause_true, cause_pred, labels=range(len(LABELS)), zero_division=0)
     wrong_true, wrong_pred = ~correct_true, ~correct_pred
     correct_count, wrong_count = int(correct_true.sum()), int(wrong_true.sum())
+    none_index = LABELS.index("none")
+    error_mask = cause_true != none_index
+    error_support = int(error_mask.sum())
+    detected_mask = error_mask & (cause_pred != none_index)
+    detected_support = int(detected_mask.sum())
     binary = np.stack([1 - correct_probs, correct_probs], axis=1)
     confidence = binary.max(axis=1)
     right = correct_true == correct_pred
@@ -61,6 +66,14 @@ def evaluate(rows, cause_probs, correct_probs, latencies_ms=None):
         "cause_per_class": {label: {"precision": float(precision[i]), "recall": float(recall[i]),
                                     "f1": float(f1[i]), "support": int(support[i])} for i, label in enumerate(LABELS)},
         "cause_confusion_matrix": confusion_matrix(cause_true, cause_pred, labels=range(len(LABELS))).tolist(),
+        # Error attribution: given a true error, was the exact cause predicted?
+        # Missed errors count as wrong in the first metric and are excluded in the second.
+        "error_type_accuracy": (float((cause_pred[error_mask] == cause_true[error_mask]).mean())
+                                if error_support else None),
+        "error_type_support": error_support,
+        "error_type_accuracy_when_detected": (float((cause_pred[detected_mask] == cause_true[detected_mask]).mean())
+                                              if detected_support else None),
+        "error_type_detected_support": detected_support,
         "correctness_accuracy": float(accuracy_score(correct_true, correct_pred)),
         "error_detection_f1": float(f1_score(wrong_true, wrong_pred, zero_division=0)),
         "error_auroc": float(roc_auc_score(wrong_true, 1 - correct_probs)) if correct_count and wrong_count else None,
