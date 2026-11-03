@@ -1,0 +1,55 @@
+{
+  "task": "injection",
+  "best_epoch": 1,
+  "best_validation_cross_entropy": 0.0014290740674040513,
+  "epochs_completed": 4,
+  "elapsed_seconds": 3277.28114631,
+  "checkpoint_reload_verified": true,
+  "test": {
+    "injection": {
+      "rows": 1178,
+      "labels": [
+        "benign",
+        "injection"
+      ],
+      "accuracy": 1.0,
+      "macro_f1": 1.0,
+      "per_class_f1": [
+        1.0,
+        1.0
+      ],
+      "class_support": [
+        785,
+        393
+      ],
+      "confusion_matrix": [
+        [
+          785,
+          0
+        ],
+        [
+          0,
+          393
+        ]
+      ],
+      "log_loss": 1.8480899365575147e-07,
+      "auroc": 1.0,
+      "brier": 8.498955855391524e-12,
+      "false_positive_rate": 0.0,
+      "false_negative_rate": 0.0
+    },
+    "by_source": {
+      "agentguard": {
+        "rows": 633,
+        "accuracy": 1.0,
+        "macro_f1": 1.0
+      },
+      "agentic5k": {
+        "rows": 545,
+        "accuracy": 1.0,
+        "macro_f1": 1.0
+      }
+    }
+  },
+  "warnings": []
+}
