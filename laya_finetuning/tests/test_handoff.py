@@ -1,5 +1,4 @@
 import copy
-import importlib.util
 import json
 import sys
 from pathlib import Path
@@ -8,10 +7,12 @@ import numpy as np
 import pytest
 import torch
 
-SPEC = importlib.util.spec_from_file_location("train_laya_handoff", Path(__file__).resolve().parents[1] / "train_laya.py")
-train = importlib.util.module_from_spec(SPEC)
-sys.modules[SPEC.name] = train
-SPEC.loader.exec_module(train)
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import train_laya  # noqa: E402
+from laya_helpers.common import sha256  # noqa: E402
+from laya_helpers.data import prepare_items, read_splits  # noqa: E402
+from laya_helpers.evaluation import fit_calibration  # noqa: E402
+from laya_helpers.training import run_training  # noqa: E402
 
 QUESTIONS = {"injection": {"type": "choice", "instructions": "Classify this message.",
                             "criteria": {"benign": "ordinary request", "injection": "malicious override"}}}
@@ -76,7 +77,7 @@ def checkpoint(tmp_path):
 
 
 def arguments(checkpoint, paths, output, task="injection", extra=()):
-    return train.parser().parse_args([
+    return train_laya.parser().parse_args([
         "--task", task, "--model", str(checkpoint), "--device", "cpu", "--epochs", "2",
         "--batch-size", "2", "--grad-accum", "2", "--eval-batch-size", "2",
         "--train", str(paths["train"]), "--validation", str(paths["val"]), "--test", str(paths["test"]),
@@ -90,7 +91,7 @@ def test_native_training_export_and_reload(tmp_path, checkpoint, data, task, fre
     initial = load_file(str(checkpoint / "model.safetensors"))
     paths, out = data(task), tmp_path / "run"
     args = arguments(checkpoint, paths, out, task, ["--freeze-encoder"] if freeze else [])
-    result = train.execute(args)
+    result = run_training(args)
     assert result["checkpoint_reload_verified"]
     assert result["epochs_completed"] == 2
     assert result["best_epoch"] in [1, 2]
@@ -106,9 +107,9 @@ def test_native_training_export_and_reload(tmp_path, checkpoint, data, task, fre
     cfg = json.loads((out / "model/rl_agent_config.json").read_text())
     assert cfg["temperature"] == [1, 1, 1]  # Tiny validation sets cannot support calibration.
     for rel, expected in json.loads((out / "checkpoint_checksums.json").read_text()).items():
-        assert train.sha256(out / rel) == expected
+        assert sha256(out / rel) == expected
     with pytest.raises(ValueError, match="not empty"):
-        train.execute(args)
+        run_training(args)
 
 
 def test_dry_run_never_loads_weights_or_trains(tmp_path, checkpoint, data, monkeypatch):
@@ -121,7 +122,7 @@ def test_dry_run_never_loads_weights_or_trains(tmp_path, checkpoint, data, monke
     (checkpoint / "model.safetensors").unlink()
     out = tmp_path / "dry-run"
     args = arguments(checkpoint, data(), out, extra=["--dry-run"])
-    result = train.execute(args)
+    result = run_training(args)
     assert result["tokenization"]["train"]["items"] == 6
     assert not out.exists()
 
@@ -142,7 +143,7 @@ def test_invalid_data_rejected(data, failure):
         rows[0]["questions"]["injection"]["instructions"] = "Changed task"
     paths["val"].write_text("".join(json.dumps(row) + "\n" for row in rows))
     with pytest.raises(ValueError, match="Duplicate|overlap|Invalid|schema"):
-        train.read_splits(paths, "injection")
+        read_splits(paths, "injection")
 
 
 def test_truncation_rejected(checkpoint, data):
@@ -150,17 +151,17 @@ def test_truncation_rejected(checkpoint, data):
     rows = [json.loads(line) for line in paths["train"].read_text().splitlines()]
     rows[0]["state"] = "request " * 400
     paths["train"].write_text("".join(json.dumps(row) + "\n" for row in rows))
-    splits, _ = train.read_splits(paths, "injection")
+    splits, _ = read_splits(paths, "injection")
     with pytest.raises(ValueError, match="would truncate"):
-        train.prepare_items(splits, checkpoint, max_len=128, head_max_len=64)
+        prepare_items(splits, checkpoint, max_len=128, head_max_len=64)
 
 
 def test_calibration_uses_only_supported_types():
     records = [(0, np.array([2., 0.]), np.array([1., 0.]), 2)] * 10
-    result = train.fit_calibration(records)
+    result = fit_calibration(records)
     assert result["temperature"] == [1, 1, 1]
     assert result["skipped_types"]["0"]["n"] == 10
     records = [(0, np.array([2., 0.]), np.eye(2)[i % 2], 2) for i in range(24)]
-    result = train.fit_calibration(records)
+    result = fit_calibration(records)
     assert not result["skipped_types"]
     assert all(np.isfinite(result["temperature"]))
