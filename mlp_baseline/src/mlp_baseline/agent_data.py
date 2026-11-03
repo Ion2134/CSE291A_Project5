@@ -27,6 +27,7 @@ COMBINED_RUNS = (
     "triton45",
     "triton46",
     "triton47",
+    "triton48",
 )
 TASK = "banking_monitor"
 
