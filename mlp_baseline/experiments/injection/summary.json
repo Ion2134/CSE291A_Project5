@@ -208,7 +208,7 @@
       }
     }
   },
-  "checkpoint": "models/injection/seed42",
+  "checkpoint": "experiments/injection/seed42/model",
   "model_bytes": 2133757,
   "standalone_export_reload_verified": true,
   "test_predictions_checked": 1178,
@@ -232,5 +232,5 @@
     "Similarity grouping cannot guarantee absence of all related templates."
   ],
   "unchanged_simulator_tests_passed": 44,
-  "packaging_note": "All three seeds were rerun using the standalone package; all reported prediction-quality metrics reproduced exactly. logs/seedNN.log contains captured stdout from these reproduction runs."
+  "packaging_note": "All three seeds were rerun using the standalone package; all reported prediction-quality metrics reproduced exactly. experiments/injection/seedNN/train.log contains captured stdout from these reproduction runs."
 }

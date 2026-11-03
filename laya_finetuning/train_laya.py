@@ -240,7 +240,7 @@ def execute(args):
     for value in (args.encoder_lr, args.head_lr):
         if not math.isfinite(value) or value <= 0:
             raise ValueError("Learning rates must be finite and positive")
-    root = (HERE.parent / "mlp_baseline/data/injection-v1" if args.task == "injection"
+    root = (HERE.parent / "mlp_baseline/data/injection" if args.task == "injection"
             else HERE / "data/agent-combined-v4")
     paths = {"train": args.train or root / "train.jsonl", "val": args.validation or root / "val.jsonl",
              "test": args.test or root / "test.jsonl"}

@@ -16,7 +16,7 @@ from collections import Counter
 import numpy as np
 
 from .config import MODELS, Sweep, Unit, read_jsonl, write_csv, write_json, write_jsonl
-from mlp_baseline.data import LABELS
+from mlp_baseline.common import LABELS
 from mlp_baseline.metrics import evaluate
 
 # input_id -> ({cause: probability}, P(output correct))

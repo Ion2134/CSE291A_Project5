@@ -6,12 +6,12 @@ import pytest
 np = pytest.importorskip("numpy")
 pytest.importorskip("torch")
 pytest.importorskip("sklearn")
-from mlp_baseline.data import LABELS
+from mlp_baseline.common import LABELS
 from mlp_baseline.stacking import (StackedMonitor, fit_stacker, load_stacker, save_stacker,
                                    stacker_features)
 
 QUESTIONS = {"output_correct": {"type": "noul"}, "cause": {"type": "choice"}}
-REAL_CHECKPOINT = Path(__file__).resolve().parents[1] / "models/injection/seed42"
+REAL_CHECKPOINT = Path(__file__).resolve().parents[1] / "experiments/injection/seed42/model"
 
 
 def _row(variant, cause):
@@ -64,7 +64,7 @@ def test_stacked_monitor_probabilities_form_a_partition():
 
 @pytest.mark.skipif(not REAL_CHECKPOINT.exists(), reason="release injection checkpoint is missing")
 def test_save_load_roundtrip_preserves_predictions_and_frozen_base(tmp_path):
-    from mlp_baseline.injection_mlp import load_injection_mlp
+    from mlp_baseline.injection_model import load_injection_mlp
     frozen_bytes = {path.name: hashlib.sha256(path.read_bytes()).hexdigest()
                     for path in REAL_CHECKPOINT.iterdir()}
     frozen = load_injection_mlp(REAL_CHECKPOINT)

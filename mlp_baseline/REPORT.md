@@ -8,7 +8,7 @@ experiment below is a small-data development check.
 ## Data and split protocol
 
 The main corpus combines 4,935 Agentic Prompt-Injection 5K messages with 6,200 AgentGuard messages.
-The exact processed data and splits are committed under `data/injection-v1/`.
+The exact processed data and splits are committed under `data/injection/`.
 
 | Partition | Total | Benign | Injection | Agentic 5K | AgentGuard |
 | --- | ---: | ---: | ---: | ---: | ---: |
@@ -41,7 +41,7 @@ licenses are preserved in `sources/` and the data manifest.
 
 All three runs were repeated after relocating the code into this standalone directory.
 Their prediction-quality metrics matched the original runs exactly. Console logs and structured
-per-epoch histories are committed in `logs/`; checkpoints include calibration and vocabulary.
+per-epoch histories are committed in `experiments/injection/seedN/`; checkpoints include calibration and vocabulary.
 
 ## Main held-out results
 
@@ -105,14 +105,17 @@ still required; binary injection data must not be relabeled into missing causal 
 
 ## Artifacts and verification
 
-- `models/injection/seed42`, `seed43`, `seed44`: complete, reloadable MLP bundles.
-- `predictions/`: per-example main-test and ToolFault predictions, including false alarms.
-- `logs/`: genuine console output plus complete epoch histories from standalone reproduction.
-- `reports/mlp-injection-v1/`: per-seed JSON, summary, and compact CSV.
-- `reports/mlp-banking-dev-v1/`: separate development metrics.
-- `RELEASE.json`: checksums for code, data, models, logs, reports, and source notices.
+All under `experiments/injection/`:
 
-The standalone package passed **18 focused tests**. The unchanged simulator passed **44 tests**.
+- `seed42/model`, `seed43/model`, `seed44/model`: complete, reloadable MLP bundles.
+- `seedN/predictions/`: per-example main-test and ToolFault predictions, including false alarms.
+- `seedN/train.log`, `seedN/history.csv`: console output and per-epoch losses from standalone reproduction.
+- `seedN/results.json`, `summary.json`, `metrics.csv`: per-seed results, the cross-seed summary, and a compact CSV.
+
+The banking development metrics are in `archive/banking-dev/report/`. `RELEASE.json` holds
+checksums for code, data, models, logs, reports, and source notices.
+
+At release, the standalone package passed **18 focused tests** and the unchanged simulator **44 tests**.
 Release verification also reloads all three exported injection checkpoints and checks every
 saved test probability. The package has no runtime dependency on `agent_env` or Laya.
 

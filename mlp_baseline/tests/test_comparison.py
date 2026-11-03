@@ -6,12 +6,14 @@ import pytest
 np = pytest.importorskip("numpy")
 pytest.importorskip("torch")
 pytest.importorskip("sklearn")
-from mlp_baseline.agent_data import combine_agent_runs
-from mlp_baseline.compare import fit_predict, run_agent_comparison
-from mlp_baseline.data import LABELS
+from mlp_baseline.comparison import run_agent_comparison
+from mlp_baseline.mlp import TrainSettings
+from mlp_baseline.monitor_datasets import combine_agent_runs
+from mlp_baseline.monitor_training import MonitorSettings, fit_predict
+from mlp_baseline.common import LABELS
 
 QUESTIONS = {"output_correct": {"type": "noul"}, "cause": {"type": "choice"}}
-REAL_CHECKPOINT = Path(__file__).resolve().parents[1] / "models/injection/seed42"
+REAL_CHECKPOINT = Path(__file__).resolve().parents[1] / "experiments/injection/seed42/model"
 NAMES = ("alpha", "bravo", "charlie", "delta", "echo", "foxtrot")
 
 
@@ -52,8 +54,9 @@ def test_run_agent_comparison_end_to_end(tmp_path):
     data = tmp_path / "combined"
     combine_agent_runs(runs_dir, data, seed=3, runs=("run_a", "run_b"))
     out = tmp_path / "report"
-    result = run_agent_comparison(data, out, seed=3, k=2, epochs=3, batch_size=8,
-                                  max_features=256, injection_checkpoint=REAL_CHECKPOINT)
+    settings = MonitorSettings(TrainSettings(seed=3, epochs=3, batch_size=8, max_features=256), k=2,
+                               injection_checkpoint=REAL_CHECKPOINT)
+    result = run_agent_comparison(data, out, settings)
 
     assert result["status"] == "complete"
     assert result["cv"]["k"] == 2
@@ -79,7 +82,7 @@ def test_run_agent_comparison_end_to_end(tmp_path):
         cause, [list(row["scenario_b"]["cause_probabilities"].values()) for row in predictions],
         atol=1e-6, rtol=1e-6)
     with pytest.raises(ValueError, match="new or empty"):
-        run_agent_comparison(data, out, seed=3, k=2, epochs=2)
+        run_agent_comparison(data, out, MonitorSettings(TrainSettings(seed=3, epochs=2), k=2))
 
 
 def test_fit_predict_writes_predictions_for_every_test_row(tmp_path):
@@ -90,8 +93,8 @@ def test_fit_predict_writes_predictions_for_every_test_row(tmp_path):
     data = tmp_path / "combined"
     combine_agent_runs(runs_dir, data, seed=3, runs=("run_a",))
     out = tmp_path / "fit"
-    result = fit_predict(data / "train.jsonl", data / "test.jsonl", out, model="mlp",
-                         seed=3, k=2, epochs=3, batch_size=8, max_features=256)
+    settings = MonitorSettings(TrainSettings(seed=3, epochs=3, batch_size=8, max_features=256), k=2)
+    result = fit_predict(data / "train.jsonl", data / "test.jsonl", out, settings, model="mlp")
 
     test_rows = [json.loads(line) for line in (data / "test.jsonl").read_text().splitlines()]
     predictions = [json.loads(line) for line in (out / "test_predictions.jsonl").read_text().splitlines()]
@@ -99,4 +102,5 @@ def test_fit_predict_writes_predictions_for_every_test_row(tmp_path):
     assert all(set(row["cause_probabilities"]) == set(LABELS) for row in predictions)
     assert not (out / "models").exists()  # Fold models are deleted unless keep_models is set.
     with pytest.raises(ValueError, match="both train and test"):
-        fit_predict(data / "train.jsonl", data / "train.jsonl", tmp_path / "leak", model="mlp", k=2, epochs=1)
+        fit_predict(data / "train.jsonl", data / "train.jsonl", tmp_path / "leak",
+                    MonitorSettings(TrainSettings(epochs=1), k=2), model="mlp")

@@ -27,12 +27,12 @@ The official [PyTorch installation matrix](https://pytorch.org/get-started/previ
 
 | Task | Default data | Train / validation / test | What it predicts |
 | --- | --- | --- | --- |
-| `injection` | `mlp_baseline/data/injection-v1/` | 8,893 / 1,064 / 1,178 messages | `benign` or `injection` |
+| `injection` | `mlp_baseline/data/injection/` | 8,893 / 1,064 / 1,178 messages | `benign` or `injection` |
 | `banking` | `laya_finetuning/data/agent-combined-v4/` | 108 / 28 / 33 cases | `output_correct` and `cause`: none, agent, adversary |
 
 **Use `injection` for comparison with the public-data MLP.** It combines Agentic Prompt-Injection 5K and AgentGuard with the same held-out splits and similarity groups as the MLP. The labels describe attempted injection, not whether an attack succeeded or whether a tool executed correctly. Source licenses and attribution are under [`../mlp_baseline/sources/`](../mlp_baseline/sources/); preparation details are in the [MLP report](../mlp_baseline/REPORT.md).
 
-**Banking uses the same allowlisted agent-run merge as the MLP.** Edit `COMBINED_RUNS` in `prepare_banking_data.py` (keep it in sync with `mlp_baseline/.../agent_data.py`), then:
+**Banking uses the same allowlisted agent-run merge as the MLP.** Edit `COMBINED_RUNS` in `prepare_banking_data.py` (keep it in sync with `mlp_baseline/src/mlp_baseline/agent_runs.py`), then:
 
 ```bash
 python laya_finetuning/prepare_banking_data.py \
@@ -111,7 +111,7 @@ import laya
 
 agent = laya.load("laya_finetuning/runs/injection-seed42/model",
                   device="cuda", fast=False, compile=False)
-with open("mlp_baseline/data/injection-v1/test.jsonl") as handle:
+with open("mlp_baseline/data/injection/test.jsonl") as handle:
     row = json.loads(next(handle))
 print(agent.predict(row["state"], row["questions"])["answers"])
 ```

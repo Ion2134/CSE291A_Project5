@@ -1,38 +1,65 @@
-"""Hybrid monitor: frozen external injection model + first-party stacker.
+"""The ``stacking`` monitor: the frozen injection detector as a feature, plus a first-party stacker.
 
-The binary injection MLP (trained on pinned external datasets) is frozen and
-used only as a feature generator. A first-party multinomial logistic
-regression learns the three-way cause mapping from the calibrated injection
-probability plus TF-IDF features. Stacking — rather than threshold mapping —
-lets first-party labels teach the stacker that a resisted attack (injection
-signal high, output still correct) is ``none``, not ``adversary``.
+The injection detector (trained on public data) is frozen and only supplies P(injection). A
+multinomial logistic regression learns the three causes from that probability plus TF-IDF
+features of first-party rows. Stacking, rather than thresholding P(injection), lets first-party
+labels teach that a resisted attack (high injection signal, correct output) is ``none``.
 """
 from __future__ import annotations
 
-import json
 import pickle
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 
-from .data import LABELS, write_json
-from .injection_mlp import load_injection_mlp
-from .metrics import scale_temperature
+from .common import LABELS, cause_of, read_json, write_json
+from .injection_model import INJECTION_INDEX, InjectionMLPPredictor, load_injection_mlp
+from .metrics import apply_calibration, scale_temperature
+from .mlp import CONFIG_FILE, MONITOR_FILE, NGRAM_RANGE
+
+KIND = "stacked_logreg"
+STACKER_FILE = "stacker.pkl"
+FEATURES = "calibrated injection probability + TF-IDF (fit on first-party train pool only)"
+
+
+@dataclass
+class StackedMonitor:
+    """Three-class cause monitor built on a frozen binary injection model."""
+
+    frozen: InjectionMLPPredictor
+    vectorizer: TfidfVectorizer
+    stacker: LogisticRegression
+    calibration: dict
+
+    def cause_proba(self, rows):
+        """Cause probabilities with only the cause temperature applied."""
+        return scale_temperature(self._raw_proba(rows), self.calibration["cause"]["temperature"])
+
+    def predict(self, rows):
+        """Calibrated ``(cause probabilities, P(correct))``; P(correct) comes from P(cause=none)."""
+        return apply_calibration(self._raw_proba(rows), self.calibration)
+
+    def _raw_proba(self, rows):
+        values = self.stacker.predict_proba(stacker_features(rows, self.frozen, self.vectorizer))
+        return values[:, np.argsort(self.stacker.classes_)]  # Columns in LABELS order.
 
 
 def stacker_features(rows, frozen, vectorizer):
-    injection = frozen.predict_proba(rows)[:, 1]
+    """``[P(injection), TF-IDF...]`` per row."""
+    injection = frozen.predict_proba(rows)[:, INJECTION_INDEX]
     tfidf = vectorizer.transform([row["state"] for row in rows]).toarray()
     return np.column_stack([injection, tfidf])
 
 
 def fit_stacker(rows, frozen, *, seed=42, max_features=4096, C=1.0, max_iter=2000):
     """Fit the TF-IDF vectorizer and logistic stacker on first-party rows only."""
-    vectorizer = TfidfVectorizer(max_features=max_features, ngram_range=(1, 2), dtype=np.float32)
+    vectorizer = TfidfVectorizer(max_features=max_features, ngram_range=NGRAM_RANGE, dtype=np.float32)
     vectorizer.fit([row["state"] for row in rows])
-    targets = np.array([LABELS.index(row["expected"]["cause"]) for row in rows])
+
+    targets = np.array([LABELS.index(cause_of(row)) for row in rows])
     stacker = LogisticRegression(C=C, class_weight="balanced", max_iter=max_iter, random_state=seed)
     stacker.fit(stacker_features(rows, frozen, vectorizer), targets)
     if set(stacker.classes_) != set(range(len(LABELS))):
@@ -40,47 +67,23 @@ def fit_stacker(rows, frozen, *, seed=42, max_features=4096, C=1.0, max_iter=200
     return vectorizer, stacker
 
 
-class StackedMonitor:
-    """Three-class cause monitor built on a frozen binary injection model."""
-
-    def __init__(self, frozen, vectorizer, stacker, calibration):
-        self.frozen, self.vectorizer, self.stacker = frozen, vectorizer, stacker
-        self.calibration = calibration
-
-    def cause_proba(self, rows):
-        values = self.stacker.predict_proba(stacker_features(rows, self.frozen, self.vectorizer))
-        order = np.argsort(self.stacker.classes_)
-        values = values[:, order]
-        return scale_temperature(values, self.calibration["cause"]["temperature"])
-
-    def predict(self, rows):
-        cause = self.cause_proba(rows)
-        correct = cause[:, 0]  # The three cause classes form a partition; correctness is P(cause=none).
-        binary = scale_temperature(np.stack([1 - correct, correct], axis=1),
-                                   self.calibration["correctness"]["temperature"])
-        return cause, binary[:, 1]
-
-
 def save_stacker(path: Path, vectorizer, stacker, calibration, *, base_checkpoint: str, training: dict) -> None:
     path.mkdir(parents=True, exist_ok=True)
-    with (path / "stacker.pkl").open("wb") as stream:
+    with (path / STACKER_FILE).open("wb") as stream:
         pickle.dump({"vectorizer": vectorizer, "stacker": stacker}, stream)
-    write_json(path / "monitor.json", {
-        "kind": "stacked_logreg",
-        "task": "banking_monitor",
-        "labels": list(LABELS),
-        "calibration": calibration,
-        "base_checkpoint": base_checkpoint,
-        "features": "calibrated injection probability + TF-IDF (fit on first-party train pool only)",
-    })
-    write_json(path / "model_config.json", training)
+    write_json(path / MONITOR_FILE, {"kind": KIND, "task": "banking_monitor", "labels": list(LABELS),
+                                     "calibration": calibration, "base_checkpoint": base_checkpoint,
+                                     "features": FEATURES})
+    write_json(path / CONFIG_FILE, training)
 
 
-def load_stacker(path: Path):
-    metadata = json.loads((Path(path) / "monitor.json").read_text())
-    if metadata["kind"] != "stacked_logreg" or metadata["labels"] != list(LABELS):
+def load_stacker(path: Path) -> StackedMonitor:
+    path = Path(path)
+    metadata = read_json(path / MONITOR_FILE)
+    if metadata["kind"] != KIND or metadata["labels"] != list(LABELS):
         raise ValueError("Checkpoint is not a stacked banking monitor")
-    with (Path(path) / "stacker.pkl").open("rb") as stream:
+
+    with (path / STACKER_FILE).open("rb") as stream:
         saved = pickle.load(stream)
     frozen = load_injection_mlp(Path(metadata["base_checkpoint"]))
     return StackedMonitor(frozen, saved["vectorizer"], saved["stacker"], metadata["calibration"])

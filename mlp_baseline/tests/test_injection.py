@@ -9,9 +9,11 @@ np = pytest.importorskip("numpy")
 pytest.importorskip("torch")
 pytest.importorskip("sklearn")
 
-from mlp_baseline.data import input_id, write_json, write_jsonl
+from mlp_baseline.common import input_id, write_json, write_jsonl
 from mlp_baseline.injection_data import INJECTION_LABELS, split_public_records
-from mlp_baseline.injection_mlp import binary_metrics, load_injection_mlp, train_injection_mlp, validate_injection_splits
+from mlp_baseline.injection_model import binary_metrics, load_injection_mlp, validate_injection_splits
+from mlp_baseline.injection_training import train_injection_mlp
+from mlp_baseline.mlp import TrainSettings
 
 
 @pytest.fixture
@@ -65,7 +67,7 @@ def test_local_injection_training_exports_and_reloads(tmp_path, public_records):
     manifest["split_sha256"] = {name: hashlib.sha256((data / f"{name}.jsonl").read_bytes()).hexdigest() for name in splits}
     write_json(data / "manifest.json", manifest)
     out = tmp_path / "trained"
-    result = train_injection_mlp(data, out, epochs=3, batch_size=2, threads=1)
+    result = train_injection_mlp(data, out, TrainSettings(epochs=3, batch_size=2, patience=8, threads=1))
     assert result["status"] == "complete"
     assert result["task"] == "injection_detection"
     assert result["training"]["checkpoint_reload_verified"]

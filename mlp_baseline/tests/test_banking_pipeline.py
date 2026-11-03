@@ -1,13 +1,14 @@
 import json
 
-from mlp_baseline.banking import load_banking_mlp, run_banking
+from mlp_baseline.banking_dev import load_banking_mlp, run_banking
+from mlp_baseline.mlp import TrainSettings
 
 
 def test_banking_pipeline_is_standalone_and_reloads(tmp_path):
     from pathlib import Path
     import numpy as np
-    source = Path(__file__).resolve().parents[1] / "data/banking/triton42-v2/raw"
-    result = run_banking(source, tmp_path / "bank", epochs=3, threads=1)
+    source = Path(__file__).resolve().parents[1] / "archive/banking-dev/data/raw"
+    result = run_banking(source, tmp_path / "bank", TrainSettings(epochs=3, threads=1))
     assert result["status"] == "complete"
     assert result["development_only"] is True
     assert result["training"]["checkpoint_reload_verified"]

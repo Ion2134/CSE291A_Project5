@@ -3,8 +3,8 @@ import json
 import pytest
 
 np = pytest.importorskip("numpy")
-from mlp_baseline.agent_data import combine_agent_runs, export_laya_banking, validate_combined_dataset
-from mlp_baseline.data import LABELS, input_id, request_group
+from mlp_baseline.monitor_datasets import combine_agent_runs, export_laya_banking, validate_combined_dataset
+from mlp_baseline.common import LABELS, input_id, request_group
 
 QUESTIONS = {"output_correct": {"type": "noul"}, "cause": {"type": "choice"}}
 # Group names avoid digits: request_group normalizes numbers to <number>.

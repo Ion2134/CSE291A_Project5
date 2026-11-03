@@ -20,7 +20,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-# Same experiment dirs as mlp_baseline.agent_data.COMBINED_RUNS — edit both when adding runs.
+# Same experiment dirs as mlp_baseline.agent_runs.COMBINED_RUNS — edit both when adding runs.
 COMBINED_RUNS = (
     "agent-qwen36a3b",
     "agent42",
@@ -57,8 +57,8 @@ def main(argv=None):
 
     repo = Path(__file__).resolve().parents[1]
     sys.path.insert(0, str(repo / "mlp_baseline" / "src"))
-    from mlp_baseline.agent_data import (COMBINED_RUNS as MLP_RUNS, combine_agent_runs, export_laya_banking,
-                                         read_runs_config)
+    from mlp_baseline.agent_runs import COMBINED_RUNS as MLP_RUNS, read_runs_config
+    from mlp_baseline.monitor_datasets import combine_agent_runs, export_laya_banking
 
     if args.runs_list:
         runs = tuple(args.runs_list)
@@ -68,7 +68,7 @@ def main(argv=None):
         runs = COMBINED_RUNS
     if runs != MLP_RUNS and args.runs_list is None and args.config is None:
         print(
-            "warning: laya COMBINED_RUNS differs from mlp_baseline.agent_data.COMBINED_RUNS; "
+            "warning: laya COMBINED_RUNS differs from mlp_baseline.agent_runs.COMBINED_RUNS; "
             "keep them in sync unless you intend a different pool",
             file=sys.stderr,
         )

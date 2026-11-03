@@ -3,10 +3,10 @@ import pytest
 np = pytest.importorskip("numpy")
 pytest.importorskip("torch")
 pytest.importorskip("sklearn")
-from mlp_baseline.injection_data import INJECTION_QUESTIONS
-from mlp_baseline.data import LABELS, input_id, read_rows, request_group, split_rows, write_jsonl
+from mlp_baseline.banking_dev import read_rows, split_rows
+from mlp_baseline.common import LABELS, input_id, request_group, write_jsonl
 from mlp_baseline.metrics import evaluate, fit_temperature
-from mlp_baseline.mlp import train_mlp, load_mlp
+from mlp_baseline.mlp import TrainSettings, load_mlp, train_mlp
 BANK_QUESTIONS = {"output_correct": {"type": "noul"}, "cause": {"type": "choice", "criteria": {key: key for key in LABELS}}}
 
 
@@ -126,7 +126,7 @@ def test_account_and_amount_variants_stay_in_one_request_group(rows):
 def test_mlp_vocabulary_does_not_learn_from_validation(tmp_path, rows):
     splits, _ = split_rows(rows)
     validation = [{**row, "state": row["state"] + " neverseenvalidationtoken"} for row in splits["val"]]
-    train_mlp(splits["train"], validation, tmp_path, epochs=2, max_features=64)
+    train_mlp(splits["train"], validation, tmp_path, TrainSettings(epochs=2, max_features=64))
     predictor = load_mlp(tmp_path)
     assert "neverseenvalidationtoken" not in predictor.vectorizer.vocabulary_
     before = predictor.predict(splits["test"])

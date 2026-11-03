@@ -11,8 +11,8 @@ import re
 from collections import Counter, defaultdict
 
 from .config import SplitSettings, Sweep, read_json, write_json, write_jsonl
-from mlp_baseline.agent_data import merge_agent_runs
-from mlp_baseline.data import LABELS, input_id, request_group
+from mlp_baseline.agent_runs import merge_agent_runs
+from mlp_baseline.common import LABELS, input_id, request_group
 
 # How many shuffles to try before giving up on a valid fold assignment.
 MAX_ATTEMPTS = 10_000
@@ -65,7 +65,7 @@ def pool_rows(sweep: Sweep) -> list[dict]:
     merged = merge_agent_runs(sweep.resolve(sweep.config["runs_dir"]), tuple(sweep.config["runs"]))
 
     rows, seen = [], {}
-    for row in merged["rows"]:
+    for row in merged.rows:
         # Laya's duplicate check is stricter than the MLP's; fail now rather than mid-sweep.
         signature = laya_signature(row)
         if signature in seen:

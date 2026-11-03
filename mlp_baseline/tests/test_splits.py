@@ -1,8 +1,8 @@
 import pytest
 
 np = pytest.importorskip("numpy")
-from mlp_baseline.cv import group_kfold, stratified_group_partition
-from mlp_baseline.data import LABELS, request_group
+from mlp_baseline.splits import group_kfold, stratified_group_partition
+from mlp_baseline.common import LABELS, request_group
 
 QUESTIONS = {"output_correct": {"type": "noul"}, "cause": {"type": "choice"}}
 # Group names avoid digits: request_group normalizes numbers to <number>.

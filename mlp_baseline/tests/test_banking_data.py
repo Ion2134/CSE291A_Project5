@@ -6,7 +6,7 @@ import shutil
 
 import pytest
 
-from mlp_baseline.banking_data import prepare_training_data
+from mlp_baseline.banking_dev import prepare_training_data
 
 
 def _write_rows(path, rows):
@@ -14,7 +14,7 @@ def _write_rows(path, rows):
 
 
 def test_prepare_real_triton_run_repairs_conflicts_and_preserves_sources(tmp_path):
-    source = Path(__file__).resolve().parents[1] / "data/banking/triton42-v2/raw"
+    source = Path(__file__).resolve().parents[1] / "archive/banking-dev/data/raw"
     for name in ("laya_train.jsonl", "examples.jsonl", "baseline.json"):
         shutil.copyfile(source / name, tmp_path / name)
     originals = {path: path.read_bytes() for path in tmp_path.iterdir()}

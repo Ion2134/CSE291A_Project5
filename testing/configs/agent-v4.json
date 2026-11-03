@@ -35,7 +35,7 @@
       "args": [
         "--max-features", "4096", 
         "--k", "5",
-        "--injection-checkpoint", "mlp_baseline/models/injection/seed42"
+        "--injection-checkpoint", "mlp_baseline/experiments/injection/seed42/model"
       ]
     },
     "laya": {

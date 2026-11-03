@@ -2,7 +2,7 @@
 
 This package redistributes processed examples from the following public datasets. The original
 dataset cards are preserved next to this notice. Exact source revisions and file hashes appear
-in `data/injection-v1/manifest.json` and `sources/attribution.json`.
+in `data/injection/manifest.json` and `sources/attribution.json`.
 
 | Dataset and attribution | Revision | Declared data license | Use |
 | --- | --- | --- | --- |
@@ -28,5 +28,5 @@ identify those works; the package does not imply endorsement by the dataset auth
 The banking data is a copy of this repository's synthetic `agent_env/data/runs/triton42-v2` run
 at commit `4c257a3ce3a6f92a7bc5940d30f4d14815779b27`. Its prepared copy repairs two mislabeled
 no-op attack examples and deduplicates inputs. Original records and labels are preserved under
-`data/banking/triton42-v2/raw`; the correction trail is in `prepared/data_report.json` and
+`archive/banking-dev/data/raw`; the correction trail is in `prepared/data_report.json` and
 `prepared/provenance.jsonl`.
