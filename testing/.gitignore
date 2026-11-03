@@ -1,0 +1,5 @@
+__pycache__/
+.pytest_cache/
+# Laya checkpoints are deleted after scoring unless keep_checkpoints is set; never commit them.
+results/*/runs/laya/*/native/model/
+results/*/runs/laya/*/native/last_model/

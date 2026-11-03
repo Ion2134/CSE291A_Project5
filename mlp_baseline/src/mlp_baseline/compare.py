@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import csv
 import json
+import shutil
 import time
 from collections import Counter
 from pathlib import Path
@@ -18,9 +19,10 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from .agent_data import validate_combined_dataset
+from .agent_data import _check_row, validate_combined_dataset
+from .banking_data import _read_jsonl
 from .cv import group_kfold
-from .data import LABELS, input_id, write_json, write_jsonl
+from .data import LABELS, input_id, request_group, write_json, write_jsonl
 from .injection_mlp import load_injection_mlp
 from .metrics import evaluate, fit_temperature, scale_temperature
 from .mlp import load_mlp, train_mlp
@@ -200,8 +202,9 @@ def run_agent_comparison(data: Path, out: Path, *, seed=42, k=5, epochs=40, batc
         "device": "cpu", "data": manifest, "cv": cv_info,
         "scenarios": result_scenarios, "majority_baseline": majority_baseline,
         "head_to_head": head_to_head,
-        "limitation": ("75 unique first-party examples and 15 held-out test rows with a single agent-error "
-                       "test example; treat as a development comparison, not a benchmark claim."),
+        "limitation": (f"{manifest['unique_inputs']} unique first-party examples and {len(test_rows)} held-out "
+                       f"test rows with {sum(row['expected']['cause'] == 'agent' for row in test_rows)} agent-error "
+                       "test example(s); treat as a development comparison, not a benchmark claim."),
         "elapsed_seconds": time.perf_counter() - started,
     }
     write_json(out / "results.json", result)
@@ -216,4 +219,69 @@ def run_agent_comparison(data: Path, out: Path, *, seed=42, k=5, epochs=40, batc
                               ("scenario_a_first_party_mlp", result_scenarios["scenario_a_first_party_mlp"]["test"]),
                               ("scenario_b_hybrid_stacking", result_scenarios["scenario_b_hybrid_stacking"]["test"])]:
             writer.writerow({"model": name, **{key: metrics[key] for key in columns[1:]}})
+    return result
+
+
+def fit_predict(train: Path, test: Path, out: Path, *, model="mlp", validation: Path | None = None,
+                seed=42, k=5, epochs=40, batch_size=16, max_features=4096, threads=4,
+                injection_checkpoint=Path("models/injection/seed42"), keep_models=False, verbose=False):
+    """Train one scenario on a given train file and predict a given test file.
+
+    This is the entry point the unified tester (``testing/sweep.py``) calls for
+    each fold. Training is the same as ``run_agent_comparison``: inner group
+    cross-validation picks the MLP epoch count and fits calibration on
+    out-of-fold predictions, then the model is refit on every training row.
+    ``validation`` rows (if given) are added to the training rows, because the
+    inner cross-validation already holds data out.
+    """
+    if model not in ("mlp", "stacking"):
+        raise ValueError("model must be 'mlp' or 'stacking'")
+    out = Path(out)
+    if out.exists() and any(out.iterdir()):
+        raise ValueError("Use a new or empty output directory")
+    torch.set_num_threads(threads)
+    started = time.perf_counter()
+
+    train_rows = _read_jsonl(Path(train))
+    if validation is not None:
+        train_rows += _read_jsonl(Path(validation))
+    test_rows = _read_jsonl(Path(test))
+    if not train_rows or not test_rows:
+        raise ValueError("Train and test files must not be empty")
+    questions = train_rows[0]["questions"]
+    for name, rows in (("train", train_rows), ("test", test_rows)):
+        for line, row in enumerate(rows, 1):
+            _check_row(row, name, line, questions)
+    if {request_group(row) for row in train_rows} & {request_group(row) for row in test_rows}:
+        raise ValueError("A user-request group appears in both train and test")
+
+    out.mkdir(parents=True, exist_ok=True)
+    folds_result = group_kfold(train_rows, k=k, seed=seed)
+    models_dir = out / "models"
+    if model == "mlp":
+        cause, correct, details = _scenario_a(
+            folds_result["folds"], train_rows, test_rows, models_dir, seed=seed, epochs=epochs,
+            batch_size=batch_size, max_features=max_features, verbose=verbose)
+    else:
+        frozen = load_injection_mlp(Path(injection_checkpoint))
+        cause, correct, details = _scenario_b(
+            folds_result["folds"], train_rows, test_rows, models_dir, seed=seed,
+            max_features=max_features, frozen=frozen, base_checkpoint=injection_checkpoint)
+    if not keep_models:
+        shutil.rmtree(models_dir)
+
+    write_jsonl(out / "test_predictions.jsonl", [
+        {"input_id": input_id(row), "expected": row["expected"],
+         "cause_probabilities": dict(zip(LABELS, map(float, probs))),
+         "correct_probability": float(ok)}
+        for row, probs, ok in zip(test_rows, cause, correct)])
+    details.pop("training", None)  # Per-epoch history is large and not needed per fold.
+    result = {
+        "model": model, "seed": seed, "train_rows": len(train_rows), "test_rows": len(test_rows),
+        "inner_cv": {"requested_k": folds_result["requested_k"], "k": folds_result["k"],
+                     "degraded": folds_result["degraded"]},
+        "details": details, "test": evaluate(test_rows, cause, correct),
+        "elapsed_seconds": time.perf_counter() - started,
+    }
+    write_json(out / "results.json", result)
     return result

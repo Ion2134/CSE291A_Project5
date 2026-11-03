@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Combine first-party agent runs into Laya banking train/val/test.
 
-Same allowlist pattern as ``mlp_baseline``: edit ``COMBINED_RUNS`` to name the
-experiment directories under ``agent_env/data/runs``, then:
+Same allowlist pattern as ``mlp_baseline``: edit ``COMBINED_RUNS`` (or pass
+``--config testing/configs/<name>.json``) to name the experiment directories
+under ``agent_env/data/runs``, then:
 
     python laya_finetuning/prepare_banking_data.py \\
       --runs agent_env/data/runs \\
@@ -47,14 +48,25 @@ def main(argv=None):
         default=None,
         help="Override COMBINED_RUNS with an explicit list of run directory names",
     )
+    parser.add_argument(
+        "--config",
+        type=Path,
+        help="JSON config whose 'runs' list replaces COMBINED_RUNS (e.g. testing/configs/agent-v4.json)",
+    )
     args = parser.parse_args(argv)
 
     repo = Path(__file__).resolve().parents[1]
     sys.path.insert(0, str(repo / "mlp_baseline" / "src"))
-    from mlp_baseline.agent_data import COMBINED_RUNS as MLP_RUNS, combine_agent_runs, export_laya_banking
+    from mlp_baseline.agent_data import (COMBINED_RUNS as MLP_RUNS, combine_agent_runs, export_laya_banking,
+                                         read_runs_config)
 
-    runs = tuple(args.runs_list) if args.runs_list else COMBINED_RUNS
-    if runs != MLP_RUNS and args.runs_list is None:
+    if args.runs_list:
+        runs = tuple(args.runs_list)
+    elif args.config:
+        runs = tuple(read_runs_config(args.config)["runs"])
+    else:
+        runs = COMBINED_RUNS
+    if runs != MLP_RUNS and args.runs_list is None and args.config is None:
         print(
             "warning: laya COMBINED_RUNS differs from mlp_baseline.agent_data.COMBINED_RUNS; "
             "keep them in sync unless you intend a different pool",

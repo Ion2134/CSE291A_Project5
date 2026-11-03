@@ -7,7 +7,7 @@ np = pytest.importorskip("numpy")
 pytest.importorskip("torch")
 pytest.importorskip("sklearn")
 from mlp_baseline.agent_data import combine_agent_runs
-from mlp_baseline.compare import run_agent_comparison
+from mlp_baseline.compare import fit_predict, run_agent_comparison
 from mlp_baseline.data import LABELS
 
 QUESTIONS = {"output_correct": {"type": "noul"}, "cause": {"type": "choice"}}
@@ -80,3 +80,23 @@ def test_run_agent_comparison_end_to_end(tmp_path):
         atol=1e-6, rtol=1e-6)
     with pytest.raises(ValueError, match="new or empty"):
         run_agent_comparison(data, out, seed=3, k=2, epochs=2)
+
+
+def test_fit_predict_writes_predictions_for_every_test_row(tmp_path):
+    runs_dir = tmp_path / "runs"
+    rows = [_row(group, variant, cause) for group in NAMES
+            for variant, cause in enumerate(("none", "none", "agent", "adversary", "none", "adversary"))]
+    _write_run(runs_dir, "run_a", rows)
+    data = tmp_path / "combined"
+    combine_agent_runs(runs_dir, data, seed=3, runs=("run_a",))
+    out = tmp_path / "fit"
+    result = fit_predict(data / "train.jsonl", data / "test.jsonl", out, model="mlp",
+                         seed=3, k=2, epochs=3, batch_size=8, max_features=256)
+
+    test_rows = [json.loads(line) for line in (data / "test.jsonl").read_text().splitlines()]
+    predictions = [json.loads(line) for line in (out / "test_predictions.jsonl").read_text().splitlines()]
+    assert result["test"]["samples"] == len(test_rows) == len(predictions)
+    assert all(set(row["cause_probabilities"]) == set(LABELS) for row in predictions)
+    assert not (out / "models").exists()  # Fold models are deleted unless keep_models is set.
+    with pytest.raises(ValueError, match="both train and test"):
+        fit_predict(data / "train.jsonl", data / "train.jsonl", tmp_path / "leak", model="mlp", k=2, epochs=1)

@@ -42,6 +42,8 @@ python laya_finetuning/prepare_banking_data.py \
 
 That merges/repairs/dedups the named runs, freezes the same test split the MLP uses, and carves val from the train pool. `train_laya.py --task banking` defaults to that directory. Legacy `data/banking-dev/` (single-run triton42-v2) remains as a schema example. Agent-error support is still thin; treat banking results as development checks. The script never combines banking and injection.
 
+For multi-split comparisons with the MLP, use [`../testing/`](../testing/): it builds the folds, calls `train_laya.py --task banking --train … --validation … --test …` for each one, and scores Laya and the MLP the same way. `prepare_banking_data.py --config ../testing/configs/agent-v4.json` reads the run list from that config.
+
 ## Validate first; this does not train
 
 ```bash

@@ -38,6 +38,8 @@ def main():
     combine.add_argument("--out", type=Path, required=True)
     combine.add_argument("--seed", type=int, default=42)
     combine.add_argument("--test-fraction", type=float, default=0.2)
+    combine.add_argument("--config", type=Path,
+                         help="JSON config whose 'runs' list replaces COMBINED_RUNS (e.g. testing/configs/agent-v4.json)")
     export = sub.add_parser(
         "export-laya-banking",
         help="Export a combined agent dataset as Laya train/val/test (shared test split)",
@@ -57,6 +59,21 @@ def main():
     compare.add_argument("--threads", type=int, default=4)
     compare.add_argument("--injection-checkpoint", type=Path, default=Path("models/injection/seed42"))
     compare.add_argument("--verbose", action="store_true")
+    fit = sub.add_parser("fit-predict", help="Train one scenario on a train file and predict a test file")
+    fit.add_argument("--model", choices=["mlp", "stacking"], required=True)
+    fit.add_argument("--train", type=Path, required=True)
+    fit.add_argument("--validation", type=Path, help="Optional; these rows are added to training")
+    fit.add_argument("--test", type=Path, required=True)
+    fit.add_argument("--out", type=Path, required=True)
+    fit.add_argument("--seed", type=int, default=42)
+    fit.add_argument("--k", type=int, default=5, help="Inner cross-validation folds")
+    fit.add_argument("--epochs", type=int, default=40)
+    fit.add_argument("--batch-size", type=int, default=16)
+    fit.add_argument("--max-features", type=int, default=4096)
+    fit.add_argument("--threads", type=int, default=4)
+    fit.add_argument("--injection-checkpoint", type=Path, default=Path("models/injection/seed42"))
+    fit.add_argument("--keep-models", action="store_true")
+    fit.add_argument("--verbose", action="store_true")
     predict = sub.add_parser("predict", help="Load an exported checkpoint and predict JSONL examples")
     predict.add_argument("--checkpoint", type=Path, required=True)
     predict.add_argument("--data", type=Path, required=True)
@@ -84,8 +101,10 @@ def main():
         result = run_banking(**options)
         print(json.dumps({"status": result["status"], "results": str(args.out / "results.json")}, indent=2))
     elif args.command == "prepare-agent-data":
-        from .agent_data import combine_agent_runs
-        manifest = combine_agent_runs(args.runs, args.out, seed=args.seed, test_fraction=args.test_fraction)
+        from .agent_data import COMBINED_RUNS, combine_agent_runs, read_runs_config
+        runs = read_runs_config(args.config)["runs"] if args.config else COMBINED_RUNS
+        manifest = combine_agent_runs(args.runs, args.out, seed=args.seed, test_fraction=args.test_fraction,
+                                      runs=runs)
         print(json.dumps({"unique_inputs": manifest["unique_inputs"], "splits": {
             name: {"rows": split["rows"], "label_counts": split["label_counts"]}
             for name, split in manifest["splits"].items()}}, indent=2))
@@ -103,6 +122,13 @@ def main():
         print(json.dumps({"status": result["status"],
                           "head_to_head": result["head_to_head"],
                           "results": str(args.out / "results.json")}, indent=2))
+    elif args.command == "fit-predict":
+        from .compare import fit_predict
+        options = vars(args).copy()
+        options.pop("command")
+        result = fit_predict(**options)
+        print(json.dumps({"model": result["model"], "test_rows": result["test_rows"],
+                          "predictions": str(args.out / "test_predictions.jsonl")}, indent=2))
     elif args.command == "verify":
         from .verify import verify_release
         print(json.dumps(verify_release(args.root), indent=2))

@@ -131,6 +131,21 @@ artifacts under `reports/agent-combined-v2/models/`.
 With 134 unique examples, 2 agent-error test rows, and only 10 independent request groups,
 this remains a development comparison, not a benchmark claim. (v1: 75 uniques, 6 runs.)
 
+## Multi-split sweep
+
+Single held-out splits of this data swing a lot. [`../testing/`](../testing/) runs the MLP,
+stacking and Laya over many group cross-validation splits and seeds and reports medians and
+paired differences. It trains through this package's `fit-predict` command, which runs one
+scenario on given files:
+
+```bash
+mlp-baseline fit-predict --model mlp --train train.jsonl --test test.jsonl \
+  --out runs/fold --seed 42 --k 5
+```
+
+`prepare-agent-data --config ../testing/configs/agent-v4.json` takes the run list from that
+config instead of `COMBINED_RUNS`.
+
 ## Contents
 
 | Path | Contents |

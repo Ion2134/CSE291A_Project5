@@ -71,15 +71,25 @@ def _load_run(run_dir: Path, run_name: str, questions):
     return repaired, corrections, hashes
 
 
-def combine_agent_runs(runs_dir: Path, out_dir: Path, *, seed: int = 42, test_fraction: float = 0.2,
-                       runs=COMBINED_RUNS) -> dict:
-    """Write train/test JSONL + provenance + manifest; raw runs stay untouched."""
-    runs_dir, out_dir = Path(runs_dir), Path(out_dir)
-    if out_dir.exists() and any(out_dir.iterdir()):
-        raise ValueError("Use a new or empty combined-dataset directory")
-    if not 0 < test_fraction < 1:
-        raise ValueError("test_fraction must be in (0, 1)")
+def read_runs_config(path: Path) -> dict:
+    """Read a shared JSON config (e.g. ``testing/configs/*.json``) naming the agent runs to pool.
 
+    Only ``runs`` is required here; other keys belong to the sweep runner.
+    """
+    path = Path(path)
+    config = json.loads(path.read_text())
+    if not config.get("runs") or not all(isinstance(name, str) for name in config["runs"]):
+        raise ValueError(f"{path}: 'runs' must be a non-empty list of run directory names")
+    return config
+
+
+def merge_agent_runs(runs_dir: Path, runs=COMBINED_RUNS) -> dict:
+    """Repair each run, then merge identical normalized inputs across runs.
+
+    Returns the unique rows (each with ``meta.source_runs``) plus the
+    provenance and per-run reports. Nothing is split or written here.
+    """
+    runs_dir = Path(runs_dir)
     questions = None
     entries, corrections, run_reports = [], [], {}
     for name in runs:
@@ -113,9 +123,25 @@ def combine_agent_runs(runs_dir: Path, out_dir: Path, *, seed: int = 42, test_fr
             unique[key] = merged
             provenance[key] = [source]
     rows = list(unique.values())
-    label_counts = Counter(row["expected"]["cause"] for row in rows)
-    if set(label_counts) != set(LABELS):
+    if {row["expected"]["cause"] for row in rows} != set(LABELS):
         raise ValueError("The combined dataset must include correct, agent-error, and adversary-error examples")
+    return {"rows": rows, "provenance": provenance, "run_reports": run_reports,
+            "corrections": corrections, "raw_rows": len(entries)}
+
+
+def combine_agent_runs(runs_dir: Path, out_dir: Path, *, seed: int = 42, test_fraction: float = 0.2,
+                       runs=COMBINED_RUNS) -> dict:
+    """Write train/test JSONL + provenance + manifest; raw runs stay untouched."""
+    runs_dir, out_dir = Path(runs_dir), Path(out_dir)
+    if out_dir.exists() and any(out_dir.iterdir()):
+        raise ValueError("Use a new or empty combined-dataset directory")
+    if not 0 < test_fraction < 1:
+        raise ValueError("test_fraction must be in (0, 1)")
+
+    merged = merge_agent_runs(runs_dir, runs)
+    rows, provenance = merged["rows"], merged["provenance"]
+    corrections, raw_rows = merged["corrections"], merged["raw_rows"]
+    label_counts = Counter(row["expected"]["cause"] for row in rows)
 
     groups = sorted({request_group(row) for row in rows})
     n_test = max(1, round(len(groups) * test_fraction))
@@ -132,12 +158,12 @@ def combine_agent_runs(runs_dir: Path, out_dir: Path, *, seed: int = 42, test_fr
         "seed": seed,
         "strategy": "repair_per_run_then_merge_dedup_then_group_stratified_split",
         "eval_policy": "First-party agent runs only; external datasets never train or evaluate on this artifact.",
-        "runs": run_reports,
-        "raw_rows": len(entries),
+        "runs": merged["run_reports"],
+        "raw_rows": raw_rows,
         "repaired_rows": len(corrections),
         "label_corrections": corrections,
         "unique_inputs": len(rows),
-        "duplicate_rows_removed": len(entries) - len(rows),
+        "duplicate_rows_removed": raw_rows - len(rows),
         "label_counts": dict(sorted(label_counts.items())),
         "groups": len(groups),
         "test_fraction_requested": test_fraction,
