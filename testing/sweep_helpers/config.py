@@ -34,7 +34,7 @@ class ModelSettings:
     """How to call one model's own training command."""
 
     name: str
-    python: str                          # Interpreter of that model's environment.
+    python: str                          # Interpreter to launch with; defaults to this process.
     training_seeds: tuple[int, ...]
     args: tuple[str, ...] = ()           # Extra flags passed straight to the command.
     device: str = "cuda"                 # Laya only.
@@ -43,7 +43,9 @@ class ModelSettings:
 
     @classmethod
     def from_config(cls, name: str, raw: dict, default_seeds) -> "ModelSettings":
-        return cls(name=name, python=raw["python"],
+        # Optional: omit `python` (or set null/"") to use whatever is running the sweep.
+        python = raw.get("python") or sys.executable
+        return cls(name=name, python=python,
                    training_seeds=tuple(raw.get("training_seeds", default_seeds)),
                    args=tuple(raw.get("args", ())), device=raw.get("device", "cuda"),
                    keep_checkpoints=raw.get("keep_checkpoints", False), raw=raw)

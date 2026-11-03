@@ -1,0 +1,23 @@
+{
+  "temperature": [
+    1.0,
+    1.0,
+    1.0
+  ],
+  "temperature_by_options": {},
+  "n_by_bucket": {},
+  "temperature_clamped": {},
+  "skipped_types": {
+    "2": {
+      "n": 11,
+      "reason": "need >=20 validation items and >=2 target classes"
+    },
+    "0": {
+      "n": 11,
+      "reason": "need >=20 validation items and >=2 target classes"
+    }
+  },
+  "source": "validation only",
+  "minimum_items": 20,
+  "validation_sha256": "4e7683b220f19ff2899587e8822797ee1742c8d33cea69c44ba2486f4b04e8e1"
+}

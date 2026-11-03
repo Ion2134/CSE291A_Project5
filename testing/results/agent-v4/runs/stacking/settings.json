@@ -1,0 +1,11 @@
+{
+  "python": "mlp_baseline/.venv/bin/python",
+  "args": [
+    "--max-features",
+    "4096",
+    "--k",
+    "5",
+    "--injection-checkpoint",
+    "mlp_baseline/models/injection/seed42"
+  ]
+}

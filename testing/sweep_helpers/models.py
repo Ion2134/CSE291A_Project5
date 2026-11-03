@@ -12,6 +12,7 @@ from __future__ import annotations
 import shlex
 import shutil
 import subprocess
+import sys
 import time
 from collections.abc import Iterator
 from pathlib import Path
@@ -20,6 +21,9 @@ from tqdm import tqdm
 
 from .config import ModelSettings, Sweep, Unit, UnitFiles, read_json, read_jsonl, write_json
 from .summary import Predictions, save_predictions, score
+
+# Machine-local launch path; not a training hyperparameter, so settings locks ignore it.
+_SETTINGS_LOCK_IGNORE = frozenset({"python"})
 
 # Both training commands write their test predictions under this name.
 NATIVE_PREDICTIONS = "test_predictions.jsonl"
@@ -87,13 +91,26 @@ def run_unit(sweep: Sweep, unit: Unit, *, dry_run=False) -> str:
     return f"done in {elapsed:.1f}s"
 
 
+def resolve_python(sweep: Sweep, settings: ModelSettings) -> str:
+    """Interpreter for one model: config override if it exists, else the active process."""
+    configured = settings.python
+    if configured in ("", None):
+        return sys.executable
+    # Bare command names (python, python3) resolve via PATH / the active venv.
+    if "/" not in configured:
+        return configured
+    path = sweep.resolve(configured)
+    if path.exists():
+        return str(path)
+    # Stale machine-specific paths in configs should not break an already-activated env.
+    return sys.executable
+
+
 def build_command(sweep: Sweep, unit: Unit, native: Path) -> list[str]:
     """The model's own training command for one unit, with the shared fold files."""
     settings = sweep.models[unit.model]
     fold = sweep.fold_files(unit.split_seed, unit.fold)
-
-    # A configured path (not a bare command name like "python3") is relative to the repo.
-    python = str(sweep.resolve(settings.python)) if "/" in settings.python else settings.python
+    python = resolve_python(sweep, settings)
     data = ["--train", str(fold.train), "--validation", str(fold.val), "--test", str(fold.test),
             "--seed", str(unit.training_seed)]
 
@@ -147,6 +164,11 @@ def save_unit(sweep: Sweep, unit: Unit, files: UnitFiles, command: list[str],
     write_json(files.metrics, score(test_rows, predictions))  # Last: marks the unit as done.
 
 
+def settings_for_lock(raw: dict) -> dict:
+    """Training-relevant settings only (interpreter paths differ across machines)."""
+    return {key: value for key, value in raw.items() if key not in _SETTINGS_LOCK_IGNORE}
+
+
 def check_model_settings(sweep: Sweep, settings: ModelSettings) -> None:
     """Refuse to mix runs of one model that were made with different settings."""
     path = sweep.model_dir(settings.name) / "settings.json"
@@ -154,6 +176,6 @@ def check_model_settings(sweep: Sweep, settings: ModelSettings) -> None:
     if not path.exists():
         path.parent.mkdir(parents=True, exist_ok=True)
         write_json(path, settings.raw)
-    elif read_json(path) != settings.raw:
+    elif settings_for_lock(read_json(path)) != settings_for_lock(settings.raw):
         raise ValueError(f"{settings.name} settings changed since the runs in {path.parent}; "
                          "delete that folder or use a new config name")

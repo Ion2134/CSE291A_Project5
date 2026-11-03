@@ -57,7 +57,7 @@ relative to the repository root. To test a different pool, copy the file and cha
 | `split.max_test_fraction` | Rejects assignments with a test fold larger than this share of rows |
 | `split.laya_val_fraction` | Training groups held out as Laya's validation set |
 | `training_seeds` | Training seeds run on every split (a model can override this) |
-| `models.<name>.python` | Python of that model's environment |
+| `models.<name>.python` | Optional interpreter override; defaults to the Python running the sweep |
 | `models.<name>.args` | Extra flags passed to that model's command |
 
 The same file works with `mlp-baseline prepare-agent-data --config …` and

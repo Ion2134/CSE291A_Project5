@@ -22,7 +22,6 @@
   "training_seeds": [42, 43, 44],
   "models": {
     "mlp": {
-      "python": "mlp_baseline/.venv/bin/python",
       "args": [
         "--epochs", "40", 
         "--batch-size", "16", 
@@ -31,7 +30,6 @@
       ]
     },
     "stacking": {
-      "python": "mlp_baseline/.venv/bin/python",
       "args": [
         "--max-features", "4096", 
         "--k", "5",
@@ -39,8 +37,7 @@
       ]
     },
     "laya": {
-      "python": "laya_finetuning/.venv/bin/python",
-      "device": "cuda",
+      "device": "mps",
       "training_seeds": [42],
       "args": [],
       "keep_checkpoints": false

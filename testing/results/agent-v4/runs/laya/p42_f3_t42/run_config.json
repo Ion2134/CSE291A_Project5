@@ -1,0 +1,30 @@
+{
+  "unit": "laya p42 f3 t42",
+  "command": [
+    "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/agent_env/.venv/bin/python3",
+    "laya_finetuning/train_laya.py",
+    "--task",
+    "banking",
+    "--train",
+    "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/testing/results/agent-v4/data/p42/f3/train.jsonl",
+    "--validation",
+    "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/testing/results/agent-v4/data/p42/f3/val.jsonl",
+    "--test",
+    "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/testing/results/agent-v4/data/p42/f3/test.jsonl",
+    "--seed",
+    "42",
+    "--device",
+    "mps",
+    "--output",
+    "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/testing/results/agent-v4/runs/laya/p42_f3_t42/native"
+  ],
+  "settings": {
+    "device": "mps",
+    "training_seeds": [
+      42
+    ],
+    "args": [],
+    "keep_checkpoints": false
+  },
+  "elapsed_seconds": 473.3728402919951
+}

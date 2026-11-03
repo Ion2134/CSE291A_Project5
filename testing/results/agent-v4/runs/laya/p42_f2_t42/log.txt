@@ -1,0 +1,139 @@
+Fetching 5 files:   0%|          | 0/5 [00:00<?, ?it/s]Fetching 5 files: 100%|██████████| 5/5 [00:00<00:00, 2483.60it/s]
+W1103 00:05:06.018000 7631 torch/distributed/elastic/multiprocessing/redirects.py:29] NOTE: Redirects are currently not supported in Windows or MacOs.
+{
+  "task": "banking",
+  "parameters": 421293827,
+  "device": "mps",
+  "training_items": 252,
+  "config": {
+    "epochs": 4,
+    "micro_batch": 2,
+    "grad_accum": 8,
+    "encoder_lr": 2.5e-05,
+    "head_lr": 0.0001,
+    "min_lr": 1e-06,
+    "weight_decay": 0.01,
+    "grad_clip": 1.0,
+    "loss": "soft-ce",
+    "rl_samples": 4,
+    "sigma_start": 0.4,
+    "sigma_end": 0.1,
+    "w_sph": 0.75,
+    "w_rps": 1.0,
+    "shuffle_options": [],
+    "option_layout": null,
+    "freeze_encoder": false,
+    "calib_max": 0,
+    "calib_frac": 0,
+    "calib_seed": 20260922,
+    "seed": 42,
+    "max_len": 1024,
+    "head_max_len": 256,
+    "amp": false,
+    "gradient_checkpointing": true,
+    "log_every": 100,
+    "label_smoothing": 0.0,
+    "text_column": "text",
+    "label_column": "label",
+    "question_id": "label",
+    "instructions": null,
+    "eval_data": null,
+    "target_error": 0.1,
+    "min_abstain_n": 10
+  }
+}
+epoch 1/4 step 100 loss 0.0551
+epoch 1/4 mean loss 0.4546
+epoch 1: validation CE=0.571656
+epoch 2/4 step 100 loss 0.0004
+epoch 2/4 mean loss 0.1819
+epoch 2: validation CE=0.183288
+epoch 3/4 step 100 loss 0.0010
+epoch 3/4 mean loss 0.0949
+epoch 3: validation CE=0.184527
+epoch 4/4 step 100 loss 0.0000
+epoch 4/4 mean loss 0.0630
+epoch 4: validation CE=0.135462
+{
+  "task": "banking",
+  "best_epoch": 4,
+  "best_validation_cross_entropy": 0.13546194901205288,
+  "epochs_completed": 4,
+  "elapsed_seconds": 560.8861215839861,
+  "checkpoint_reload_verified": true,
+  "test": {
+    "output_correct": {
+      "rows": 22,
+      "labels": [
+        false,
+        true
+      ],
+      "accuracy": 1.0,
+      "macro_f1": 1.0,
+      "per_class_f1": [
+        1.0,
+        1.0
+      ],
+      "class_support": [
+        5,
+        17
+      ],
+      "confusion_matrix": [
+        [
+          5,
+          0
+        ],
+        [
+          0,
+          17
+        ]
+      ],
+      "log_loss": 0.006170051526571368,
+      "auroc": 1.0,
+      "brier": 0.000249819545460909,
+      "false_positive_rate": 0.0,
+      "false_negative_rate": 0.0
+    },
+    "cause": {
+      "rows": 22,
+      "labels": [
+        "none",
+        "agent",
+        "adversary"
+      ],
+      "accuracy": 0.9545454545454546,
+      "macro_f1": 0.9422799422799423,
+      "per_class_f1": [
+        0.9696969696969697,
+        1.0,
+        0.8571428571428571
+      ],
+      "class_support": [
+        17,
+        2,
+        3
+      ],
+      "confusion_matrix": [
+        [
+          16,
+          0,
+          1
+        ],
+        [
+          0,
+          2,
+          0
+        ],
+        [
+          0,
+          0,
+          3
+        ]
+      ],
+      "log_loss": 0.14879440281550968
+    }
+  },
+  "warnings": [
+    "Banking data has 169 unique cases across 10 request groups; development results only."
+  ]
+}
