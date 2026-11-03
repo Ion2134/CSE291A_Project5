@@ -30,6 +30,9 @@ class ChatTurn:
 # agent_env/.env (chat.py -> llm -> discovery_sim -> src -> agent_env)
 DEFAULT_ENV_PATH = Path(__file__).resolve().parents[3] / ".env"
 
+# Sampling temperature for every chat backend (and the scripted-mode LM planner).
+DEFAULT_TEMPERATURE = 0.2
+
 ChatBackend = Literal["lmstudio", "triton"]
 CHAT_BACKENDS: tuple[str, ...] = ("lmstudio", "triton")
 
@@ -95,7 +98,38 @@ class ChatClient(ABC):
         raise NotImplementedError
 
 
-class LmStudioChat(ChatClient):
+class OpenAICompatibleChat(ChatClient):
+    """POSTs to an OpenAI-style ``/chat/completions`` endpoint; subclasses set the URL, model and auth."""
+
+    def _headers(self) -> dict[str, str]:
+        return {}
+
+    def _describe_http_error(self, exc: httpx.HTTPStatusError) -> str:
+        return str(exc)
+
+    async def complete(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> ChatTurn:
+        payload: dict[str, Any] = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": DEFAULT_TEMPERATURE,
+        }
+        if tools:
+            payload["tools"] = tools
+            payload["tool_choice"] = "auto"
+        url = f"{self.base_url}/chat/completions"
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.post(url, json=payload, headers=self._headers())
+                response.raise_for_status()
+                body = response.json()
+        except httpx.HTTPStatusError as exc:
+            return ChatTurn(content=None, error=self._describe_http_error(exc))
+        except Exception as exc:
+            return ChatTurn(content=None, error=str(exc))
+        return _parse_chat_completion(body)
+
+
+class LmStudioChat(OpenAICompatibleChat):
     def __init__(
         self,
         base_url: str | None = None,
@@ -107,27 +141,8 @@ class LmStudioChat(ChatClient):
         self.timeout = timeout
         self.model_id = self.model
 
-    async def complete(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> ChatTurn:
-        payload: dict[str, Any] = {
-            "model": self.model,
-            "messages": messages,
-            "temperature": 0.2,
-        }
-        if tools:
-            payload["tools"] = tools
-            payload["tool_choice"] = "auto"
-        url = f"{self.base_url}/chat/completions"
-        try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.post(url, json=payload)
-                response.raise_for_status()
-                body = response.json()
-        except Exception as exc:
-            return ChatTurn(content=None, error=str(exc))
-        return _parse_chat_completion(body)
 
-
-class TritonAPIChat(ChatClient):
+class TritonAPIChat(OpenAICompatibleChat):
     """OpenAI-compatible TritonAI endpoint. Reads OPENAI_API_KEY / OPENAI_BASE_URL / OPENAI_MODEL,
     falling back to agent_env/.env (gitignored) for any that aren't already set."""
 
@@ -147,27 +162,12 @@ class TritonAPIChat(ChatClient):
         if not self.base_url or not self.api_key or not self.model:
             raise ValueError("TritonAPIChatClient needs OPENAI_BASE_URL, OPENAI_API_KEY and OPENAI_MODEL (env or .env)")
 
-    async def complete(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> ChatTurn:
-        payload: dict[str, Any] = {
-            "model": self.model,
-            "messages": messages,
-            "temperature": 0.2,
-        }
-        if tools:
-            payload["tools"] = tools
-            payload["tool_choice"] = "auto"
-        url = f"{self.base_url}/chat/completions"
-        headers = {"Authorization": f"Bearer {self.api_key}"}
-        try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.post(url, json=payload, headers=headers)
-                response.raise_for_status()
-                body = response.json()
-        except httpx.HTTPStatusError as exc:
-            return ChatTurn(content=None, error=f"{exc.response.status_code}: {exc.response.text[:500]}")
-        except Exception as exc:
-            return ChatTurn(content=None, error=str(exc))
-        return _parse_chat_completion(body)
+    def _headers(self) -> dict[str, str]:
+        return {"Authorization": f"Bearer {self.api_key}"}
+
+    def _describe_http_error(self, exc: httpx.HTTPStatusError) -> str:
+        return f"{exc.response.status_code}: {exc.response.text[:500]}"
+
 
 class ScriptChatClient(ChatClient):
     """Canned tool-call sequence for tests (no network)."""

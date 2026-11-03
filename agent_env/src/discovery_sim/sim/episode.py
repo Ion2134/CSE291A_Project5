@@ -19,7 +19,7 @@ from discovery_sim.ledger.store import SyntheticLedger
 from discovery_sim.sim.agent_tasks import agent_tasks
 from discovery_sim.sim.context import AgentContext
 from discovery_sim.sim.harness import AgentPool, execute_tool_call
-from discovery_sim.sim.labels import label_call, laya_state
+from discovery_sim.sim.labels import example_input_state, label_call
 from discovery_sim.sim.operators import operator_catalog, pick_operator
 from discovery_sim.sim.fault_schedule import pick_agent_fault_call_index
 from discovery_sim.sim.orchestrator import AgentOrchestrator, ToolCallError, agent_episode_outcome
@@ -50,7 +50,13 @@ LAYA_QUESTIONS = {
 }
 
 
-# Simulator crashes (our bugs) vs. tool calls the model malformed (model failures).
+# Files every run writes.
+EPISODES_FILE = "episodes.jsonl"
+EXAMPLES_FILE = "examples.jsonl"
+LAYA_TRAIN_FILE = "laya_train.jsonl"
+QUESTIONS_FILE = "questions.json"
+BASELINE_FILE = "baseline.json"
+# Simulator crashes (our bugs) vs. tool calls the model malformed (model failures); written only if any.
 ERRORS_FILE = "errors.jsonl"
 MALFORMED_CALLS_FILE = "malformed_calls.jsonl"
 
@@ -235,25 +241,7 @@ class EpisodeRunner:
             examples.append(
                 LabeledExample(
                     example_id=f"ex_{uuid.uuid4().hex[:8]}",
-                    input_state={
-                        "state_text": laya_state(task, record, context, pool.ledger),
-                        "base_task": scenario.user_message,
-                        "trusted": dict(context.trusted),
-                        "prior_calls": [
-                            {
-                                "call_index": p.call_index,
-                                "tool": p.llm_call.tool_name,
-                                "model_call": p.llm_call.arguments,
-                                "output": p.output,
-                            }
-                            for p in context.prior_calls
-                            if p.call_index < step_index
-                        ],
-                        "model_call": record.llm_call.arguments,
-                        "received_args": record.mcp_arguments,
-                        "output": record.output,
-                        "ledger_snapshot": context.ledger_snapshot(pool.ledger),
-                    },
+                    input_state=example_input_state(task, record, context, pool.ledger),
                     labels=labels,
                     meta={
                         "operator": step_attack.operator.value,
@@ -316,8 +304,6 @@ class EpisodeRunner:
         attack: AttackSpec,
         use_live_llm: bool,
     ) -> ToolCall | None:
-        from discovery_sim.sim.catalog import tool_call_for_task
-
         if use_live_llm and attack.operator == OperatorId.BENIGN:
             result = await planner.plan(context, step_hint=None)
             if result.error or result.call is None:
@@ -359,13 +345,53 @@ def _clone_scenario(scenario: EpisodeScenario) -> EpisodeScenario:
 
 
 async def run_episodes(config: RunConfig, out_dir: Path) -> dict[str, Any]:
+    """Run ``config.episodes`` episodes and write every output file into ``out_dir``."""
     out_dir = resolve_run_dir(out_dir, config.seed, overwrite=config.overwrite_output)
     out_dir.mkdir(parents=True, exist_ok=True)
-    runner = EpisodeRunner(seed=config.seed, config=config)
-    episodes: list[EpisodeOutcome] = []
-    errors: list[dict[str, Any]] = []
-    dropped_llm = 0
     workers = max(1, config.concurrency)
+
+    episodes, errors, dropped_llm = await _run_all_episodes(config, workers)
+
+    _write_failure_files(out_dir, episodes, errors)
+    _write_episode_files(out_dir, episodes)
+
+    baseline = _baseline_from_episodes(episodes, config.seed, config.episodes)
+    baseline["mode"] = config.mode
+    baseline["dropped_llm_mismatch"] = dropped_llm
+    baseline["episode_errors"] = len(errors)
+    baseline["llm_samples_requested"] = config.llm_samples
+    baseline["max_agent_steps"] = config.max_agent_steps
+    baseline["concurrency"] = workers
+    planners = sorted(
+        {str(ex.meta["planner"]) for ep in episodes for ex in ep.examples if ex.meta.get("planner")}
+    )
+    baseline["models"] = planners
+    baseline["model"] = planners[0] if len(planners) == 1 else None
+    (out_dir / BASELINE_FILE).write_text(json.dumps(baseline, indent=2))
+    write_run_manifest(out_dir, _run_manifest(config, workers, planners, out_dir))
+
+    return {
+        "episodes": len(episodes),
+        "requested": config.episodes,
+        "dropped_llm": dropped_llm,
+        "errors": len(errors),
+        "model_failures": baseline["model_failure_episodes"],
+        "concurrency": workers,
+        "out_dir": str(out_dir),
+        "baseline": baseline,
+    }
+
+
+async def _run_all_episodes(
+    config: RunConfig, workers: int
+) -> tuple[list[EpisodeOutcome], list[dict[str, Any]], int]:
+    """Run every episode (in parallel when ``workers > 1``), in episode order.
+
+    Returns the finished episodes, one error record per crashed episode, and how many
+    episodes were dropped for an LM plan mismatch.
+    """
+    runner = EpisodeRunner(seed=config.seed, config=config)
+    errors: list[dict[str, Any]] = []
 
     async def _run_episode_index(i: int) -> tuple[int, EpisodeOutcome | None]:
         try:
@@ -397,26 +423,20 @@ async def run_episodes(config: RunConfig, out_dir: Path) -> dict[str, Any]:
             desc="episodes",
         )
         indexed.sort(key=lambda pair: pair[0])
-        for _i, ep in indexed:
-            if ep is None:
-                dropped_llm += 1
-                continue
-            episodes.append(ep)
     else:
-        for i in tqdm(range(config.episodes), desc="episodes"):
-            _i, ep = await _run_episode_index(i)
-            if ep is None:
-                dropped_llm += 1
-                continue
-            episodes.append(ep)
-    # Crashed episodes also come back as None; don't count them as LM-plan mismatches.
-    dropped_llm -= len(errors)
-    errors.sort(key=lambda rec: rec["episode_index"])
+        indexed = [await _run_episode_index(i) for i in tqdm(range(config.episodes), desc="episodes")]
 
+    episodes = [ep for _i, ep in indexed if ep is not None]
+    # Crashed episodes also come back as None; don't count them as LM-plan mismatches.
+    dropped_llm = len(indexed) - len(episodes) - len(errors)
+    errors.sort(key=lambda rec: rec["episode_index"])
+    return episodes, errors, dropped_llm
+
+
+def _write_failure_files(out_dir: Path, episodes: list[EpisodeOutcome], errors: list[dict[str, Any]]) -> None:
+    """Simulator crashes and model-malformed calls, each written only when there are any."""
     if errors:
-        with (out_dir / ERRORS_FILE).open("w") as fh:
-            for rec in errors:
-                fh.write(json.dumps(rec) + "\n")
+        _write_jsonl(out_dir / ERRORS_FILE, errors)
 
     malformed = [
         {"episode_id": ep.episode_id, "operator": ep.operator.value, "recovered": not ep.model_failure, **call}
@@ -424,74 +444,50 @@ async def run_episodes(config: RunConfig, out_dir: Path) -> dict[str, Any]:
         for call in ep.malformed_calls
     ]
     if malformed:
-        with (out_dir / MALFORMED_CALLS_FILE).open("w") as fh:
-            for rec in malformed:
-                fh.write(json.dumps(rec) + "\n")
+        _write_jsonl(out_dir / MALFORMED_CALLS_FILE, malformed)
 
-    episodes_path = out_dir / "episodes.jsonl"
-    examples_path = out_dir / "examples.jsonl"
-    laya_path = out_dir / "laya_train.jsonl"
-    questions_path = out_dir / "questions.json"
 
-    with episodes_path.open("w") as ef, examples_path.open("w") as xf, laya_path.open("w") as lf:
+def _write_episode_files(out_dir: Path, episodes: list[EpisodeOutcome]) -> None:
+    """One row per episode, one row per tool call (full and Laya format), and the question schema."""
+    with (
+        (out_dir / EPISODES_FILE).open("w") as ef,
+        (out_dir / EXAMPLES_FILE).open("w") as xf,
+        (out_dir / LAYA_TRAIN_FILE).open("w") as lf,
+    ):
         for ep in episodes:
             ef.write(json.dumps(_episode_to_json(ep)) + "\n")
             for ex in ep.examples:
                 xf.write(json.dumps(_example_to_json(ex)) + "\n")
-                lf.write(
-                    json.dumps(
-                        {
-                            "state": ex.input_state["state_text"],
-                            "questions": LAYA_QUESTIONS,
-                            "expected": {
-                                "output_correct": ex.labels.output_correct,
-                                "cause": ex.labels.cause,
-                            },
-                        }
-                    )
-                    + "\n"
-                )
+                lf.write(json.dumps(_laya_row(ex)) + "\n")
 
-    questions_path.write_text(json.dumps(LAYA_QUESTIONS, indent=2))
-    baseline = _baseline_from_episodes(episodes, config.seed, config.episodes)
-    baseline["mode"] = config.mode
-    baseline["dropped_llm_mismatch"] = dropped_llm
-    baseline["episode_errors"] = len(errors)
-    baseline["llm_samples_requested"] = config.llm_samples
-    baseline["max_agent_steps"] = config.max_agent_steps
-    baseline["concurrency"] = workers
-    planners = sorted(
-        {str(ex.meta["planner"]) for ep in episodes for ex in ep.examples if ex.meta.get("planner")}
-    )
-    baseline["models"] = planners
-    baseline["model"] = planners[0] if len(planners) == 1 else None
-    (out_dir / "baseline.json").write_text(json.dumps(baseline, indent=2))
-    write_run_manifest(
-        out_dir,
-        {
-            "seed": config.seed,
-            "episodes": config.episodes,
-            "mode": config.mode,
-            "model": baseline["model"],
-            "models": planners,
-            "max_agent_steps": config.max_agent_steps,
-            "multi_step": config.multi_step,
-            "llm_samples": config.llm_samples,
-            "concurrency": workers,
-            "task_count": len(agent_tasks()),
-            "out_dir": str(out_dir),
-        },
-    )
+    (out_dir / QUESTIONS_FILE).write_text(json.dumps(LAYA_QUESTIONS, indent=2))
+
+
+def _write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
+    with path.open("w") as fh:
+        for row in rows:
+            fh.write(json.dumps(row) + "\n")
+
+
+def _run_manifest(config: RunConfig, workers: int, planners: list[str], out_dir: Path) -> dict[str, Any]:
     return {
-        "episodes": len(episodes),
-        "requested": config.episodes,
-        "dropped_llm": dropped_llm,
-        "errors": len(errors),
-        "model_failures": baseline["model_failure_episodes"],
+        "seed": config.seed,
+        "episodes": config.episodes,
+        "mode": config.mode,
+        "model": planners[0] if len(planners) == 1 else None,
+        "models": planners,
+        "max_agent_steps": config.max_agent_steps,
+        "multi_step": config.multi_step,
+        "llm_samples": config.llm_samples,
         "concurrency": workers,
+        "task_count": len(agent_tasks()),
         "out_dir": str(out_dir),
-        "baseline": baseline,
     }
+
+
+def _laya_row(ex: LabeledExample) -> dict[str, Any]:
+    expected = {"output_correct": ex.labels.output_correct, "cause": ex.labels.cause}
+    return {"state": ex.input_state["state_text"], "questions": LAYA_QUESTIONS, "expected": expected}
 
 
 def _episode_to_json(ep: EpisodeOutcome) -> dict[str, Any]:

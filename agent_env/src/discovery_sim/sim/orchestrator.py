@@ -9,7 +9,7 @@ from discovery_sim.llm.chat import ChatClient, ChatTurn, ToolCallRequest
 from discovery_sim.mcp.openai_tools import all_openai_tools, parse_tool_name, validate_tool_call
 from discovery_sim.sim.context import AgentContext
 from discovery_sim.sim.harness import AgentPool, execute_tool_call
-from discovery_sim.sim.labels import label_call, laya_state
+from discovery_sim.sim.labels import example_input_state, label_call
 from discovery_sim.sim.mandate import expected_arguments_for_tool, mandate_satisfied
 from discovery_sim.sim.agent_tasks import AgentTask
 from discovery_sim.sim.types import (
@@ -213,26 +213,9 @@ class AgentOrchestrator:
         used_llm = getattr(self.chat, "model_id", "") != "script"
         example = LabeledExample(
             example_id=f"ex_{uuid.uuid4().hex[:8]}",
-            input_state={
-                "state_text": laya_state(base, record, context, pool.ledger),
-                "base_task": task.user_message,
-                "trusted": dict(context.trusted),
-                "conversation": _conversation_snapshot(messages),
-                "prior_calls": [
-                    {
-                        "call_index": p.call_index,
-                        "tool": p.llm_call.tool_name,
-                        "model_call": p.llm_call.arguments,
-                        "output": p.output,
-                    }
-                    for p in context.prior_calls
-                    if p.call_index < call_index
-                ],
-                "model_call": record.llm_call.arguments,
-                "received_args": record.mcp_arguments,
-                "output": record.output,
-                "ledger_snapshot": context.ledger_snapshot(pool.ledger),
-            },
+            input_state=example_input_state(
+                base, record, context, pool.ledger, conversation=_conversation_snapshot(messages)
+            ),
             labels=labels,
             meta={
                 "mode": "agent",
