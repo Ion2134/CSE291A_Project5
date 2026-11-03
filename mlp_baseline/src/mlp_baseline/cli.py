@@ -38,6 +38,14 @@ def main():
     combine.add_argument("--out", type=Path, required=True)
     combine.add_argument("--seed", type=int, default=42)
     combine.add_argument("--test-fraction", type=float, default=0.2)
+    export = sub.add_parser(
+        "export-laya-banking",
+        help="Export a combined agent dataset as Laya train/val/test (shared test split)",
+    )
+    export.add_argument("--data", type=Path, required=True, help="agent-combined directory from prepare-agent-data")
+    export.add_argument("--out", type=Path, required=True)
+    export.add_argument("--seed", type=int, default=42)
+    export.add_argument("--val-fraction", type=float, default=0.2)
     compare = sub.add_parser("run-agent-comparison", help="Head-to-head first-party MLP vs hybrid stacking")
     compare.add_argument("--data", type=Path, required=True)
     compare.add_argument("--out", type=Path, required=True)
@@ -79,6 +87,12 @@ def main():
         from .agent_data import combine_agent_runs
         manifest = combine_agent_runs(args.runs, args.out, seed=args.seed, test_fraction=args.test_fraction)
         print(json.dumps({"unique_inputs": manifest["unique_inputs"], "splits": {
+            name: {"rows": split["rows"], "label_counts": split["label_counts"]}
+            for name, split in manifest["splits"].items()}}, indent=2))
+    elif args.command == "export-laya-banking":
+        from .agent_data import export_laya_banking
+        manifest = export_laya_banking(args.data, args.out, seed=args.seed, val_fraction=args.val_fraction)
+        print(json.dumps({"source_combined": manifest["source_combined"], "splits": {
             name: {"rows": split["rows"], "label_counts": split["label_counts"]}
             for name, split in manifest["splits"].items()}}, indent=2))
     elif args.command == "run-agent-comparison":

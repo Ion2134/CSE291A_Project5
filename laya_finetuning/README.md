@@ -28,11 +28,19 @@ The official [PyTorch installation matrix](https://pytorch.org/get-started/previ
 | Task | Default data | Train / validation / test | What it predicts |
 | --- | --- | --- | --- |
 | `injection` | `mlp_baseline/data/injection-v1/` | 8,893 / 1,064 / 1,178 messages | `benign` or `injection` |
-| `banking` | `laya_finetuning/data/banking-dev/` | 31 / 10 / 11 cases | `output_correct` and `cause`: none, agent, adversary |
+| `banking` | `laya_finetuning/data/agent-combined-v4/` | 108 / 28 / 33 cases | `output_correct` and `cause`: none, agent, adversary |
 
 **Use `injection` for comparison with the public-data MLP.** It combines Agentic Prompt-Injection 5K and AgentGuard with the same held-out splits and similarity groups as the MLP. The labels describe attempted injection, not whether an attack succeeded or whether a tool executed correctly. Source licenses and attribution are under [`../mlp_baseline/sources/`](../mlp_baseline/sources/); preparation details are in the [MLP report](../mlp_baseline/REPORT.md).
 
-The banking task matches the simulator monitor, but the current 52 unique cases include only **three agent-error cases**: one in each split. Those results are development checks. More independent simulator requests and failures are needed for a credible banking experiment. Banking splits are generated from the corrected, semantically deduplicated triton42-v2 data with seed 42 and the same request grouping used by the MLP. Their manifest is committed alongside them. The script never combines these two tasks.
+**Banking uses the same allowlisted agent-run merge as the MLP.** Edit `COMBINED_RUNS` in `prepare_banking_data.py` (keep it in sync with `mlp_baseline/.../agent_data.py`), then:
+
+```bash
+python laya_finetuning/prepare_banking_data.py \
+  --runs agent_env/data/runs \
+  --out laya_finetuning/data/agent-combined-v4
+```
+
+That merges/repairs/dedups the named runs, freezes the same test split the MLP uses, and carves val from the train pool. `train_laya.py --task banking` defaults to that directory. Legacy `data/banking-dev/` (single-run triton42-v2) remains as a schema example. Agent-error support is still thin; treat banking results as development checks. The script never combines banking and injection.
 
 ## Validate first; this does not train
 
@@ -60,7 +68,7 @@ CUDA_VISIBLE_DEVICES=0 python laya_finetuning/train_laya.py \
   --output laya_finetuning/runs/injection-seed42
 ```
 
-For the banking development run, change `--task banking` and give a different output directory. Custom file flags work the same way during training. Run `--help` for every option. A different local native Laya checkpoint can be passed through `--model /path/to/checkpoint`; another Hub model also requires `--revision COMMIT_SHA`.
+For the banking development run, change `--task banking` and give a different output directory. On Apple Silicon use `--device mps` (FP16 AMP stays off; Metal mixed precision is unreliable). Custom file flags work the same way during training. Run `--help` for every option. A different local native Laya checkpoint can be passed through `--model /path/to/checkpoint`; another Hub model also requires `--revision COMMIT_SHA`.
 
 Default recipe:
 

@@ -3,8 +3,8 @@ import json
 import pytest
 
 np = pytest.importorskip("numpy")
-from mlp_baseline.agent_data import combine_agent_runs, validate_combined_dataset
-from mlp_baseline.data import LABELS, request_group
+from mlp_baseline.agent_data import combine_agent_runs, export_laya_banking, validate_combined_dataset
+from mlp_baseline.data import LABELS, input_id, request_group
 
 QUESTIONS = {"output_correct": {"type": "noul"}, "cause": {"type": "choice"}}
 # Group names avoid digits: request_group normalizes numbers to <number>.
@@ -120,3 +120,35 @@ def test_misaligned_run_files_fail(tmp_path):
     (run_dir / "examples.jsonl").write_text("\n".join(lines[:-1]) + "\n")
     with pytest.raises(ValueError, match="different row counts"):
         combine_agent_runs(runs_dir, tmp_path / "combined", seed=11, runs=("run_a", "run_b"))
+
+
+def test_export_laya_banking_freezes_test_and_carves_val(tmp_path):
+    runs_dir = tmp_path / "runs"
+    rows, ops = _group_rows(NAMES)
+    _write_run(runs_dir, "run_a", rows, operators=ops)
+    _write_run(runs_dir, "run_b", rows, operators=ops)
+    combined = tmp_path / "combined"
+    combine_agent_runs(runs_dir, combined, seed=11, runs=("run_a", "run_b"))
+    source = json.loads((combined / "manifest.json").read_text())
+    out = tmp_path / "laya"
+    manifest = export_laya_banking(combined, out, seed=11, val_fraction=0.25)
+
+    assert set(manifest["splits"]) == {"train", "val", "test"}
+    assert manifest["splits"]["test"]["input_ids"] == source["splits"]["test"]["input_ids"]
+    assert manifest["source_split_sha256"] == source["split_sha256"]
+    rows_by_split = {
+        name: [json.loads(line) for line in (out / f"{name}.jsonl").read_text().splitlines()]
+        for name in ("train", "val", "test")
+    }
+    for name, rows in rows_by_split.items():
+        assert rows and all(set(row) == {"state", "questions", "expected"} for row in rows)
+        assert {row["expected"]["cause"] for row in rows} == set(LABELS)
+    ids = {name: {input_id(row) for row in part} for name, part in rows_by_split.items()}
+    assert not ids["train"] & ids["val"] and not ids["train"] & ids["test"] and not ids["val"] & ids["test"]
+    assert {request_group(row) for row in rows_by_split["train"]}.isdisjoint(
+        request_group(row) for row in rows_by_split["val"])
+    train_val_groups = {request_group(row) for row in rows_by_split["train"] + rows_by_split["val"]}
+    test_groups = {request_group(row) for row in rows_by_split["test"]}
+    assert train_val_groups.isdisjoint(test_groups)
+    with pytest.raises(ValueError, match="new or empty"):
+        export_laya_banking(combined, out, seed=11)

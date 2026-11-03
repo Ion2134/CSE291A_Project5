@@ -240,7 +240,8 @@ def execute(args):
     for value in (args.encoder_lr, args.head_lr):
         if not math.isfinite(value) or value <= 0:
             raise ValueError("Learning rates must be finite and positive")
-    root = HERE.parent / "mlp_baseline/data/injection-v1" if args.task == "injection" else HERE / "data/banking-dev"
+    root = (HERE.parent / "mlp_baseline/data/injection-v1" if args.task == "injection"
+            else HERE / "data/agent-combined-v4")
     paths = {"train": args.train or root / "train.jsonl", "val": args.validation or root / "val.jsonl",
              "test": args.test or root / "test.jsonl"}
     if any((args.train, args.validation, args.test)) and not all((args.train, args.validation, args.test)):
@@ -258,15 +259,20 @@ def execute(args):
                 "versions": {name: importlib.metadata.version(name) for name in
                              ("laya", "torch", "transformers", "numpy", "scikit-learn", "safetensors", "huggingface-hub")},
                 "selection": "minimum validation cross-entropy; test evaluated once after selection and calibration",
-                "warnings": ["Banking data has only 52 independent cases; development results only."] if args.task == "banking" else []}
+                "warnings": (
+                    [f"Banking data has {sum(len(splits[name]) for name in splits)} unique cases "
+                     "across 10 request groups; development results only."]
+                    if args.task == "banking" else [])}
     if args.dry_run:
         print(json.dumps({"dry_run": True, **manifest}, indent=2))
         return manifest
     device = torch.device(args.device)
     if device.type == "cuda" and not torch.cuda.is_available():
         raise ValueError("CUDA unavailable. Install a matching CUDA PyTorch build on the GPU machine. Use --dry-run here.")
-    if device.type not in {"cuda", "cpu"}:
-        raise ValueError("Supported devices: cuda[:index] or cpu (cpu is intended for tiny smoke tests)")
+    if device.type == "mps" and not (hasattr(torch.backends, "mps") and torch.backends.mps.is_available()):
+        raise ValueError("MPS unavailable on this PyTorch build/macOS. Use --device cpu or --dry-run.")
+    if device.type not in {"cuda", "cpu", "mps"}:
+        raise ValueError("Supported devices: cuda[:index], mps, or cpu (cpu is intended for tiny smoke tests)")
     out = Path(args.output) if args.output else HERE / f"runs/laya-{args.task}-seed{args.seed}"
     if out.exists() and any(out.iterdir()):
         raise ValueError(f"Output directory is not empty: {out}; choose a new run directory")
@@ -284,7 +290,12 @@ def execute(args):
             cfg.pop("temperature_by_options", None)
             manifest["parameters"] = sum(p.numel() for p in model.parameters())
             manifest["device"] = str(device)
-            manifest["gpu"] = torch.cuda.get_device_name(device) if device.type == "cuda" else None
+            if device.type == "cuda":
+                manifest["gpu"] = torch.cuda.get_device_name(device)
+            elif device.type == "mps":
+                manifest["gpu"] = "Apple MPS"
+            else:
+                manifest["gpu"] = None
             write_json(out / "run_manifest.json", manifest)
             print(json.dumps({"task": args.task, "parameters": manifest["parameters"], "device": str(device),
                               "training_items": len(items["train"]), "config": asdict(config)}, indent=2), flush=True)
@@ -351,7 +362,7 @@ def parser():
     result.add_argument("--validation", type=Path)
     result.add_argument("--test", type=Path)
     result.add_argument("--output", help="Empty/new directory; defaults to laya_finetuning/runs/laya-TASK-seedSEED")
-    result.add_argument("--device", default="cuda")
+    result.add_argument("--device", default="cuda", help="cuda[:index], mps (Apple Silicon), or cpu")
     result.add_argument("--dry-run", action="store_true", help="Validate/tokenize all splits without loading weights or training")
     result.add_argument("--epochs", type=int, default=4)
     result.add_argument("--batch-size", type=int, default=2)

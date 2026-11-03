@@ -185,3 +185,75 @@ def validate_combined_dataset(data: Path):
     if {request_group(row) for row in splits["train"]} & {request_group(row) for row in splits["test"]}:
         raise ValueError("User-request group leaked across the combined train/test split")
     return splits, manifest
+
+
+def _laya_row(row: dict) -> dict:
+    """Laya banking JSONL keeps only the monitor fields (no provenance meta)."""
+    return {"state": row["state"], "questions": row["questions"], "expected": row["expected"]}
+
+
+def export_laya_banking(combined: Path, out_dir: Path, *, seed: int = 42,
+                        val_fraction: float = 0.2) -> dict:
+    """Export a combined agent dataset as Laya train/val/test JSONL.
+
+    The held-out test split is kept identical to the MLP combine artifact so
+    both models evaluate on the same rows. Validation is carved from the MLP
+    train pool with the same group-stratified partitioner.
+    """
+    combined, out_dir = Path(combined), Path(out_dir)
+    if out_dir.exists() and any(out_dir.iterdir()):
+        raise ValueError("Use a new or empty Laya banking export directory")
+    if not 0 < val_fraction < 1:
+        raise ValueError("val_fraction must be in (0, 1)")
+
+    source_splits, source = validate_combined_dataset(combined)
+    train_pool, test = source_splits["train"], source_splits["test"]
+    groups = sorted({request_group(row) for row in train_pool})
+    n_val = max(1, round(len(groups) * val_fraction))
+    if n_val >= len(groups):
+        raise ValueError("Not enough train-pool request groups to hold out a validation part")
+    sizes = {"train": len(groups) - n_val, "val": n_val}
+    parts, assignment = stratified_group_partition(train_pool, sizes, seed=seed)
+    splits = {"train": parts["train"], "val": parts["val"], "test": test}
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    for name, rows in splits.items():
+        write_jsonl(out_dir / f"{name}.jsonl", [_laya_row(row) for row in rows])
+
+    warnings = list(source.get("warnings") or [])
+    warnings.append(
+        "Validation carved from the MLP train pool; test rows match the source combine artifact.")
+    if min(Counter(row["expected"]["cause"] for row in splits["train"]).values()) < 20:
+        warnings.append("Fewer than 20 unique train examples in at least one class: development results only.")
+
+    manifest = {
+        "task": "banking",
+        "format": "laya",
+        "source_combined": str(combined.resolve()),
+        "source_task": source["task"],
+        "source_seed": source["seed"],
+        "source_runs": source["runs"],
+        "source_unique_inputs": source["unique_inputs"],
+        "source_split_sha256": source["split_sha256"],
+        "seed": seed,
+        "val_fraction_requested": val_fraction,
+        "strategy": "freeze_combined_test_carve_val_from_train_group_stratified",
+        "eval_policy": source["eval_policy"],
+        "splits": {name: {
+            "rows": len(splits[name]),
+            "groups": (assignment[name] if name in assignment
+                       else source["splits"]["test"]["groups"]),
+            "input_ids": [input_id(row) for row in splits[name]],
+            "label_counts": dict(sorted(Counter(row["expected"]["cause"] for row in splits[name]).items())),
+        } for name in splits},
+        "warnings": warnings,
+    }
+    train_ids = set(manifest["splits"]["train"]["input_ids"])
+    val_ids = set(manifest["splits"]["val"]["input_ids"])
+    test_ids = set(manifest["splits"]["test"]["input_ids"])
+    assert not (train_ids & val_ids) and not (train_ids & test_ids) and not (val_ids & test_ids)
+    assert set(manifest["splits"]["test"]["input_ids"]) == set(source["splits"]["test"]["input_ids"])
+    manifest["split_sha256"] = {name: hashlib.sha256((out_dir / f"{name}.jsonl").read_bytes()).hexdigest()
+                                for name in splits}
+    write_json(out_dir / "manifest.json", manifest)
+    return manifest
