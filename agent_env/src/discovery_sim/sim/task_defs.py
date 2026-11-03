@@ -158,7 +158,19 @@ def all_task_defs() -> list[TaskDef]:
     ]
 
 
-def agent_tasks() -> list[AgentTask]:
+def task_sets() -> dict[str, list[TaskDef]]:
+    """Named groups of tasks an agent-mode run can draw from (``--task-set``).
+
+    ``core`` is the original ten tasks; add a set here to make new tasks selectable without
+    changing what existing runs (and seeds) produce.
+    """
+    return {"core": all_task_defs()}
+
+
+def agent_tasks(task_set: str = "core") -> list[AgentTask]:
+    sets = task_sets()
+    if task_set not in sets:
+        raise ValueError(f"unknown task set {task_set!r}; expected one of {sorted(sets)}")
     return [
         AgentTask(
             task_id=t.task_id,
@@ -166,7 +178,7 @@ def agent_tasks() -> list[AgentTask]:
             user_message=t.user_message,
             mandate=dict(t.mandate),
         )
-        for t in all_task_defs()
+        for t in sets[task_set]
     ]
 
 

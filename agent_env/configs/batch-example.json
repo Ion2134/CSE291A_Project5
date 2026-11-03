@@ -1,0 +1,12 @@
+{
+  "name": "grid1",
+  "models": ["api-glm-5.3-flash", "api-muse-glimmer-30b", "api-glm-5.3"],
+  "temperatures": [0.2, 0.7, 1.0],
+  "task_sets": ["core"],
+  "episodes": 50,
+  "max_episodes": 300,
+  "sample_seed": 0,
+  "base_seed": 100,
+  "backend": "triton",
+  "concurrency": 2
+}

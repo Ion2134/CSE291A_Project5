@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import json
 from pathlib import Path
 
 import uvicorn
@@ -10,7 +11,7 @@ from discovery_sim.agents.bank import BankAgent
 from discovery_sim.agents.chatbot import ChatbotAgent
 from discovery_sim.agents.payment import PaymentAgent
 from discovery_sim.ledger.store import SyntheticLedger
-from discovery_sim.llm.chat import CHAT_BACKENDS
+from discovery_sim.llm.chat import CHAT_BACKENDS, DEFAULT_TEMPERATURE
 from discovery_sim.sim.episode import run_episodes
 from discovery_sim.sim.prompt_data import PromptGenConfig, generate_prompt_data
 from discovery_sim.sim.run_config import RunConfig
@@ -81,9 +82,18 @@ def _cmd_run(args: argparse.Namespace) -> None:
         multi_step=not args.single_step_only,
         overwrite_output=args.overwrite,
         concurrency=max(1, args.concurrency),
+        temperature=args.temperature,
+        task_set=args.task_set,
     )
     summary = asyncio.run(run_episodes(config, Path(args.out)))
     print(summary)
+
+
+def _cmd_batch(args: argparse.Namespace) -> None:
+    from discovery_sim.sim.batch import BatchConfig, run_batch
+
+    summary = asyncio.run(run_batch(BatchConfig.from_file(args.config), dry_run=args.dry_run))
+    print(json.dumps({key: value for key, value in summary.items() if key != "statuses"}, indent=2))
 
 
 def _cmd_prompts(args: argparse.Namespace) -> None:
@@ -159,7 +169,26 @@ def main() -> None:
         metavar="N",
         help="Run up to N episodes in parallel (LM inference). Default 1 (sequential).",
     )
+    run.add_argument(
+        "--temperature",
+        type=float,
+        default=DEFAULT_TEMPERATURE,
+        help=f"Agent-mode sampling temperature (default {DEFAULT_TEMPERATURE})",
+    )
+    run.add_argument(
+        "--task-set",
+        default="core",
+        help="Agent-mode task set to draw tasks from (default: core, the original ten tasks)",
+    )
     run.set_defaults(func=_cmd_run)
+
+    batch = sub.add_parser(
+        "batch",
+        help="Run agent-mode episodes over a grid of models x temperatures x task sets",
+    )
+    batch.add_argument("--config", type=Path, required=True, help="Batch config JSON (see configs/)")
+    batch.add_argument("--dry-run", action="store_true", help="List the planned runs without calling a model")
+    batch.set_defaults(func=_cmd_batch)
 
     prompts = sub.add_parser(
         "prompts",

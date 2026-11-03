@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
-from discovery_sim.llm.chat import ChatBackend
+from discovery_sim.llm.chat import DEFAULT_TEMPERATURE, ChatBackend
 
 
 @dataclass
@@ -19,3 +19,6 @@ class RunConfig:
     multi_step: bool = True
     overwrite_output: bool = False
     concurrency: int = 1
+    # Agent-mode knobs (recorded in run_manifest.json). The defaults reproduce earlier runs.
+    temperature: float = DEFAULT_TEMPERATURE
+    task_set: str = "core"  # A key of task_defs.TASK_SETS.

@@ -30,18 +30,20 @@ class ChatTurn:
 # agent_env/.env (chat.py -> llm -> discovery_sim -> src -> agent_env)
 DEFAULT_ENV_PATH = Path(__file__).resolve().parents[3] / ".env"
 
-# Sampling temperature for every chat backend (and the scripted-mode LM planner).
+# Default sampling temperature for every chat backend (and the scripted-mode LM planner).
+# Agent-mode runs can override it with ``--temperature``.
 DEFAULT_TEMPERATURE = 0.2
 
 ChatBackend = Literal["lmstudio", "triton"]
 CHAT_BACKENDS: tuple[str, ...] = ("lmstudio", "triton")
 
 
-def make_chat_client(backend: ChatBackend, base_url: str | None = None, model: str | None = None) -> ChatClient:
+def make_chat_client(backend: ChatBackend, base_url: str | None = None, model: str | None = None,
+                     temperature: float = DEFAULT_TEMPERATURE) -> ChatClient:
     if backend == "lmstudio":
-        return LmStudioChat(base_url=base_url, model=model)
+        return LmStudioChat(base_url=base_url, model=model, temperature=temperature)
     if backend == "triton":
-        return TritonAPIChat(base_url=base_url, model=model)
+        return TritonAPIChat(base_url=base_url, model=model, temperature=temperature)
     raise ValueError(f"unknown chat backend {backend!r}; expected one of {CHAT_BACKENDS}")
 
 def _parse_chat_completion(body: dict[str, Any]) -> ChatTurn:
@@ -101,6 +103,8 @@ class ChatClient(ABC):
 class OpenAICompatibleChat(ChatClient):
     """POSTs to an OpenAI-style ``/chat/completions`` endpoint; subclasses set the URL, model and auth."""
 
+    temperature: float = DEFAULT_TEMPERATURE
+
     def _headers(self) -> dict[str, str]:
         return {}
 
@@ -111,7 +115,7 @@ class OpenAICompatibleChat(ChatClient):
         payload: dict[str, Any] = {
             "model": self.model,
             "messages": messages,
-            "temperature": DEFAULT_TEMPERATURE,
+            "temperature": self.temperature,
         }
         if tools:
             payload["tools"] = tools
@@ -135,10 +139,12 @@ class LmStudioChat(OpenAICompatibleChat):
         base_url: str | None = None,
         model: str | None = None,
         timeout: float = 120.0,
+        temperature: float = DEFAULT_TEMPERATURE,
     ) -> None:
         self.base_url = (base_url or os.environ.get("LMSTUDIO_BASE_URL", "http://127.0.0.1:1234/v1")).rstrip("/")
         self.model = model or os.environ.get("LMSTUDIO_MODEL", "local-model")
         self.timeout = timeout
+        self.temperature = temperature
         self.model_id = self.model
 
 
@@ -152,12 +158,14 @@ class TritonAPIChat(OpenAICompatibleChat):
         model: str | None = None,
         api_key: str | None = None,
         timeout: float = 120.0,
+        temperature: float = DEFAULT_TEMPERATURE,
     ) -> None:
         load_dotenv()
         self.base_url = (base_url or os.environ.get("OPENAI_BASE_URL", "https://tritonai-api.ucsd.edu/v1")).rstrip("/")
         self.model = model or os.environ.get("OPENAI_MODEL", "api-muse-glimmer-30b")
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
         self.timeout = timeout
+        self.temperature = temperature
         self.model_id = self.model
         if not self.base_url or not self.api_key or not self.model:
             raise ValueError("TritonAPIChatClient needs OPENAI_BASE_URL, OPENAI_API_KEY and OPENAI_MODEL (env or .env)")

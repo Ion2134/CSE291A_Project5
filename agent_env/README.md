@@ -84,10 +84,40 @@ discovery-sim run --mode scripted --episodes 100 --seed 42 --out data/runs/scrip
 | `--llm-samples N` | 0 | Scripted mode only: plan the first N benign episodes with LM Studio (always LM Studio, regardless of `--llm-backend`) |
 | `--llm-backend lmstudio\|triton` | `lmstudio` | Chat client for agent mode (see [Model backends](#model-backends)) |
 | `--llm-base-url`, `--llm-model` | env | Override the backend's base URL and model env vars |
+| `--temperature T` | 0.2 | Agent mode: the model's sampling temperature |
+| `--task-set NAME` | `core` | Agent mode: which task set episodes draw from (`core` = the ten tasks below) |
 
 ### Tasks
 
 There are 10 banking tasks: balance lookup on two accounts, list accounts, transaction history, account holder lookup, three transfer variants, and two "check balance, then pay" flows. They are defined in `src/discovery_sim/sim/task_defs.py`.
+
+### Batches over knobs
+
+`discovery-sim batch` runs agent-mode episodes over a grid of **model × temperature × task set**,
+one run per grid cell, each with its own seed. A budget limits it to a random set of distinct
+cells that still covers every model, temperature and task set:
+
+```bash
+discovery-sim batch --config configs/batch-example.json --dry-run   # list the picked runs
+discovery-sim batch --config configs/batch-example.json             # run them
+```
+
+| Config key | Meaning |
+|---|---|
+| `name` | Batch name; runs go to `data/runs/<name>-<model>-t<temperature>-<task set>` |
+| `models`, `temperatures`, `task_sets` | The knob values; the grid is every combination |
+| `episodes` | Episodes per run (default 50) |
+| `max_episodes` | Episode budget: runs `max_episodes // episodes` distinct cells (default: the whole grid) |
+| `sample_seed` | Which cells the budget picks; the same seed always gives the same runs |
+| `base_seed` | Cell *i* of the full grid uses seed `base_seed + i` |
+| `backend`, `base_url`, `concurrency`, `max_agent_steps` | As for `run` |
+
+With 3 models, 3 temperatures and 1 task set, a 300-episode budget picks 6 of the 9 cells (each model
+and temperature twice). Raising the budget keeps the earlier picks and adds new ones; finished runs
+are skipped, so a batch can be resumed. The batch also writes `data/batches/<name>.json`, whose
+`runs` list can be passed as `--config` to `mlp-baseline prepare-agent-data` and Laya's
+`prepare_banking_data.py`, or copied into a `testing/configs/*.json`. Each run's
+`run_manifest.json` records its `temperature` and `task_set`.
 
 ## Generate prompt-gate data
 

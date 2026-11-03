@@ -104,7 +104,8 @@ class EpisodeRunner:
     def _chat_for_episode(self) -> ChatClient:
         if self._chat_client is not None:
             return self._chat_client
-        return make_chat_client(self.config.llm_backend, base_url=self.config.llm_base_url, model=self.config.llm_model)
+        return make_chat_client(self.config.llm_backend, base_url=self.config.llm_base_url, model=self.config.llm_model,
+                                temperature=self.config.temperature)
 
     def _planner_for_episode(self, episode_index: int) -> LlmPlanner:
         if episode_index < self.config.llm_samples:
@@ -140,7 +141,7 @@ class EpisodeRunner:
         episode_rng: random.Random | None = None,
     ) -> EpisodeOutcome | None:
         rng = self._roll_rng(episode_rng)
-        tasks = agent_tasks()
+        tasks = agent_tasks(self.config.task_set)
         idx = scenario_index if scenario_index is not None else rng.randrange(len(tasks))
         task = tasks[idx]
         catalog = operator_catalog()
@@ -480,7 +481,9 @@ def _run_manifest(config: RunConfig, workers: int, planners: list[str], out_dir:
         "multi_step": config.multi_step,
         "llm_samples": config.llm_samples,
         "concurrency": workers,
-        "task_count": len(agent_tasks()),
+        "temperature": config.temperature,
+        "task_set": config.task_set,
+        "task_count": len(agent_tasks(config.task_set)),
         "out_dir": str(out_dir),
     }
 
