@@ -1,0 +1,601 @@
+{
+  "status": "complete",
+  "task": "injection_detection",
+  "model": "MLP",
+  "device": "cpu",
+  "isolated_venv": true,
+  "python": "3.12.4",
+  "seed": 43,
+  "data_path": "data/injection-v1",
+  "data_manifest_sha256": "5ec53b31a7fb809ff02330b6aebea18325b26e46e36e9b5bae2b28997883fb52",
+  "scope": "Public-message injection detection. This does not measure banking tool-call correctness or error-cause attribution.",
+  "data": {
+    "original_rows": 11135,
+    "similarity_threshold": 0.9,
+    "similarity_groups": 10360,
+    "normalized_duplicates_removed": 0,
+    "excluded_for_holdout_protection": [],
+    "splits": {
+      "train": {
+        "rows": 8893,
+        "label_counts": {
+          "benign": 5756,
+          "injection": 3137
+        },
+        "source_counts": {
+          "agentic5k": 3923,
+          "agentguard": 4970
+        },
+        "groups": 8294
+      },
+      "val": {
+        "rows": 1064,
+        "label_counts": {
+          "injection": 420,
+          "benign": 644
+        },
+        "source_counts": {
+          "agentic5k": 467,
+          "agentguard": 597
+        },
+        "groups": 1010
+      },
+      "test": {
+        "rows": 1178,
+        "label_counts": {
+          "benign": 785,
+          "injection": 393
+        },
+        "source_counts": {
+          "agentic5k": 545,
+          "agentguard": 633
+        },
+        "groups": 1056
+      }
+    },
+    "task": "injection_detection",
+    "seed": 42,
+    "labels": [
+      "benign",
+      "injection"
+    ],
+    "sources": {
+      "agentic5k": {
+        "repo": "3nesdeniz/agentic-prompt-injection-5k",
+        "revision": "e658d94dcafc133e3a4483f9f9aa13507f3848c4",
+        "license": "CC-BY-4.0",
+        "author": "Enes Deniz",
+        "files": [
+          "README.md",
+          "data/train.parquet",
+          "data/validation.parquet",
+          "data/test.parquet"
+        ]
+      },
+      "agentguard": {
+        "repo": "Nizba/agentguard-benchmark-v1",
+        "revision": "4951a8a0a04591e25b71d61fedd3fef1fd69c3a4",
+        "license": "Apache-2.0",
+        "author": "AgentGuard / Nizba",
+        "files": [
+          "README.md",
+          "benign.jsonl",
+          "adversarial.jsonl"
+        ]
+      },
+      "toolfault": {
+        "repo": "ATTY57/toolfault-bench",
+        "revision": "57554086b6a5122471e95c7cc3872f61b566c91f",
+        "license": "CC-BY-4.0",
+        "author": "Atharva Vichare",
+        "files": [
+          "README.md",
+          "data/validation-00000-of-00001.parquet",
+          "data/test-00000-of-00001.parquet"
+        ]
+      }
+    },
+    "source_files": [
+      {
+        "source": "agentic5k",
+        "file": "README.md",
+        "sha256": "54f1c82cb26d22e1c48d9b18d72cad096df0b97ddb389d965c657db8ea8b0cf3"
+      },
+      {
+        "source": "agentic5k",
+        "file": "data/train.parquet",
+        "sha256": "fc6ed1619af0c53c36d60361132422bc45984d3875337d6f465d5f4daa628cac"
+      },
+      {
+        "source": "agentic5k",
+        "file": "data/validation.parquet",
+        "sha256": "e21a7ee7e2e6a12a424c8c8490aae3d9c18aab3d67765e2e997813d1c148d213"
+      },
+      {
+        "source": "agentic5k",
+        "file": "data/test.parquet",
+        "sha256": "7becda4542ee2d844d854b6e07195630e14b52c51f0bee4bdbb27eb9ed93d964"
+      },
+      {
+        "source": "agentguard",
+        "file": "README.md",
+        "sha256": "1af99fff5513e2016f33e721917db5b66a9fcab4124a924e4e2c5e9c5bf67021"
+      },
+      {
+        "source": "agentguard",
+        "file": "benign.jsonl",
+        "sha256": "fbf59e7fa3c8e3c9e047e1b82f923435804edd62a2d0f4a5cf51cc2c256546bc"
+      },
+      {
+        "source": "agentguard",
+        "file": "adversarial.jsonl",
+        "sha256": "5cc3f062044b38fbe7e2a6a06c775ca766634d3f242ace667faa26f63cbc0c19"
+      },
+      {
+        "source": "toolfault",
+        "file": "README.md",
+        "sha256": "0341ddad0da109928165a7a1e3388677d334ae1f4942eacfa2a4269a23f63cf7"
+      },
+      {
+        "source": "toolfault",
+        "file": "data/validation-00000-of-00001.parquet",
+        "sha256": "2696ee8e25143c81e0d57ec5a42e94f8e61c6a445758071e8d36caccf91aa950"
+      },
+      {
+        "source": "toolfault",
+        "file": "data/test-00000-of-00001.parquet",
+        "sha256": "58e6c145beb852ed1bd6ba7ed74adbbb2b6ef686254f0deb87bc0c831b96aed4"
+      }
+    ],
+    "input_fields": [
+      "state: source text only",
+      "questions: shared fixed rubric"
+    ],
+    "excluded_feature_fields": [
+      "labels",
+      "attack family",
+      "reasoning",
+      "source",
+      "gold recovery",
+      "rationale"
+    ],
+    "diagnostic_note": "ToolFault remains evaluation-only. Positive means prompt_injection; other fault types are negative for injection presence, not assertions of correct tool execution.",
+    "bank_task_note": "These labels do not supervise banking correctness or agent-versus-adversary attribution.",
+    "split_sha256": {
+      "train": "1daa1caf39c646a9ea8e1c58a30151a88c084d8c359869fefcac9f5b2f313030",
+      "val": "e80d97e699bf35690137239baf666abce9b2f01a88a340e76f9e4cc55ffcfc64",
+      "test": "ba77b19328e19c10bfbac9aae19900f56355639536089ab6faccd277f99f420b"
+    }
+  },
+  "phase": "complete",
+  "training": {
+    "architecture": "TF-IDF -> 128 ReLU -> 64 ReLU -> 2 injection logits",
+    "input_features": 4096,
+    "hidden": 128,
+    "parameters": 532802,
+    "labels": [
+      "benign",
+      "injection"
+    ],
+    "target": "injection",
+    "seed": 43,
+    "epochs": 40,
+    "batch_size": 64,
+    "lr": 0.001,
+    "best_epoch": 20,
+    "epochs_completed": 28,
+    "patience": 8,
+    "selection": "minimum validation cross entropy",
+    "history": [
+      {
+        "epoch": 1,
+        "train_loss": 0.2315168767278587,
+        "val_loss": 0.05169291794300079
+      },
+      {
+        "epoch": 2,
+        "train_loss": 0.0071519442828095435,
+        "val_loss": 0.02849883958697319
+      },
+      {
+        "epoch": 3,
+        "train_loss": 0.0014350550664271702,
+        "val_loss": 0.02747380919754505
+      },
+      {
+        "epoch": 4,
+        "train_loss": 0.00044932891516882373,
+        "val_loss": 0.02457026205956936
+      },
+      {
+        "epoch": 5,
+        "train_loss": 0.00027197497975341763,
+        "val_loss": 0.025230051949620247
+      },
+      {
+        "epoch": 6,
+        "train_loss": 0.00016122032007228346,
+        "val_loss": 0.025583982467651367
+      },
+      {
+        "epoch": 7,
+        "train_loss": 0.00010967479399163373,
+        "val_loss": 0.024647781625390053
+      },
+      {
+        "epoch": 8,
+        "train_loss": 8.10358788937822e-05,
+        "val_loss": 0.024513574317097664
+      },
+      {
+        "epoch": 9,
+        "train_loss": 6.671257656251978e-05,
+        "val_loss": 0.02418196015059948
+      },
+      {
+        "epoch": 10,
+        "train_loss": 5.071008880896935e-05,
+        "val_loss": 0.02493336610496044
+      },
+      {
+        "epoch": 11,
+        "train_loss": 4.093901845262416e-05,
+        "val_loss": 0.02424062043428421
+      },
+      {
+        "epoch": 12,
+        "train_loss": 3.202110334500394e-05,
+        "val_loss": 0.024322260171175003
+      },
+      {
+        "epoch": 13,
+        "train_loss": 2.8647187521301454e-05,
+        "val_loss": 0.024408133700489998
+      },
+      {
+        "epoch": 14,
+        "train_loss": 2.3145408940642765e-05,
+        "val_loss": 0.0243529099971056
+      },
+      {
+        "epoch": 15,
+        "train_loss": 1.962061176113035e-05,
+        "val_loss": 0.02398555725812912
+      },
+      {
+        "epoch": 16,
+        "train_loss": 1.7817521494183017e-05,
+        "val_loss": 0.024166984483599663
+      },
+      {
+        "epoch": 17,
+        "train_loss": 1.5080956992390707e-05,
+        "val_loss": 0.024624021723866463
+      },
+      {
+        "epoch": 18,
+        "train_loss": 1.2564051950564246e-05,
+        "val_loss": 0.02412029169499874
+      },
+      {
+        "epoch": 19,
+        "train_loss": 1.1565036763946503e-05,
+        "val_loss": 0.024086734279990196
+      },
+      {
+        "epoch": 20,
+        "train_loss": 9.845707570441129e-06,
+        "val_loss": 0.023947494104504585
+      },
+      {
+        "epoch": 21,
+        "train_loss": 9.375988974087935e-06,
+        "val_loss": 0.024120070040225983
+      },
+      {
+        "epoch": 22,
+        "train_loss": 8.000168078722384e-06,
+        "val_loss": 0.024423588067293167
+      },
+      {
+        "epoch": 23,
+        "train_loss": 7.629842809611443e-06,
+        "val_loss": 0.02489270083606243
+      },
+      {
+        "epoch": 24,
+        "train_loss": 6.605253296075633e-06,
+        "val_loss": 0.024921724572777748
+      },
+      {
+        "epoch": 25,
+        "train_loss": 5.62462781588962e-06,
+        "val_loss": 0.024570591747760773
+      },
+      {
+        "epoch": 26,
+        "train_loss": 5.009040827321259e-06,
+        "val_loss": 0.02482467330992222
+      },
+      {
+        "epoch": 27,
+        "train_loss": 4.628443826117666e-06,
+        "val_loss": 0.025071224197745323
+      },
+      {
+        "epoch": 28,
+        "train_loss": 4.348761210353171e-06,
+        "val_loss": 0.024940812960267067
+      }
+    ],
+    "checkpoint_reload_verified": true
+  },
+  "calibration": {
+    "temperature": 1.0570180405613803,
+    "fitted": true,
+    "samples": 1064,
+    "source": "validation only"
+  },
+  "test": {
+    "samples": 1178,
+    "accuracy": 0.9176570458404074,
+    "macro_f1": 0.9119054062076213,
+    "injection_precision": 0.8057851239669421,
+    "injection_recall": 0.9923664122137404,
+    "injection_f1": 0.8893956670467503,
+    "auroc": 0.9909466621286527,
+    "average_precision": 0.9812386793378145,
+    "false_alarm_rate": 0.1197452229299363,
+    "missed_injection_rate": 0.007633587786259542,
+    "brier": 0.07393016845087866,
+    "log_loss": 0.42978384929600943,
+    "labels": [
+      "benign",
+      "injection"
+    ],
+    "confusion_matrix": [
+      [
+        691,
+        94
+      ],
+      [
+        3,
+        390
+      ]
+    ],
+    "per_class": {
+      "benign": {
+        "precision": 0.9956772334293948,
+        "recall": 0.8802547770700637,
+        "f1": 0.9344151453684922,
+        "support": 785
+      },
+      "injection": {
+        "precision": 0.8057851239669421,
+        "recall": 0.9923664122137404,
+        "f1": 0.8893956670467503,
+        "support": 393
+      }
+    },
+    "latency_ms": {
+      "median": 0.1668539916863665,
+      "p95": 0.18512916140025482,
+      "samples": 100
+    }
+  },
+  "test_by_source": {
+    "agentguard": {
+      "samples": 633,
+      "accuracy": 0.9936808846761453,
+      "macro_f1": 0.9891520427748834,
+      "injection_precision": 0.990990990990991,
+      "injection_recall": 0.9734513274336283,
+      "injection_f1": 0.9821428571428571,
+      "auroc": 0.999778761061947,
+      "average_precision": 0.9990157635737911,
+      "false_alarm_rate": 0.0019230769230769232,
+      "missed_injection_rate": 0.02654867256637168,
+      "brier": 0.005206159934572543,
+      "log_loss": 0.017157469022691257,
+      "labels": [
+        "benign",
+        "injection"
+      ],
+      "confusion_matrix": [
+        [
+          519,
+          1
+        ],
+        [
+          3,
+          110
+        ]
+      ],
+      "per_class": {
+        "benign": {
+          "precision": 0.9942528735632183,
+          "recall": 0.9980769230769231,
+          "f1": 0.9961612284069098,
+          "support": 520
+        },
+        "injection": {
+          "precision": 0.990990990990991,
+          "recall": 0.9734513274336283,
+          "f1": 0.9821428571428571,
+          "support": 113
+        }
+      }
+    },
+    "agentic5k": {
+      "samples": 545,
+      "accuracy": 0.8293577981651377,
+      "macro_f1": 0.8223828764267016,
+      "injection_precision": 0.7506702412868632,
+      "injection_recall": 1.0,
+      "injection_f1": 0.8575803981623277,
+      "auroc": 0.978099730458221,
+      "average_precision": 0.9779157590911408,
+      "false_alarm_rate": 0.35094339622641507,
+      "missed_injection_rate": 0.0,
+      "brier": 0.1537508976083498,
+      "log_loss": 0.9090361405125423,
+      "labels": [
+        "benign",
+        "injection"
+      ],
+      "confusion_matrix": [
+        [
+          172,
+          93
+        ],
+        [
+          0,
+          280
+        ]
+      ],
+      "per_class": {
+        "benign": {
+          "precision": 1.0,
+          "recall": 0.6490566037735849,
+          "f1": 0.7871853546910755,
+          "support": 265
+        },
+        "injection": {
+          "precision": 0.7506702412868632,
+          "recall": 1.0,
+          "f1": 0.8575803981623277,
+          "support": 280
+        }
+      }
+    }
+  },
+  "majority_baseline": {
+    "samples": 1178,
+    "accuracy": 0.666383701188455,
+    "macro_f1": 0.3998981151299032,
+    "injection_precision": 0.0,
+    "injection_recall": 0.0,
+    "injection_f1": 0.0,
+    "auroc": 0.5,
+    "average_precision": 0.333616298811545,
+    "false_alarm_rate": 0.0,
+    "missed_injection_rate": 1.0,
+    "brier": 0.333616298811545,
+    "log_loss": 6.9136192478097955,
+    "labels": [
+      "benign",
+      "injection"
+    ],
+    "confusion_matrix": [
+      [
+        785,
+        0
+      ],
+      [
+        393,
+        0
+      ]
+    ],
+    "per_class": {
+      "benign": {
+        "precision": 0.666383701188455,
+        "recall": 1.0,
+        "f1": 0.7997962302598064,
+        "support": 785
+      },
+      "injection": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 393
+      }
+    }
+  },
+  "diagnostics": {
+    "toolfault-test": {
+      "samples": 441,
+      "accuracy": 0.8117913832199547,
+      "macro_f1": 0.6876797187641321,
+      "injection_precision": 0.32786885245901637,
+      "injection_recall": 0.975609756097561,
+      "injection_f1": 0.49079754601226994,
+      "auroc": 0.9482317073170733,
+      "average_precision": 0.6929343743228578,
+      "false_alarm_rate": 0.205,
+      "missed_injection_rate": 0.024390243902439025,
+      "brier": 0.16505011428208216,
+      "log_loss": 0.9049192801591779,
+      "labels": [
+        "benign",
+        "injection"
+      ],
+      "confusion_matrix": [
+        [
+          318,
+          82
+        ],
+        [
+          1,
+          40
+        ]
+      ],
+      "per_class": {
+        "benign": {
+          "precision": 0.9968652037617555,
+          "recall": 0.795,
+          "f1": 0.8845618915159944,
+          "support": 400
+        },
+        "injection": {
+          "precision": 0.32786885245901637,
+          "recall": 0.975609756097561,
+          "f1": 0.49079754601226994,
+          "support": 41
+        }
+      }
+    },
+    "toolfault-val": {
+      "samples": 81,
+      "accuracy": 0.7037037037037037,
+      "macro_f1": 0.5874363327674024,
+      "injection_precision": 0.22580645161290322,
+      "injection_recall": 1.0,
+      "injection_f1": 0.3684210526315789,
+      "auroc": 0.9768339768339769,
+      "average_precision": 0.8274170274170274,
+      "false_alarm_rate": 0.32432432432432434,
+      "missed_injection_rate": 0.0,
+      "brier": 0.21583835582793384,
+      "log_loss": 0.9743223268677388,
+      "labels": [
+        "benign",
+        "injection"
+      ],
+      "confusion_matrix": [
+        [
+          50,
+          24
+        ],
+        [
+          0,
+          7
+        ]
+      ],
+      "per_class": {
+        "benign": {
+          "precision": 1.0,
+          "recall": 0.6756756756756757,
+          "f1": 0.8064516129032258,
+          "support": 74
+        },
+        "injection": {
+          "precision": 0.22580645161290322,
+          "recall": 1.0,
+          "f1": 0.3684210526315789,
+          "support": 7
+        }
+      }
+    }
+  },
+  "elapsed_seconds": 8.497561291995225
+}

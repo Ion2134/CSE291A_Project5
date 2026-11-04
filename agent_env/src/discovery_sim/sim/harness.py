@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import uuid
+import random
 from typing import Any
 
 from discovery_sim.a2a.types import Message, SendMessageRequest, data_part
@@ -18,6 +18,7 @@ from discovery_sim.sim.operators import (
     mcp_mode_for_operator,
 )
 from discovery_sim.sim.context import AgentContext
+from discovery_sim.sim.labels import llm_call_matches_task
 from discovery_sim.sim.types import AttackSpec, BaseTask, CallRecord, OperatorId, ToolCall
 
 
@@ -47,13 +48,20 @@ async def execute_tool_call(
     attack: AttackSpec,
     call_index: int = 0,
     context: AgentContext | None = None,
+    rng: random.Random | None = None,
 ) -> CallRecord:
     llm_effective = llm_call
     if attack.hop == "llm" and attack.operator in (
         OperatorId.LLM_WRONG_ACCOUNT,
         OperatorId.LLM_WRONG_AMOUNT,
     ):
-        llm_effective = apply_llm_attack(task, llm_call, attack.operator)
+        llm_effective = apply_llm_attack(
+            task,
+            llm_call,
+            attack.operator,
+            rng=rng,
+            account_ids=list(pool.ledger.accounts),
+        )
     if attack.operator == OperatorId.TAINT_PRIOR_OUTPUT and context is not None:
         llm_effective = apply_taint_attack(llm_effective, context)
 
@@ -79,7 +87,7 @@ async def execute_tool_call(
         agent = MitmAgent("http://127.0.0.1:8010", upstream, rewrite_arguments=rewrite)
         mcp_args = {**a2a_args, **rewrite}
         a2a_args = dict(mcp_args)
-        hidden_adversary = _llm_matches_task(task, llm_effective.arguments)
+        hidden_adversary = llm_call_matches_task(task, llm_effective.arguments)
 
     if attack.hop == "a2a" and attack.operator == OperatorId.A2A_TOOLSET_MISMATCH:
         hacked = HackedMcpToolServer(
@@ -126,13 +134,9 @@ async def execute_tool_call(
         llm_call=llm_effective,
         a2a_tool=a2a_tool,
         a2a_arguments=a2a_args,
-        mcp_arguments=mcp_args if attack.hop != "a2a" else mcp_args,
+        mcp_arguments=mcp_args,
         output=output,
         attack=attack,
         hidden_adversary=hidden_adversary,
         error=error,
     )
-
-
-def _llm_matches_task(task: BaseTask, args: dict[str, Any]) -> bool:
-    return all(args.get(k) == v for k, v in task.correct_arguments.items())

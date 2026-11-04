@@ -1,0 +1,13 @@
+{
+  "standalone_tests_passed": 18,
+  "unchanged_simulator_tests_passed": 44,
+  "reproduced_training_seeds": [
+    42,
+    43,
+    44
+  ],
+  "original_metrics_reproduced_exactly": true,
+  "credential_pattern_scan": "passed",
+  "large_file_check": "passed",
+  "scope": "All published changes are inside mlp_baseline; no simulator files are modified."
+}

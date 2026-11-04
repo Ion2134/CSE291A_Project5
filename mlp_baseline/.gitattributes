@@ -1,0 +1,4 @@
+# Preserve released bytes for cross-platform checksum verification.
+* -text
+# Preserve upstream notices verbatim.
+sources/** -whitespace

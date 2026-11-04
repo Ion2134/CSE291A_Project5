@@ -1,0 +1,43 @@
+{
+  "unit": "mlp p46 f1 t42",
+  "command": [
+    "/Users/nishanth/Code/ucsd/cse291a/CSE291A_Project5/mlp_baseline/.venv/bin/python",
+    "-m",
+    "mlp_baseline.cli",
+    "fit-predict",
+    "--model",
+    "mlp",
+    "--train",
+    "/Users/nishanth/Code/ucsd/cse291a/CSE291A_Project5/testing/results/agent-v4/data/p46/f1/train.jsonl",
+    "--validation",
+    "/Users/nishanth/Code/ucsd/cse291a/CSE291A_Project5/testing/results/agent-v4/data/p46/f1/val.jsonl",
+    "--test",
+    "/Users/nishanth/Code/ucsd/cse291a/CSE291A_Project5/testing/results/agent-v4/data/p46/f1/test.jsonl",
+    "--seed",
+    "42",
+    "--out",
+    "/Users/nishanth/Code/ucsd/cse291a/CSE291A_Project5/testing/results/agent-v4/runs/mlp/p46_f1_t42/native",
+    "--epochs",
+    "40",
+    "--batch-size",
+    "16",
+    "--max-features",
+    "4096",
+    "--k",
+    "5"
+  ],
+  "settings": {
+    "python": "mlp_baseline/.venv/bin/python",
+    "args": [
+      "--epochs",
+      "40",
+      "--batch-size",
+      "16",
+      "--max-features",
+      "4096",
+      "--k",
+      "5"
+    ]
+  },
+  "elapsed_seconds": 4.131825917051174
+}

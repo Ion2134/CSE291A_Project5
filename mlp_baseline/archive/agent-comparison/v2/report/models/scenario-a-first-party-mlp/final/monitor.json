@@ -1,0 +1,22 @@
+{
+  "kind": "mlp",
+  "task": "banking_monitor",
+  "labels": [
+    "none",
+    "agent",
+    "adversary"
+  ],
+  "calibration": {
+    "cause": {
+      "temperature": 0.6597539553864471,
+      "fitted": true,
+      "samples": 109
+    },
+    "correctness": {
+      "temperature": 0.801069877589622,
+      "fitted": true,
+      "samples": 109
+    },
+    "source": "out-of-fold train-pool predictions only"
+  }
+}

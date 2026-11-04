@@ -8,6 +8,7 @@ from typing import Any
 import httpx
 
 from discovery_sim.llm.base import LlmPlanner, PlannedToolCall, PlannerResult
+from discovery_sim.llm.chat import DEFAULT_TEMPERATURE
 from discovery_sim.sim.context import AgentContext
 
 
@@ -43,7 +44,7 @@ class LmStudioPlanner(LlmPlanner):
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_block},
             ],
-            "temperature": 0.2,
+            "temperature": DEFAULT_TEMPERATURE,
         }
         url = f"{self.base_url}/chat/completions"
         try:

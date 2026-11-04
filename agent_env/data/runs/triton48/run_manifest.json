@@ -1,0 +1,15 @@
+{
+  "seed": 48,
+  "episodes": 50,
+  "mode": "agent",
+  "model": "api-glm-5.3",
+  "models": [
+    "api-glm-5.3"
+  ],
+  "max_agent_steps": 8,
+  "multi_step": true,
+  "llm_samples": 0,
+  "concurrency": 2,
+  "task_count": 10,
+  "out_dir": "agent_env/data/runs/triton48"
+}

@@ -1,0 +1,131 @@
+{
+  "task": "banking",
+  "base_model": "convaiinnovations/laya",
+  "revision": "7b928d828b7b0e022f929d9bd2e44165aa270148",
+  "resolved_checkpoint": "/Users/neilgrover/.cache/huggingface/hub/models--convaiinnovations--laya/snapshots/7b928d828b7b0e022f929d9bd2e44165aa270148",
+  "config": {
+    "epochs": 2,
+    "micro_batch": 1,
+    "grad_accum": 16,
+    "encoder_lr": 2.5e-05,
+    "head_lr": 0.0001,
+    "min_lr": 1e-06,
+    "weight_decay": 0.01,
+    "grad_clip": 1.0,
+    "loss": "soft-ce",
+    "rl_samples": 4,
+    "sigma_start": 0.4,
+    "sigma_end": 0.1,
+    "w_sph": 0.75,
+    "w_rps": 1.0,
+    "shuffle_options": [],
+    "option_layout": null,
+    "freeze_encoder": false,
+    "calib_max": 0,
+    "calib_frac": 0,
+    "calib_seed": 20260922,
+    "seed": 42,
+    "max_len": 1024,
+    "head_max_len": 256,
+    "amp": false,
+    "gradient_checkpointing": true,
+    "log_every": 100,
+    "label_smoothing": 0.0,
+    "text_column": "text",
+    "label_column": "label",
+    "question_id": "label",
+    "instructions": null,
+    "eval_data": null,
+    "target_error": 0.1,
+    "min_abstain_n": 10
+  },
+  "data": {
+    "train": {
+      "path": "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/testing/results/agent-v5/data/p44/f3/train.jsonl",
+      "sha256": "b220adb150a4bef26796dfa841d28b48d9ddc49ce2593b8ec68e30dd2da56423",
+      "rows": 386,
+      "labels": {
+        "output_correct": {
+          "True": 257,
+          "False": 129
+        },
+        "cause": {
+          "none": 257,
+          "adversary": 18,
+          "agent": 111
+        }
+      }
+    },
+    "val": {
+      "path": "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/testing/results/agent-v5/data/p44/f3/val.jsonl",
+      "sha256": "1925fb7955aee484c1534e1fe6765549422f50ec8ab72299b3453824f29b9232",
+      "rows": 64,
+      "labels": {
+        "output_correct": {
+          "False": 27,
+          "True": 37
+        },
+        "cause": {
+          "agent": 25,
+          "none": 37,
+          "adversary": 2
+        }
+      }
+    },
+    "test": {
+      "path": "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/testing/results/agent-v5/data/p44/f3/test.jsonl",
+      "sha256": "b1f9e26a7a17f6e441ed37452579257985c08949cb92a0ca1500053cdcea15c4",
+      "rows": 130,
+      "labels": {
+        "output_correct": {
+          "False": 37,
+          "True": 93
+        },
+        "cause": {
+          "adversary": 13,
+          "agent": 24,
+          "none": 93
+        }
+      }
+    }
+  },
+  "tokenization": {
+    "train": {
+      "items": 772,
+      "max_state_tokens": 868,
+      "min_state_room": 960,
+      "skipped": {}
+    },
+    "val": {
+      "items": 128,
+      "max_state_tokens": 854,
+      "min_state_room": 960,
+      "skipped": {}
+    },
+    "test": {
+      "items": 260,
+      "max_state_tokens": 846,
+      "min_state_room": 960,
+      "skipped": {}
+    }
+  },
+  "script_sha256": "dba578cbe093da100b168769776a5e7cda4892d7c3cd01565aae21251493b049",
+  "seed": 42,
+  "optimizer_updates": 98,
+  "versions": {
+    "laya": "0.4.21",
+    "torch": "2.10.0",
+    "transformers": "5.22.1",
+    "numpy": "2.2.6",
+    "scikit-learn": "1.5.0",
+    "safetensors": "0.8.0",
+    "huggingface-hub": "1.33.0"
+  },
+  "selection": "minimum validation cross-entropy; test evaluated once after selection and calibration",
+  "warnings": [
+    "Banking data has 580 unique cases across 10 request groups; development results only."
+  ],
+  "parameters": 421293827,
+  "device": "mps",
+  "gpu": "Apple MPS"
+}

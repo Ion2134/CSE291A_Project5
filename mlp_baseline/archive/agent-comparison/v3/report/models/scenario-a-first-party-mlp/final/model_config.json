@@ -1,0 +1,112 @@
+{
+  "architecture": "TF-IDF -> 128 ReLU -> 64 ReLU -> 3 cause logits",
+  "input_features": 612,
+  "hidden": 128,
+  "parameters": 86915,
+  "labels": [
+    "none",
+    "agent",
+    "adversary"
+  ],
+  "target": "cause",
+  "seed": 42,
+  "epochs": 18,
+  "batch_size": 16,
+  "lr": 0.001,
+  "best_epoch": 18,
+  "epochs_completed": 18,
+  "patience": null,
+  "selection": "fixed epoch count selected by cross-validation",
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 1.1026396536436238,
+      "val_loss": null
+    },
+    {
+      "epoch": 2,
+      "train_loss": 1.0933817351450685,
+      "val_loss": null
+    },
+    {
+      "epoch": 3,
+      "train_loss": 1.0808616153529433,
+      "val_loss": null
+    },
+    {
+      "epoch": 4,
+      "train_loss": 1.0635477226288592,
+      "val_loss": null
+    },
+    {
+      "epoch": 5,
+      "train_loss": 1.0317276344924677,
+      "val_loss": null
+    },
+    {
+      "epoch": 6,
+      "train_loss": 0.9850179074240513,
+      "val_loss": null
+    },
+    {
+      "epoch": 7,
+      "train_loss": 0.9177989774062986,
+      "val_loss": null
+    },
+    {
+      "epoch": 8,
+      "train_loss": 0.8219760363219214,
+      "val_loss": null
+    },
+    {
+      "epoch": 9,
+      "train_loss": 0.7195207320275854,
+      "val_loss": null
+    },
+    {
+      "epoch": 10,
+      "train_loss": 0.6069568522640916,
+      "val_loss": null
+    },
+    {
+      "epoch": 11,
+      "train_loss": 0.4908094308415397,
+      "val_loss": null
+    },
+    {
+      "epoch": 12,
+      "train_loss": 0.40675909988215714,
+      "val_loss": null
+    },
+    {
+      "epoch": 13,
+      "train_loss": 0.30722178054637594,
+      "val_loss": null
+    },
+    {
+      "epoch": 14,
+      "train_loss": 0.2585774088492159,
+      "val_loss": null
+    },
+    {
+      "epoch": 15,
+      "train_loss": 0.23263578092465637,
+      "val_loss": null
+    },
+    {
+      "epoch": 16,
+      "train_loss": 0.1899089901173701,
+      "val_loss": null
+    },
+    {
+      "epoch": 17,
+      "train_loss": 0.15037108603559557,
+      "val_loss": null
+    },
+    {
+      "epoch": 18,
+      "train_loss": 0.15532738776480565,
+      "val_loss": null
+    }
+  ]
+}

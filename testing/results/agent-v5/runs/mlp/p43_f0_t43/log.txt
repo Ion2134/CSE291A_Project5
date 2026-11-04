@@ -1,0 +1,5 @@
+{
+  "model": "mlp",
+  "test_rows": 122,
+  "predictions": "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/testing/results/agent-v5/runs/mlp/p43_f0_t43/native/test_predictions.jsonl"
+}

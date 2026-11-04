@@ -19,13 +19,14 @@ from discovery_sim.ledger.store import SyntheticLedger
 from discovery_sim.sim.agent_tasks import agent_tasks
 from discovery_sim.sim.context import AgentContext
 from discovery_sim.sim.harness import AgentPool, execute_tool_call
-from discovery_sim.sim.labels import label_call, laya_state
+from discovery_sim.sim.labels import example_input_state, label_call
 from discovery_sim.sim.operators import operator_catalog, pick_operator
 from discovery_sim.sim.fault_schedule import pick_agent_fault_call_index
 from discovery_sim.sim.orchestrator import AgentOrchestrator, ToolCallError, agent_episode_outcome
 from discovery_sim.sim.run_config import RunConfig
 from discovery_sim.sim.run_output import resolve_run_dir, write_run_manifest
 from discovery_sim.sim.scenarios import EpisodeScenario, all_scenarios, tool_call_from_planned
+from discovery_sim.sim.task_sample import choose_agent_task
 from discovery_sim.sim.types import AttackSpec, EpisodeOutcome, LabeledExample, OperatorId, ToolCall
 
 
@@ -50,7 +51,13 @@ LAYA_QUESTIONS = {
 }
 
 
-# Simulator crashes (our bugs) vs. tool calls the model malformed (model failures).
+# Files every run writes.
+EPISODES_FILE = "episodes.jsonl"
+EXAMPLES_FILE = "examples.jsonl"
+LAYA_TRAIN_FILE = "laya_train.jsonl"
+QUESTIONS_FILE = "questions.json"
+BASELINE_FILE = "baseline.json"
+# Simulator crashes (our bugs) vs. tool calls the model malformed (model failures); written only if any.
 ERRORS_FILE = "errors.jsonl"
 MALFORMED_CALLS_FILE = "malformed_calls.jsonl"
 
@@ -98,12 +105,33 @@ class EpisodeRunner:
     def _chat_for_episode(self) -> ChatClient:
         if self._chat_client is not None:
             return self._chat_client
-        return make_chat_client(self.config.llm_backend, base_url=self.config.llm_base_url, model=self.config.llm_model)
+        return make_chat_client(self.config.llm_backend, base_url=self.config.llm_base_url, model=self.config.llm_model,
+                                temperature=self.config.temperature)
 
     def _planner_for_episode(self, episode_index: int) -> LlmPlanner:
         if episode_index < self.config.llm_samples:
             return LmStudioPlanner(base_url=self.config.llm_base_url, model=self.config.llm_model)
         return TemplatePlanner()
+
+    def _allowed_operators(self) -> list[OperatorId] | None:
+        if not self.config.operators:
+            return None
+        return [OperatorId(name) for name in self.config.operators]
+
+    def _operator_weights(self) -> dict[OperatorId, float] | None:
+        if not self.config.operator_weights:
+            return None
+        return {OperatorId(name): float(weight) for name, weight in self.config.operator_weights.items()}
+
+    def _pick_attack(self, rng: random.Random, operator_override: OperatorId | None) -> AttackSpec:
+        catalog = operator_catalog()
+        if operator_override is not None:
+            return catalog[operator_override]
+        return pick_operator(
+            rng,
+            allowed=self._allowed_operators(),
+            weights=self._operator_weights(),
+        )
 
     async def run_one(
         self,
@@ -134,11 +162,16 @@ class EpisodeRunner:
         episode_rng: random.Random | None = None,
     ) -> EpisodeOutcome | None:
         rng = self._roll_rng(episode_rng)
-        tasks = agent_tasks()
-        idx = scenario_index if scenario_index is not None else rng.randrange(len(tasks))
-        task = tasks[idx]
+        allowed = self._allowed_operators()
+        task = choose_agent_task(
+            rng,
+            task_set=self.config.task_set,
+            task_sample=self.config.task_sample,
+            scenario_index=scenario_index,
+            operators=allowed,
+        )
         catalog = operator_catalog()
-        attack = catalog[operator_override] if operator_override else pick_operator(rng)
+        attack = self._pick_attack(rng, operator_override)
         if attack.operator == OperatorId.TAINT_PRIOR_OUTPUT:
             attack = catalog[OperatorId.BENIGN]
         if fault_call_index_override is not None:
@@ -151,7 +184,9 @@ class EpisodeRunner:
         pool = AgentPool(SyntheticLedger())
         orchestrator = AgentOrchestrator(self._chat_for_episode(), max_steps=self.config.max_agent_steps)
         try:
-            run = await orchestrator.run_episode(task, pool, attack, fault_call_index, self.seed)
+            run = await orchestrator.run_episode(
+                task, pool, attack, fault_call_index, self.seed, rng=rng
+            )
         except Exception as exc:
             details: dict[str, Any] = {
                 "task_id": task.task_id,
@@ -187,10 +222,7 @@ class EpisodeRunner:
         scenario = _clone_scenario(scenario)
 
         catalog = operator_catalog()
-        if operator_override is not None:
-            attack = catalog[operator_override]
-        else:
-            attack = pick_operator(rng)
+        attack = self._pick_attack(rng, operator_override)
 
         if attack.operator == OperatorId.TAINT_PRIOR_OUTPUT and len(scenario.steps) < 2:
             attack = catalog[OperatorId.BENIGN]
@@ -228,6 +260,7 @@ class EpisodeRunner:
                 step_attack,
                 call_index=step_index,
                 context=context,
+                rng=rng,
             )
             labels = label_call(task, record, pool.ledger)
             context.record_call(step_index, record, labels.output_correct)
@@ -235,25 +268,7 @@ class EpisodeRunner:
             examples.append(
                 LabeledExample(
                     example_id=f"ex_{uuid.uuid4().hex[:8]}",
-                    input_state={
-                        "state_text": laya_state(task, record, context, pool.ledger),
-                        "base_task": scenario.user_message,
-                        "trusted": dict(context.trusted),
-                        "prior_calls": [
-                            {
-                                "call_index": p.call_index,
-                                "tool": p.llm_call.tool_name,
-                                "model_call": p.llm_call.arguments,
-                                "output": p.output,
-                            }
-                            for p in context.prior_calls
-                            if p.call_index < step_index
-                        ],
-                        "model_call": record.llm_call.arguments,
-                        "received_args": record.mcp_arguments,
-                        "output": record.output,
-                        "ledger_snapshot": context.ledger_snapshot(pool.ledger),
-                    },
+                    input_state=example_input_state(task, record, context, pool.ledger),
                     labels=labels,
                     meta={
                         "operator": step_attack.operator.value,
@@ -316,8 +331,6 @@ class EpisodeRunner:
         attack: AttackSpec,
         use_live_llm: bool,
     ) -> ToolCall | None:
-        from discovery_sim.sim.catalog import tool_call_for_task
-
         if use_live_llm and attack.operator == OperatorId.BENIGN:
             result = await planner.plan(context, step_hint=None)
             if result.error or result.call is None:
@@ -336,15 +349,8 @@ class EpisodeRunner:
         result = await TemplatePlanner().plan(context, step_hint=hint)
         if result.call is None:
             return None
-        llm_call = tool_call_from_planned(result.call)
-        if attack.hop == "llm" and attack.operator in (
-            OperatorId.LLM_WRONG_ACCOUNT,
-            OperatorId.LLM_WRONG_AMOUNT,
-        ):
-            from discovery_sim.sim.operators import apply_llm_attack
-
-            llm_call = apply_llm_attack(task, llm_call, attack.operator)
-        return llm_call
+        # LLM-hop mutations are applied once in execute_tool_call (same path as agent mode).
+        return tool_call_from_planned(result.call)
 
 
 def _clone_scenario(scenario: EpisodeScenario) -> EpisodeScenario:
@@ -359,13 +365,53 @@ def _clone_scenario(scenario: EpisodeScenario) -> EpisodeScenario:
 
 
 async def run_episodes(config: RunConfig, out_dir: Path) -> dict[str, Any]:
+    """Run ``config.episodes`` episodes and write every output file into ``out_dir``."""
     out_dir = resolve_run_dir(out_dir, config.seed, overwrite=config.overwrite_output)
     out_dir.mkdir(parents=True, exist_ok=True)
-    runner = EpisodeRunner(seed=config.seed, config=config)
-    episodes: list[EpisodeOutcome] = []
-    errors: list[dict[str, Any]] = []
-    dropped_llm = 0
     workers = max(1, config.concurrency)
+
+    episodes, errors, dropped_llm = await _run_all_episodes(config, workers)
+
+    _write_failure_files(out_dir, episodes, errors)
+    _write_episode_files(out_dir, episodes)
+
+    baseline = _baseline_from_episodes(episodes, config.seed, config.episodes)
+    baseline["mode"] = config.mode
+    baseline["dropped_llm_mismatch"] = dropped_llm
+    baseline["episode_errors"] = len(errors)
+    baseline["llm_samples_requested"] = config.llm_samples
+    baseline["max_agent_steps"] = config.max_agent_steps
+    baseline["concurrency"] = workers
+    planners = sorted(
+        {str(ex.meta["planner"]) for ep in episodes for ex in ep.examples if ex.meta.get("planner")}
+    )
+    baseline["models"] = planners
+    baseline["model"] = planners[0] if len(planners) == 1 else None
+    (out_dir / BASELINE_FILE).write_text(json.dumps(baseline, indent=2))
+    write_run_manifest(out_dir, _run_manifest(config, workers, planners, out_dir))
+
+    return {
+        "episodes": len(episodes),
+        "requested": config.episodes,
+        "dropped_llm": dropped_llm,
+        "errors": len(errors),
+        "model_failures": baseline["model_failure_episodes"],
+        "concurrency": workers,
+        "out_dir": str(out_dir),
+        "baseline": baseline,
+    }
+
+
+async def _run_all_episodes(
+    config: RunConfig, workers: int
+) -> tuple[list[EpisodeOutcome], list[dict[str, Any]], int]:
+    """Run every episode (in parallel when ``workers > 1``), in episode order.
+
+    Returns the finished episodes, one error record per crashed episode, and how many
+    episodes were dropped for an LM plan mismatch.
+    """
+    runner = EpisodeRunner(seed=config.seed, config=config)
+    errors: list[dict[str, Any]] = []
 
     async def _run_episode_index(i: int) -> tuple[int, EpisodeOutcome | None]:
         try:
@@ -397,26 +443,20 @@ async def run_episodes(config: RunConfig, out_dir: Path) -> dict[str, Any]:
             desc="episodes",
         )
         indexed.sort(key=lambda pair: pair[0])
-        for _i, ep in indexed:
-            if ep is None:
-                dropped_llm += 1
-                continue
-            episodes.append(ep)
     else:
-        for i in tqdm(range(config.episodes), desc="episodes"):
-            _i, ep = await _run_episode_index(i)
-            if ep is None:
-                dropped_llm += 1
-                continue
-            episodes.append(ep)
-    # Crashed episodes also come back as None; don't count them as LM-plan mismatches.
-    dropped_llm -= len(errors)
-    errors.sort(key=lambda rec: rec["episode_index"])
+        indexed = [await _run_episode_index(i) for i in tqdm(range(config.episodes), desc="episodes")]
 
+    episodes = [ep for _i, ep in indexed if ep is not None]
+    # Crashed episodes also come back as None; don't count them as LM-plan mismatches.
+    dropped_llm = len(indexed) - len(episodes) - len(errors)
+    errors.sort(key=lambda rec: rec["episode_index"])
+    return episodes, errors, dropped_llm
+
+
+def _write_failure_files(out_dir: Path, episodes: list[EpisodeOutcome], errors: list[dict[str, Any]]) -> None:
+    """Simulator crashes and model-malformed calls, each written only when there are any."""
     if errors:
-        with (out_dir / ERRORS_FILE).open("w") as fh:
-            for rec in errors:
-                fh.write(json.dumps(rec) + "\n")
+        _write_jsonl(out_dir / ERRORS_FILE, errors)
 
     malformed = [
         {"episode_id": ep.episode_id, "operator": ep.operator.value, "recovered": not ep.model_failure, **call}
@@ -424,67 +464,55 @@ async def run_episodes(config: RunConfig, out_dir: Path) -> dict[str, Any]:
         for call in ep.malformed_calls
     ]
     if malformed:
-        with (out_dir / MALFORMED_CALLS_FILE).open("w") as fh:
-            for rec in malformed:
-                fh.write(json.dumps(rec) + "\n")
+        _write_jsonl(out_dir / MALFORMED_CALLS_FILE, malformed)
 
-    episodes_path = out_dir / "episodes.jsonl"
-    examples_path = out_dir / "examples.jsonl"
-    laya_path = out_dir / "laya_train.jsonl"
-    questions_path = out_dir / "questions.json"
 
-    with episodes_path.open("w") as ef, examples_path.open("w") as xf, laya_path.open("w") as lf:
+def _write_episode_files(out_dir: Path, episodes: list[EpisodeOutcome]) -> None:
+    """One row per episode, one row per tool call (full and Laya format), and the question schema."""
+    with (
+        (out_dir / EPISODES_FILE).open("w") as ef,
+        (out_dir / EXAMPLES_FILE).open("w") as xf,
+        (out_dir / LAYA_TRAIN_FILE).open("w") as lf,
+    ):
         for ep in episodes:
             ef.write(json.dumps(_episode_to_json(ep)) + "\n")
             for ex in ep.examples:
                 xf.write(json.dumps(_example_to_json(ex)) + "\n")
-                lf.write(
-                    json.dumps(
-                        {
-                            "state": ex.input_state["state_text"],
-                            "questions": LAYA_QUESTIONS,
-                            "expected": {
-                                "output_correct": ex.labels.output_correct,
-                                "cause": ex.labels.cause,
-                            },
-                        }
-                    )
-                    + "\n"
-                )
+                lf.write(json.dumps(_laya_row(ex)) + "\n")
 
-    questions_path.write_text(json.dumps(LAYA_QUESTIONS, indent=2))
-    baseline = _baseline_from_episodes(episodes, config.seed, config.episodes)
-    baseline["mode"] = config.mode
-    baseline["dropped_llm_mismatch"] = dropped_llm
-    baseline["episode_errors"] = len(errors)
-    baseline["llm_samples_requested"] = config.llm_samples
-    baseline["max_agent_steps"] = config.max_agent_steps
-    baseline["concurrency"] = workers
-    (out_dir / "baseline.json").write_text(json.dumps(baseline, indent=2))
-    write_run_manifest(
-        out_dir,
-        {
-            "seed": config.seed,
-            "episodes": config.episodes,
-            "mode": config.mode,
-            "max_agent_steps": config.max_agent_steps,
-            "multi_step": config.multi_step,
-            "llm_samples": config.llm_samples,
-            "concurrency": workers,
-            "task_count": len(agent_tasks()),
-            "out_dir": str(out_dir),
-        },
-    )
+    (out_dir / QUESTIONS_FILE).write_text(json.dumps(LAYA_QUESTIONS, indent=2))
+
+
+def _write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
+    with path.open("w") as fh:
+        for row in rows:
+            fh.write(json.dumps(row) + "\n")
+
+
+def _run_manifest(config: RunConfig, workers: int, planners: list[str], out_dir: Path) -> dict[str, Any]:
     return {
-        "episodes": len(episodes),
-        "requested": config.episodes,
-        "dropped_llm": dropped_llm,
-        "errors": len(errors),
-        "model_failures": baseline["model_failure_episodes"],
+        "seed": config.seed,
+        "episodes": config.episodes,
+        "mode": config.mode,
+        "model": planners[0] if len(planners) == 1 else None,
+        "models": planners,
+        "max_agent_steps": config.max_agent_steps,
+        "multi_step": config.multi_step,
+        "llm_samples": config.llm_samples,
         "concurrency": workers,
+        "temperature": config.temperature,
+        "task_set": config.task_set,
+        "task_sample": config.task_sample,
+        "task_count": len(agent_tasks(config.task_set)),
+        "operators": list(config.operators) if config.operators else None,
+        "operator_weights": dict(config.operator_weights) if config.operator_weights else None,
         "out_dir": str(out_dir),
-        "baseline": baseline,
     }
+
+
+def _laya_row(ex: LabeledExample) -> dict[str, Any]:
+    expected = {"output_correct": ex.labels.output_correct, "cause": ex.labels.cause}
+    return {"state": ex.input_state["state_text"], "questions": LAYA_QUESTIONS, "expected": expected}
 
 
 def _episode_to_json(ep: EpisodeOutcome) -> dict[str, Any]:

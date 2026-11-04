@@ -1,0 +1,399 @@
+{
+  "checked_at_utc": "2026-11-02T03:44:10.096756+00:00",
+  "datasets": {
+    "agentguard": {
+      "repo": "Nizba/agentguard-benchmark-v1",
+      "url": "https://huggingface.co/datasets/Nizba/agentguard-benchmark-v1",
+      "revision": "4951a8a0a04591e25b71d61fedd3fef1fd69c3a4",
+      "license_as_declared": "apache-2.0",
+      "rows": 6200,
+      "partitions": {
+        "benign": 5000,
+        "adversarial": 1200
+      },
+      "label_counts": {
+        "0": 5000,
+        "1": 1200
+      },
+      "fields": [
+        "attack_class",
+        "category",
+        "expected_detection_layer",
+        "label",
+        "message_text",
+        "reasoning",
+        "source",
+        "subtlety_level",
+        "target_agent"
+      ],
+      "unique_input_texts": 6200,
+      "duplicate_input_rows": 0,
+      "conflicting_exact_input_groups": 0,
+      "unique_casefolded_inputs": 6200,
+      "cross_partition_normalized_input_overlap": {
+        "benign__adversarial": 0
+      },
+      "input_character_lengths": {
+        "min": 58,
+        "max": 596,
+        "mean": 188.15403225806452
+      },
+      "attack_classes": {
+        "INDIRECT_INJECTION": 200,
+        "PROPAGATION": 200,
+        "IMPERSONATION": 200,
+        "CAPABILITY_ESCALATION": 200,
+        "MCP_POISONING": 200,
+        "GOAL_HIJACK": 200
+      },
+      "benign_categories": {
+        "task_delegation": 1000,
+        "result_report": 1000,
+        "tool_call_request": 1000,
+        "status_update": 1000,
+        "clarification_request": 1000
+      },
+      "row_schema_counts": {
+        "category,label,message_text,source": 5000,
+        "attack_class,expected_detection_layer,label,message_text,reasoning,source,subtlety_level,target_agent": 1200
+      },
+      "source_counts": {
+        "anthropic_batch_v1": 6200
+      },
+      "official_train_val_test_split": false
+    },
+    "agentic5k": {
+      "repo": "3nesdeniz/agentic-prompt-injection-5k",
+      "url": "https://huggingface.co/datasets/3nesdeniz/agentic-prompt-injection-5k",
+      "revision": "e658d94dcafc133e3a4483f9f9aa13507f3848c4",
+      "license_as_declared": "cc-by-4.0",
+      "rows": 4935,
+      "partitions": {
+        "train": 3923,
+        "validation": 467,
+        "test": 545
+      },
+      "label_counts": {
+        "0": 2185,
+        "1": 2750
+      },
+      "fields": [
+        "attack_family",
+        "class",
+        "id",
+        "label",
+        "language",
+        "severity",
+        "source",
+        "technique",
+        "text"
+      ],
+      "unique_input_texts": 4935,
+      "duplicate_input_rows": 0,
+      "conflicting_exact_input_groups": 0,
+      "unique_casefolded_inputs": 4935,
+      "cross_partition_normalized_input_overlap": {
+        "train__validation": 0,
+        "train__test": 0,
+        "validation__test": 0
+      },
+      "input_character_lengths": {
+        "min": 44,
+        "max": 363,
+        "mean": 187.96879432624112
+      },
+      "attack_families": {
+        "benign": 2185,
+        "memory_trust_boundary": 726,
+        "approval_authority_escalation": 672,
+        "rag_document_embedded": 681,
+        "tool_function_abuse": 671
+      },
+      "unique_techniques": 206,
+      "source_counts": {
+        "synthetic": 4935
+      },
+      "official_train_val_test_split": true
+    },
+    "toolfault": {
+      "repo": "ATTY57/toolfault-bench",
+      "url": "https://huggingface.co/datasets/ATTY57/toolfault-bench",
+      "revision": "57554086b6a5122471e95c7cc3872f61b566c91f",
+      "license_as_declared": "cc-by-4.0",
+      "rows": 522,
+      "partitions": {
+        "validation": 81,
+        "test": 441
+      },
+      "label_counts": {
+        "prompt_injection": 48,
+        "auth_error": 32,
+        "inconsistent_result": 36,
+        "mismatched_entity": 32,
+        "rate_limited": 30,
+        "partial_result": 36,
+        "stale_data": 32,
+        "not_found": 36,
+        "schema_drift": 36,
+        "none": 96,
+        "timeout": 36,
+        "server_error": 36,
+        "invalid_arguments": 36
+      },
+      "fields": [
+        "acceptable_next_actions",
+        "critical_next_actions",
+        "current_time",
+        "difficulty",
+        "domain",
+        "fault_type",
+        "gold_recovery",
+        "id",
+        "is_hard_negative",
+        "last_tool_name",
+        "last_tool_result",
+        "messages",
+        "meta",
+        "next_action",
+        "num_tool_calls",
+        "rationale",
+        "subtype",
+        "tools",
+        "user_request"
+      ],
+      "unique_input_texts": 522,
+      "duplicate_input_rows": 0,
+      "conflicting_exact_input_groups": 0,
+      "unique_casefolded_inputs": 522,
+      "cross_partition_normalized_input_overlap": {
+        "validation__test": 0
+      },
+      "input_character_lengths": {
+        "min": 611,
+        "max": 2806,
+        "mean": 1138.4731800766283
+      },
+      "domains": {
+        "kyc_compliance": 87,
+        "brokerage": 92,
+        "devops_incidents": 84,
+        "accounts_payable": 88,
+        "customer_support": 86,
+        "retail_banking": 85
+      },
+      "subtypes": {
+        "injection_disguised": 18,
+        "auth_forbidden": 16,
+        "inconsistent_arithmetic": 24,
+        "mismatch_ambiguous": 16,
+        "rate_limited_quota": 10,
+        "partial_cursor": 18,
+        "stale_alt_source": 16,
+        "not_found_user_id": 18,
+        "schema_drift_rename": 18,
+        "none_old_timestamp_ok": 10,
+        "auth_expired": 16,
+        "timeout_read": 18,
+        "inconsistent_fields": 12,
+        "partial_truncated": 18,
+        "schema_drift_units": 18,
+        "server_error_read": 12,
+        "injection_blatant": 14,
+        "invalid_args": 36,
+        "injection_hidden": 16,
+        "none_disambiguated_match": 6,
+        "stale_refreshable": 16,
+        "none_human_imperative": 12,
+        "none_error_word_in_data": 8,
+        "server_error_write": 12,
+        "mismatch_wrong_entity": 16,
+        "rate_limited_backoff": 20,
+        "none_legit_empty": 10,
+        "none_consistent_arith": 8,
+        "not_found_typo": 18,
+        "none_pending_expected": 10,
+        "none_benign_warning": 8,
+        "none_clean_read": 8,
+        "timeout_write": 18,
+        "server_error_persistent": 12,
+        "none_pagination_irrelevant": 10,
+        "none_declared_units": 6
+      },
+      "last_message_roles": {
+        "tool": 522
+      },
+      "hard_negatives": 96,
+      "official_train_val_test_split": false
+    },
+    "aftraj": {
+      "repo": "ZBox008003/AFTraj",
+      "url": "https://huggingface.co/datasets/ZBox008003/AFTraj",
+      "revision": "11191169d3d99298df098eee8d83db425117faba",
+      "license_as_declared": "cc-by-4.0",
+      "rows": 2276,
+      "partitions": {
+        "safe": 1162,
+        "unsafe": 1114
+      },
+      "label_counts": {
+        "safe": 1162,
+        "unsafe": 1114
+      },
+      "fields": [
+        "conv_id",
+        "domain",
+        "gold_answer",
+        "mistake_agent",
+        "mistake_reason",
+        "mistake_step",
+        "num_turns",
+        "task",
+        "tools",
+        "turns",
+        "unsafe_source"
+      ],
+      "unique_input_texts": 2276,
+      "duplicate_input_rows": 0,
+      "conflicting_exact_input_groups": 0,
+      "unique_casefolded_inputs": 2276,
+      "cross_partition_normalized_input_overlap": {
+        "safe__unsafe": 0
+      },
+      "input_character_lengths": {
+        "min": 478,
+        "max": 43352,
+        "mean": 3909.5364674868188
+      },
+      "domains": {
+        "math": 793,
+        "coding": 608,
+        "agentic": 875
+      },
+      "unsafe_sources": {
+        "injected": 728,
+        "diagnosed": 386
+      },
+      "mistake_agents": {
+        "Verifier": 84,
+        "MathSolver": 310,
+        "environment": 4,
+        "CodeWriter": 129,
+        "CodeTester": 118,
+        "Manager": 238,
+        "search_agent": 141,
+        "TaskSolver": 42,
+        "Statistics_Expert": 1,
+        "Geography_Expert": 18,
+        "Verification_Expert": 3,
+        "Research_Expert": 17,
+        "Movie_Expert": 9
+      },
+      "mistake_step_range": [
+        1,
+        65
+      ],
+      "turn_count_disagreements": 0,
+      "paper_holdout_counts": {
+        "test_safe": 169,
+        "test_unsafe": 163
+      },
+      "unknown_holdout_ids": 0,
+      "paper_holdout_task_overlap_with_remaining": 19,
+      "remaining_rows_sharing_paper_holdout_task": 127,
+      "shared_safe_unsafe_tasks": 735,
+      "official_train_val_test_split": false
+    }
+  },
+  "downloaded_files": [
+    {
+      "path": ".cache/sources/aftraj/raw/README.md",
+      "bytes": 4102,
+      "sha256": "44738e7c95036b22c7e4b61da1ee574a2d5f52c3de91028e35ce9160bc80311e"
+    },
+    {
+      "path": ".cache/sources/aftraj/raw/aftraj_safe.parquet",
+      "bytes": 1393120,
+      "sha256": "cd16e0de24fa9f70f9832c7fee86ed2370d4d42deb8bdb6b97939c323aa8daa3"
+    },
+    {
+      "path": ".cache/sources/aftraj/raw/aftraj_unsafe.parquet",
+      "bytes": 1252325,
+      "sha256": "f19d407898ebf32b32a2e99600f49f53a358ac2831fe437da3dc2a9fe25f8f41"
+    },
+    {
+      "path": ".cache/sources/aftraj/raw/splits_test.json",
+      "bytes": 10940,
+      "sha256": "b0ac15a34ed051d571d76d537751a015d39a79408af0795723009182b9e76b8e"
+    },
+    {
+      "path": ".cache/sources/agentguard/raw/README.md",
+      "bytes": 2999,
+      "sha256": "1af99fff5513e2016f33e721917db5b66a9fcab4124a924e4e2c5e9c5bf67021"
+    },
+    {
+      "path": ".cache/sources/agentguard/raw/adversarial.jsonl",
+      "bytes": 842651,
+      "sha256": "5cc3f062044b38fbe7e2a6a06c775ca766634d3f242ace667faa26f63cbc0c19"
+    },
+    {
+      "path": ".cache/sources/agentguard/raw/benign.jsonl",
+      "bytes": 1185374,
+      "sha256": "fbf59e7fa3c8e3c9e047e1b82f923435804edd62a2d0f4a5cf51cc2c256546bc"
+    },
+    {
+      "path": ".cache/sources/agentic5k/raw/README.md",
+      "bytes": 5136,
+      "sha256": "54f1c82cb26d22e1c48d9b18d72cad096df0b97ddb389d965c657db8ea8b0cf3"
+    },
+    {
+      "path": ".cache/sources/agentic5k/raw/data/test.parquet",
+      "bytes": 38305,
+      "sha256": "7becda4542ee2d844d854b6e07195630e14b52c51f0bee4bdbb27eb9ed93d964"
+    },
+    {
+      "path": ".cache/sources/agentic5k/raw/data/train.parquet",
+      "bytes": 367573,
+      "sha256": "fc6ed1619af0c53c36d60361132422bc45984d3875337d6f465d5f4daa628cac"
+    },
+    {
+      "path": ".cache/sources/agentic5k/raw/data/validation.parquet",
+      "bytes": 37667,
+      "sha256": "e21a7ee7e2e6a12a424c8c8490aae3d9c18aab3d67765e2e997813d1c148d213"
+    },
+    {
+      "path": ".cache/sources/agentic5k/raw/sample_preview.jsonl",
+      "bytes": 18927,
+      "sha256": "b1a039edb6c417aceb36b7fff88212ac7e2397b0cf23db9c312fdba25ef44be7"
+    },
+    {
+      "path": ".cache/sources/toolfault/raw/README.md",
+      "bytes": 13055,
+      "sha256": "0341ddad0da109928165a7a1e3388677d334ae1f4942eacfa2a4269a23f63cf7"
+    },
+    {
+      "path": ".cache/sources/toolfault/raw/data/test-00000-of-00001.parquet",
+      "bytes": 278892,
+      "sha256": "58e6c145beb852ed1bd6ba7ed74adbbb2b6ef686254f0deb87bc0c831b96aed4"
+    },
+    {
+      "path": ".cache/sources/toolfault/raw/data/validation-00000-of-00001.parquet",
+      "bytes": 89528,
+      "sha256": "2696ee8e25143c81e0d57ec5a42e94f8e61c6a445758071e8d36caccf91aa950"
+    },
+    {
+      "path": ".cache/sources/toolfault/raw/results/fault_oracle/metrics.json",
+      "bytes": 2226,
+      "sha256": "3b12420e5f9dcd1381ef3a772c9cc79807397112e4583eda56754d014b9c76cc"
+    },
+    {
+      "path": ".cache/sources/toolfault/raw/results/heuristic/metrics.json",
+      "bytes": 2200,
+      "sha256": "d14a95e12648aa03b05a8d75d4b346fe2540b1e3f9907f2bdfd173e6cfd22d09"
+    },
+    {
+      "path": ".cache/sources/toolfault/raw/results/majority/metrics.json",
+      "bytes": 2172,
+      "sha256": "659c8034d6730130e559deeb13ce15c5b8d637b5e5796a07f0f293c1149a50b6"
+    }
+  ]
+}

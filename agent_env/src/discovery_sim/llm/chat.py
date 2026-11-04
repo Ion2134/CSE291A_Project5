@@ -30,15 +30,22 @@ class ChatTurn:
 # agent_env/.env (chat.py -> llm -> discovery_sim -> src -> agent_env)
 DEFAULT_ENV_PATH = Path(__file__).resolve().parents[3] / ".env"
 
-ChatBackend = Literal["lmstudio", "triton"]
-CHAT_BACKENDS: tuple[str, ...] = ("lmstudio", "triton")
+# Default sampling temperature for every chat backend (and the scripted-mode LM planner).
+# Agent-mode runs can override it with ``--temperature``.
+DEFAULT_TEMPERATURE = 0.2
+
+ChatBackend = Literal["lmstudio", "triton", "oracle"]
+CHAT_BACKENDS: tuple[str, ...] = ("lmstudio", "triton", "oracle")
 
 
-def make_chat_client(backend: ChatBackend, base_url: str | None = None, model: str | None = None) -> ChatClient:
+def make_chat_client(backend: ChatBackend, base_url: str | None = None, model: str | None = None,
+                     temperature: float = DEFAULT_TEMPERATURE) -> ChatClient:
     if backend == "lmstudio":
-        return LmStudioChat(base_url=base_url, model=model)
+        return LmStudioChat(base_url=base_url, model=model, temperature=temperature)
     if backend == "triton":
-        return TritonAPIChat(base_url=base_url, model=model)
+        return TritonAPIChat(base_url=base_url, model=model, temperature=temperature)
+    if backend == "oracle":
+        return OracleChat(model=model)
     raise ValueError(f"unknown chat backend {backend!r}; expected one of {CHAT_BACKENDS}")
 
 def _parse_chat_completion(body: dict[str, Any]) -> ChatTurn:
@@ -95,23 +102,22 @@ class ChatClient(ABC):
         raise NotImplementedError
 
 
-class LmStudioChat(ChatClient):
-    def __init__(
-        self,
-        base_url: str | None = None,
-        model: str | None = None,
-        timeout: float = 120.0,
-    ) -> None:
-        self.base_url = (base_url or os.environ.get("LMSTUDIO_BASE_URL", "http://127.0.0.1:1234/v1")).rstrip("/")
-        self.model = model or os.environ.get("LMSTUDIO_MODEL", "local-model")
-        self.timeout = timeout
-        self.model_id = self.model
+class OpenAICompatibleChat(ChatClient):
+    """POSTs to an OpenAI-style ``/chat/completions`` endpoint; subclasses set the URL, model and auth."""
+
+    temperature: float = DEFAULT_TEMPERATURE
+
+    def _headers(self) -> dict[str, str]:
+        return {}
+
+    def _describe_http_error(self, exc: httpx.HTTPStatusError) -> str:
+        return str(exc)
 
     async def complete(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> ChatTurn:
         payload: dict[str, Any] = {
             "model": self.model,
             "messages": messages,
-            "temperature": 0.2,
+            "temperature": self.temperature,
         }
         if tools:
             payload["tools"] = tools
@@ -119,15 +125,32 @@ class LmStudioChat(ChatClient):
         url = f"{self.base_url}/chat/completions"
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.post(url, json=payload)
+                response = await client.post(url, json=payload, headers=self._headers())
                 response.raise_for_status()
                 body = response.json()
+        except httpx.HTTPStatusError as exc:
+            return ChatTurn(content=None, error=self._describe_http_error(exc))
         except Exception as exc:
             return ChatTurn(content=None, error=str(exc))
         return _parse_chat_completion(body)
 
 
-class TritonAPIChat(ChatClient):
+class LmStudioChat(OpenAICompatibleChat):
+    def __init__(
+        self,
+        base_url: str | None = None,
+        model: str | None = None,
+        timeout: float = 120.0,
+        temperature: float = DEFAULT_TEMPERATURE,
+    ) -> None:
+        self.base_url = (base_url or os.environ.get("LMSTUDIO_BASE_URL", "http://127.0.0.1:1234/v1")).rstrip("/")
+        self.model = model or os.environ.get("LMSTUDIO_MODEL", "local-model")
+        self.timeout = timeout
+        self.temperature = temperature
+        self.model_id = self.model
+
+
+class TritonAPIChat(OpenAICompatibleChat):
     """OpenAI-compatible TritonAI endpoint. Reads OPENAI_API_KEY / OPENAI_BASE_URL / OPENAI_MODEL,
     falling back to agent_env/.env (gitignored) for any that aren't already set."""
 
@@ -137,37 +160,24 @@ class TritonAPIChat(ChatClient):
         model: str | None = None,
         api_key: str | None = None,
         timeout: float = 120.0,
+        temperature: float = DEFAULT_TEMPERATURE,
     ) -> None:
         load_dotenv()
         self.base_url = (base_url or os.environ.get("OPENAI_BASE_URL", "https://tritonai-api.ucsd.edu/v1")).rstrip("/")
         self.model = model or os.environ.get("OPENAI_MODEL", "api-muse-glimmer-30b")
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
         self.timeout = timeout
+        self.temperature = temperature
         self.model_id = self.model
         if not self.base_url or not self.api_key or not self.model:
             raise ValueError("TritonAPIChatClient needs OPENAI_BASE_URL, OPENAI_API_KEY and OPENAI_MODEL (env or .env)")
 
-    async def complete(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> ChatTurn:
-        payload: dict[str, Any] = {
-            "model": self.model,
-            "messages": messages,
-            "temperature": 0.2,
-        }
-        if tools:
-            payload["tools"] = tools
-            payload["tool_choice"] = "auto"
-        url = f"{self.base_url}/chat/completions"
-        headers = {"Authorization": f"Bearer {self.api_key}"}
-        try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.post(url, json=payload, headers=headers)
-                response.raise_for_status()
-                body = response.json()
-        except httpx.HTTPStatusError as exc:
-            return ChatTurn(content=None, error=f"{exc.response.status_code}: {exc.response.text[:500]}")
-        except Exception as exc:
-            return ChatTurn(content=None, error=str(exc))
-        return _parse_chat_completion(body)
+    def _headers(self) -> dict[str, str]:
+        return {"Authorization": f"Bearer {self.api_key}"}
+
+    def _describe_http_error(self, exc: httpx.HTTPStatusError) -> str:
+        return f"{exc.response.status_code}: {exc.response.text[:500]}"
+
 
 class ScriptChatClient(ChatClient):
     """Canned tool-call sequence for tests (no network)."""
@@ -184,3 +194,67 @@ class ScriptChatClient(ChatClient):
         turn = self._turns[self._index]
         self._index += 1
         return turn
+
+
+class OracleChat(ChatClient):
+    """Always emits on-mandate tool calls. Used to generate emulated LLM-hop failures offline."""
+
+    def __init__(self, model: str | None = None) -> None:
+        self.model_id = model or "oracle"
+        self._plan: list[ToolCallRequest] | None = None
+        self._index = 0
+
+    async def complete(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> ChatTurn:
+        if self._plan is None:
+            self._plan = _oracle_plan_from_messages(messages)
+            self._index = 0
+        if self._index >= len(self._plan):
+            return ChatTurn(content="Done.", tool_calls=[])
+        call = self._plan[self._index]
+        self._index += 1
+        return ChatTurn(content=None, tool_calls=[call])
+
+
+def _oracle_plan_from_messages(messages: list[dict[str, Any]]) -> list[ToolCallRequest]:
+    mandate: dict[str, Any] = {}
+    for message in messages:
+        if message.get("role") != "user":
+            continue
+        content = message.get("content") or ""
+        marker = "Authoritative mandate"
+        if marker not in content:
+            continue
+        raw = content.split(":", 1)[-1].strip()
+        try:
+            mandate = json.loads(raw)
+        except json.JSONDecodeError:
+            continue
+    action = mandate.get("action")
+    if action == "list_accounts":
+        return [ToolCallRequest("c1", "bank__list_accounts", {})]
+    if action == "read_holder":
+        return [ToolCallRequest("c1", "bank__get_account_holder",
+                                {"account_id": mandate.get("account_id")})]
+    if action == "read_transactions":
+        return [ToolCallRequest(
+            "c1",
+            "bank__get_transactions",
+            {"account_id": mandate.get("account_id"), "limit": int(mandate.get("limit", 10))},
+        )]
+    if action == "read_balance":
+        return [ToolCallRequest("c1", "bank__get_balance", {"account_id": mandate.get("account_id")})]
+    if "amount_cents" in mandate and "from_account_id" in mandate:
+        transfer_args = {
+            "from_account_id": mandate.get("from_account_id"),
+            "payee_id": mandate.get("payee_id"),
+            "amount_cents": int(mandate["amount_cents"]),
+        }
+        if "account_id" in mandate:
+            return [
+                ToolCallRequest("c1", "bank__get_balance", {"account_id": mandate.get("account_id")}),
+                ToolCallRequest("c2", "payment__initiate_transfer", transfer_args),
+            ]
+        return [ToolCallRequest("c1", "payment__initiate_transfer", transfer_args)]
+    if "account_id" in mandate:
+        return [ToolCallRequest("c1", "bank__get_balance", {"account_id": mandate.get("account_id")})]
+    return []

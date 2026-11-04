@@ -1,0 +1,175 @@
+{
+  "model": "stacking",
+  "seed": 42,
+  "train_rows": 122,
+  "test_rows": 47,
+  "inner_cv": {
+    "requested_k": 5,
+    "k": 5,
+    "degraded": false
+  },
+  "details": {
+    "kind": "stacked_logreg",
+    "data": "external data trains the frozen binary base only; the stacker trains on the first-party train pool",
+    "base_checkpoint": "mlp_baseline/models/injection/seed42",
+    "cv_metrics": {
+      "cause_macro_f1": {
+        "mean": 0.4486324786324786,
+        "std": 0.2848080542611778,
+        "folds": 5,
+        "per_fold": [
+          0.7631257631257631,
+          0.8055555555555555,
+          0.24590964590964592,
+          0.3333333333333333,
+          0.09523809523809523
+        ]
+      },
+      "error_auroc": {
+        "mean": 0.9377136752136753,
+        "std": 0.034495001295934746,
+        "folds": 5,
+        "per_fold": [
+          0.9074074074074074,
+          0.9398148148148148,
+          0.9038461538461537,
+          0.9375,
+          1.0
+        ]
+      },
+      "error_type_accuracy": {
+        "mean": 0.65,
+        "std": 0.1224744871391589,
+        "folds": 5,
+        "per_fold": [
+          0.75,
+          0.75,
+          0.5,
+          0.75,
+          0.5
+        ]
+      },
+      "error_detection_f1": {
+        "mean": 0.6046861184792219,
+        "std": 0.07062569093753239,
+        "folds": 5,
+        "per_fold": [
+          0.6896551724137931,
+          0.6153846153846154,
+          0.5517241379310345,
+          0.6666666666666666,
+          0.5
+        ]
+      },
+      "false_alarm_rate": {
+        "mean": 0.7351851851851852,
+        "std": 0.32812808232271,
+        "folds": 5,
+        "per_fold": [
+          0.25925925925925924,
+          0.4166666666666667,
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "missed_error_rate": {
+        "mean": 0.03333333333333333,
+        "std": 0.06666666666666667,
+        "folds": 5,
+        "per_fold": [
+          0.16666666666666666,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "correctness_brier": {
+        "mean": 0.25959238821540515,
+        "std": 0.06445124352980837,
+        "folds": 5,
+        "per_fold": [
+          0.17633441109978626,
+          0.20917518660729376,
+          0.3538625594265624,
+          0.2507222958120705,
+          0.30786748813131276
+        ]
+      }
+    },
+    "calibration": {
+      "cause": {
+        "temperature": 0.5,
+        "fitted": true,
+        "samples": 122
+      },
+      "correctness": {
+        "temperature": 1.3947436663504051,
+        "fitted": true,
+        "samples": 122
+      },
+      "source": "out-of-fold train-pool predictions only"
+    }
+  },
+  "test": {
+    "samples": 47,
+    "cause_labels": [
+      "none",
+      "agent",
+      "adversary"
+    ],
+    "cause_accuracy": 0.7446808510638298,
+    "cause_macro_f1": 0.5964325529542921,
+    "cause_per_class": {
+      "none": {
+        "precision": 0.90625,
+        "recall": 0.7837837837837838,
+        "f1": 0.8405797101449275,
+        "support": 37
+      },
+      "agent": {
+        "precision": 0.2222222222222222,
+        "recall": 0.6666666666666666,
+        "f1": 0.3333333333333333,
+        "support": 3
+      },
+      "adversary": {
+        "precision": 0.6666666666666666,
+        "recall": 0.5714285714285714,
+        "f1": 0.6153846153846154,
+        "support": 7
+      }
+    },
+    "cause_confusion_matrix": [
+      [
+        29,
+        6,
+        2
+      ],
+      [
+        1,
+        2,
+        0
+      ],
+      [
+        2,
+        1,
+        4
+      ]
+    ],
+    "error_type_accuracy": 0.6,
+    "error_type_support": 10,
+    "error_type_accuracy_when_detected": 0.8571428571428571,
+    "error_type_detected_support": 7,
+    "correctness_accuracy": 0.7659574468085106,
+    "error_detection_f1": 0.56,
+    "error_auroc": 0.8783783783783784,
+    "false_alarm_rate": 0.21621621621621623,
+    "missed_error_rate": 0.3,
+    "correctness_brier": 0.16596156952943122,
+    "correctness_ece": 0.06490725792151164,
+    "inconsistent_answers": 0
+  },
+  "elapsed_seconds": 0.21088904200587422
+}

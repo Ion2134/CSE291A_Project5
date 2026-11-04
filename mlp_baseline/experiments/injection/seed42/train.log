@@ -1,0 +1,24 @@
+Training local MLP: train=8893, val=1064, test=1178
+MLP epoch 1/40: train_loss=0.2312, val_loss=0.0610
+MLP epoch 2/40: train_loss=0.0074, val_loss=0.0344
+MLP epoch 3/40: train_loss=0.0016, val_loss=0.0286
+MLP epoch 4/40: train_loss=0.0005, val_loss=0.0247
+MLP epoch 5/40: train_loss=0.0002, val_loss=0.0245
+MLP epoch 6/40: train_loss=0.0002, val_loss=0.0242
+MLP epoch 7/40: train_loss=0.0001, val_loss=0.0231
+MLP epoch 8/40: train_loss=0.0001, val_loss=0.0229
+MLP epoch 9/40: train_loss=0.0001, val_loss=0.0226
+MLP epoch 10/40: train_loss=0.0001, val_loss=0.0225
+MLP epoch 11/40: train_loss=0.0000, val_loss=0.0222
+MLP epoch 12/40: train_loss=0.0000, val_loss=0.0218
+MLP epoch 13/40: train_loss=0.0000, val_loss=0.0219
+MLP epoch 14/40: train_loss=0.0000, val_loss=0.0216
+MLP epoch 15/40: train_loss=0.0000, val_loss=0.0221
+MLP epoch 16/40: train_loss=0.0000, val_loss=0.0221
+MLP epoch 17/40: train_loss=0.0000, val_loss=0.0226
+MLP epoch 18/40: train_loss=0.0000, val_loss=0.0220
+MLP epoch 19/40: train_loss=0.0000, val_loss=0.0218
+MLP epoch 20/40: train_loss=0.0000, val_loss=0.0238
+MLP epoch 21/40: train_loss=0.0000, val_loss=0.0242
+MLP epoch 22/40: train_loss=0.0000, val_loss=0.0259
+{"status": "complete", "parameters": 532802, "test_macro_f1": 0.9198155969121764, "results": "runs/reproduced-seed42/results.json"}

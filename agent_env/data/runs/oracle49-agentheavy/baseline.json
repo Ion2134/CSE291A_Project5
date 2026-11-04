@@ -1,0 +1,42 @@
+{
+  "seed": 49,
+  "episode_count": 120,
+  "episodes_written": 120,
+  "attack_applied_rate": 1.0,
+  "task_correct_rate": 0.14563106796116504,
+  "silent_wrong_rate": 0.8446601941747572,
+  "hard_fail_rate": 0.009708737864077669,
+  "task_correct_rate_applied_only": 0.14563106796116504,
+  "silent_wrong_rate_applied_only": 0.8446601941747572,
+  "malformed_call_count": 0,
+  "model_failure_episodes": 0,
+  "by_operator": {
+    "llm_wrong_amount": {
+      "count": 56,
+      "silent_wrong_rate": 0.7321428571428571,
+      "hard_fail_rate": 0.017857142857142856
+    },
+    "llm_wrong_account": {
+      "count": 47,
+      "silent_wrong_rate": 0.9787234042553191,
+      "hard_fail_rate": 0.0
+    }
+  },
+  "by_hop": {
+    "llm": {
+      "count": 103,
+      "silent_wrong_rate": 0.8446601941747572,
+      "hard_fail_rate": 0.009708737864077669
+    }
+  },
+  "mode": "agent",
+  "dropped_llm_mismatch": 0,
+  "episode_errors": 0,
+  "llm_samples_requested": 0,
+  "max_agent_steps": 8,
+  "concurrency": 4,
+  "models": [
+    "oracle"
+  ],
+  "model": "oracle"
+}

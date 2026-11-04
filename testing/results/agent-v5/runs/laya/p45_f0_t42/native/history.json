@@ -1,0 +1,12 @@
+[
+  {
+    "epoch": 1,
+    "train_loss": 0.59370084498346,
+    "validation_cross_entropy": 0.47201755317698996
+  },
+  {
+    "epoch": 2,
+    "train_loss": 0.39778617341517447,
+    "validation_cross_entropy": 0.4643151403417221
+  }
+]

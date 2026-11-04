@@ -1,0 +1,28 @@
+{
+  "seed": 49,
+  "episodes": 120,
+  "mode": "agent",
+  "model": "oracle",
+  "models": [
+    "oracle"
+  ],
+  "max_agent_steps": 8,
+  "multi_step": true,
+  "llm_samples": 0,
+  "concurrency": 4,
+  "temperature": 0.2,
+  "task_set": "core",
+  "task_sample": "parameterized",
+  "task_count": 10,
+  "operators": [
+    "llm_wrong_account",
+    "llm_wrong_amount",
+    "benign"
+  ],
+  "operator_weights": {
+    "llm_wrong_account": 4.0,
+    "llm_wrong_amount": 4.0,
+    "benign": 1.0
+  },
+  "out_dir": "data/runs/oracle49-agentheavy"
+}

@@ -1,0 +1,799 @@
+{
+  "config_name": "agent-v4",
+  "data_fingerprint": "f24157e232739a03ca99342e42669b05fc83099dc97c1db89e1a0dd7d0e208a5",
+  "runs": [
+    "agent-qwen36a3b",
+    "agent42",
+    "agent42-v2",
+    "triton42",
+    "triton42-v2",
+    "triton44",
+    "triton45",
+    "triton46",
+    "triton47",
+    "triton48"
+  ],
+  "split_settings": {
+    "seeds": [
+      42,
+      43,
+      44,
+      45,
+      46
+    ],
+    "k": 5,
+    "max_test_fraction": 0.35,
+    "laya_val_fraction": 0.2
+  },
+  "pool": {
+    "rows": 169,
+    "groups": 10,
+    "labels": {
+      "adversary": 32,
+      "agent": 16,
+      "none": 121
+    },
+    "group_sizes": {
+      "03c4abf619084ae21105b002a62f57529a6a3f982591983a3567ce5ab8e671f0": 18,
+      "0e29115ce0c6e7bf9d6747dacd90d48119b8334050cfdf182e25051025eb472f": 27,
+      "30ac074d6c7488c512b2ebe254565527d4fe8d08e85aa993203558c0ccd9c22a": 36,
+      "53640ddaa14c3673cb396384a8db0417017f95c2c76b850dfe803b24ad307b91": 46,
+      "7468b6e1d8566448bd1cbe906ae132e699dee775dd798b8961f92a6d7af65918": 8,
+      "7dbf6f366468bab0a62c38f05c1653146e583b79546f3deeea487c6aa7ec1741": 2,
+      "c46274ceda46aaca3996e41139c5f8da4839fb29d6f26e6adb825d526c9c190c": 6,
+      "dbf6ca6b1a861f5fe589d3ce8a516c34f044fb2e9b536c7f0c77c9cffd88b357": 3,
+      "ef3672900472200a3a60f45b9f7a7eda5f41409ed8efd2a33b9235644cd42c29": 3,
+      "fa1e98047b48af5621f4229d2305a17ac1d5e0c28e4aeb69c012c9474de79f2e": 20
+    }
+  },
+  "splits": [
+    {
+      "split_seed": 42,
+      "folds": [
+        {
+          "fold": 0,
+          "test_groups": [
+            "7468b6e1d8566448bd1cbe906ae132e699dee775dd798b8961f92a6d7af65918",
+            "dbf6ca6b1a861f5fe589d3ce8a516c34f044fb2e9b536c7f0c77c9cffd88b357"
+          ],
+          "laya_val_groups": [
+            "0e29115ce0c6e7bf9d6747dacd90d48119b8334050cfdf182e25051025eb472f",
+            "30ac074d6c7488c512b2ebe254565527d4fe8d08e85aa993203558c0ccd9c22a"
+          ],
+          "train_rows": 95,
+          "val_rows": 63,
+          "test_rows": 11,
+          "train_labels": {
+            "adversary": 17,
+            "agent": 9,
+            "none": 69
+          },
+          "val_labels": {
+            "adversary": 10,
+            "agent": 6,
+            "none": 47
+          },
+          "test_labels": {
+            "adversary": 5,
+            "agent": 1,
+            "none": 5
+          }
+        },
+        {
+          "fold": 1,
+          "test_groups": [
+            "03c4abf619084ae21105b002a62f57529a6a3f982591983a3567ce5ab8e671f0",
+            "30ac074d6c7488c512b2ebe254565527d4fe8d08e85aa993203558c0ccd9c22a"
+          ],
+          "laya_val_groups": [
+            "7dbf6f366468bab0a62c38f05c1653146e583b79546f3deeea487c6aa7ec1741",
+            "ef3672900472200a3a60f45b9f7a7eda5f41409ed8efd2a33b9235644cd42c29"
+          ],
+          "train_rows": 110,
+          "val_rows": 5,
+          "test_rows": 54,
+          "train_labels": {
+            "adversary": 19,
+            "agent": 10,
+            "none": 81
+          },
+          "val_labels": {
+            "adversary": 2,
+            "agent": 1,
+            "none": 2
+          },
+          "test_labels": {
+            "adversary": 11,
+            "agent": 5,
+            "none": 38
+          }
+        },
+        {
+          "fold": 2,
+          "test_groups": [
+            "7dbf6f366468bab0a62c38f05c1653146e583b79546f3deeea487c6aa7ec1741",
+            "fa1e98047b48af5621f4229d2305a17ac1d5e0c28e4aeb69c012c9474de79f2e"
+          ],
+          "laya_val_groups": [
+            "03c4abf619084ae21105b002a62f57529a6a3f982591983a3567ce5ab8e671f0",
+            "ef3672900472200a3a60f45b9f7a7eda5f41409ed8efd2a33b9235644cd42c29"
+          ],
+          "train_rows": 126,
+          "val_rows": 21,
+          "test_rows": 22,
+          "train_labels": {
+            "adversary": 22,
+            "agent": 13,
+            "none": 91
+          },
+          "val_labels": {
+            "adversary": 7,
+            "agent": 1,
+            "none": 13
+          },
+          "test_labels": {
+            "adversary": 3,
+            "agent": 2,
+            "none": 17
+          }
+        },
+        {
+          "fold": 3,
+          "test_groups": [
+            "53640ddaa14c3673cb396384a8db0417017f95c2c76b850dfe803b24ad307b91",
+            "c46274ceda46aaca3996e41139c5f8da4839fb29d6f26e6adb825d526c9c190c"
+          ],
+          "laya_val_groups": [
+            "7468b6e1d8566448bd1cbe906ae132e699dee775dd798b8961f92a6d7af65918",
+            "ef3672900472200a3a60f45b9f7a7eda5f41409ed8efd2a33b9235644cd42c29"
+          ],
+          "train_rows": 106,
+          "val_rows": 11,
+          "test_rows": 52,
+          "train_labels": {
+            "adversary": 21,
+            "agent": 8,
+            "none": 77
+          },
+          "val_labels": {
+            "adversary": 4,
+            "agent": 2,
+            "none": 5
+          },
+          "test_labels": {
+            "adversary": 7,
+            "agent": 6,
+            "none": 39
+          }
+        },
+        {
+          "fold": 4,
+          "test_groups": [
+            "0e29115ce0c6e7bf9d6747dacd90d48119b8334050cfdf182e25051025eb472f",
+            "ef3672900472200a3a60f45b9f7a7eda5f41409ed8efd2a33b9235644cd42c29"
+          ],
+          "laya_val_groups": [
+            "7dbf6f366468bab0a62c38f05c1653146e583b79546f3deeea487c6aa7ec1741",
+            "c46274ceda46aaca3996e41139c5f8da4839fb29d6f26e6adb825d526c9c190c"
+          ],
+          "train_rows": 131,
+          "val_rows": 8,
+          "test_rows": 30,
+          "train_labels": {
+            "adversary": 24,
+            "agent": 13,
+            "none": 94
+          },
+          "val_labels": {
+            "adversary": 2,
+            "agent": 1,
+            "none": 5
+          },
+          "test_labels": {
+            "adversary": 6,
+            "agent": 2,
+            "none": 22
+          }
+        }
+      ]
+    },
+    {
+      "split_seed": 43,
+      "folds": [
+        {
+          "fold": 0,
+          "test_groups": [
+            "dbf6ca6b1a861f5fe589d3ce8a516c34f044fb2e9b536c7f0c77c9cffd88b357",
+            "ef3672900472200a3a60f45b9f7a7eda5f41409ed8efd2a33b9235644cd42c29"
+          ],
+          "laya_val_groups": [
+            "30ac074d6c7488c512b2ebe254565527d4fe8d08e85aa993203558c0ccd9c22a",
+            "53640ddaa14c3673cb396384a8db0417017f95c2c76b850dfe803b24ad307b91"
+          ],
+          "train_rows": 81,
+          "val_rows": 82,
+          "test_rows": 6,
+          "train_labels": {
+            "adversary": 18,
+            "agent": 5,
+            "none": 58
+          },
+          "val_labels": {
+            "adversary": 11,
+            "agent": 10,
+            "none": 61
+          },
+          "test_labels": {
+            "adversary": 3,
+            "agent": 1,
+            "none": 2
+          }
+        },
+        {
+          "fold": 1,
+          "test_groups": [
+            "03c4abf619084ae21105b002a62f57529a6a3f982591983a3567ce5ab8e671f0",
+            "30ac074d6c7488c512b2ebe254565527d4fe8d08e85aa993203558c0ccd9c22a"
+          ],
+          "laya_val_groups": [
+            "0e29115ce0c6e7bf9d6747dacd90d48119b8334050cfdf182e25051025eb472f",
+            "c46274ceda46aaca3996e41139c5f8da4839fb29d6f26e6adb825d526c9c190c"
+          ],
+          "train_rows": 82,
+          "val_rows": 33,
+          "test_rows": 54,
+          "train_labels": {
+            "adversary": 15,
+            "agent": 9,
+            "none": 58
+          },
+          "val_labels": {
+            "adversary": 6,
+            "agent": 2,
+            "none": 25
+          },
+          "test_labels": {
+            "adversary": 11,
+            "agent": 5,
+            "none": 38
+          }
+        },
+        {
+          "fold": 2,
+          "test_groups": [
+            "0e29115ce0c6e7bf9d6747dacd90d48119b8334050cfdf182e25051025eb472f",
+            "fa1e98047b48af5621f4229d2305a17ac1d5e0c28e4aeb69c012c9474de79f2e"
+          ],
+          "laya_val_groups": [
+            "03c4abf619084ae21105b002a62f57529a6a3f982591983a3567ce5ab8e671f0",
+            "dbf6ca6b1a861f5fe589d3ce8a516c34f044fb2e9b536c7f0c77c9cffd88b357"
+          ],
+          "train_rows": 101,
+          "val_rows": 21,
+          "test_rows": 47,
+          "train_labels": {
+            "adversary": 17,
+            "agent": 13,
+            "none": 71
+          },
+          "val_labels": {
+            "adversary": 8,
+            "none": 13
+          },
+          "test_labels": {
+            "adversary": 7,
+            "agent": 3,
+            "none": 37
+          }
+        },
+        {
+          "fold": 3,
+          "test_groups": [
+            "53640ddaa14c3673cb396384a8db0417017f95c2c76b850dfe803b24ad307b91",
+            "7dbf6f366468bab0a62c38f05c1653146e583b79546f3deeea487c6aa7ec1741"
+          ],
+          "laya_val_groups": [
+            "0e29115ce0c6e7bf9d6747dacd90d48119b8334050cfdf182e25051025eb472f",
+            "dbf6ca6b1a861f5fe589d3ce8a516c34f044fb2e9b536c7f0c77c9cffd88b357"
+          ],
+          "train_rows": 91,
+          "val_rows": 30,
+          "test_rows": 48,
+          "train_labels": {
+            "adversary": 18,
+            "agent": 10,
+            "none": 63
+          },
+          "val_labels": {
+            "adversary": 7,
+            "agent": 1,
+            "none": 22
+          },
+          "test_labels": {
+            "adversary": 7,
+            "agent": 5,
+            "none": 36
+          }
+        },
+        {
+          "fold": 4,
+          "test_groups": [
+            "7468b6e1d8566448bd1cbe906ae132e699dee775dd798b8961f92a6d7af65918",
+            "c46274ceda46aaca3996e41139c5f8da4839fb29d6f26e6adb825d526c9c190c"
+          ],
+          "laya_val_groups": [
+            "03c4abf619084ae21105b002a62f57529a6a3f982591983a3567ce5ab8e671f0",
+            "fa1e98047b48af5621f4229d2305a17ac1d5e0c28e4aeb69c012c9474de79f2e"
+          ],
+          "train_rows": 117,
+          "val_rows": 38,
+          "test_rows": 14,
+          "train_labels": {
+            "adversary": 20,
+            "agent": 12,
+            "none": 85
+          },
+          "val_labels": {
+            "adversary": 8,
+            "agent": 2,
+            "none": 28
+          },
+          "test_labels": {
+            "adversary": 4,
+            "agent": 2,
+            "none": 8
+          }
+        }
+      ]
+    },
+    {
+      "split_seed": 44,
+      "folds": [
+        {
+          "fold": 0,
+          "test_groups": [
+            "53640ddaa14c3673cb396384a8db0417017f95c2c76b850dfe803b24ad307b91",
+            "ef3672900472200a3a60f45b9f7a7eda5f41409ed8efd2a33b9235644cd42c29"
+          ],
+          "laya_val_groups": [
+            "0e29115ce0c6e7bf9d6747dacd90d48119b8334050cfdf182e25051025eb472f",
+            "7468b6e1d8566448bd1cbe906ae132e699dee775dd798b8961f92a6d7af65918"
+          ],
+          "train_rows": 85,
+          "val_rows": 35,
+          "test_rows": 49,
+          "train_labels": {
+            "adversary": 17,
+            "agent": 8,
+            "none": 60
+          },
+          "val_labels": {
+            "adversary": 8,
+            "agent": 2,
+            "none": 25
+          },
+          "test_labels": {
+            "adversary": 7,
+            "agent": 6,
+            "none": 36
+          }
+        },
+        {
+          "fold": 1,
+          "test_groups": [
+            "03c4abf619084ae21105b002a62f57529a6a3f982591983a3567ce5ab8e671f0",
+            "0e29115ce0c6e7bf9d6747dacd90d48119b8334050cfdf182e25051025eb472f"
+          ],
+          "laya_val_groups": [
+            "30ac074d6c7488c512b2ebe254565527d4fe8d08e85aa993203558c0ccd9c22a",
+            "fa1e98047b48af5621f4229d2305a17ac1d5e0c28e4aeb69c012c9474de79f2e"
+          ],
+          "train_rows": 68,
+          "val_rows": 56,
+          "test_rows": 45,
+          "train_labels": {
+            "adversary": 14,
+            "agent": 8,
+            "none": 46
+          },
+          "val_labels": {
+            "adversary": 7,
+            "agent": 7,
+            "none": 42
+          },
+          "test_labels": {
+            "adversary": 11,
+            "agent": 1,
+            "none": 33
+          }
+        },
+        {
+          "fold": 2,
+          "test_groups": [
+            "30ac074d6c7488c512b2ebe254565527d4fe8d08e85aa993203558c0ccd9c22a",
+            "7dbf6f366468bab0a62c38f05c1653146e583b79546f3deeea487c6aa7ec1741"
+          ],
+          "laya_val_groups": [
+            "53640ddaa14c3673cb396384a8db0417017f95c2c76b850dfe803b24ad307b91",
+            "ef3672900472200a3a60f45b9f7a7eda5f41409ed8efd2a33b9235644cd42c29"
+          ],
+          "train_rows": 82,
+          "val_rows": 49,
+          "test_rows": 38,
+          "train_labels": {
+            "adversary": 19,
+            "agent": 5,
+            "none": 58
+          },
+          "val_labels": {
+            "adversary": 7,
+            "agent": 6,
+            "none": 36
+          },
+          "test_labels": {
+            "adversary": 6,
+            "agent": 5,
+            "none": 27
+          }
+        },
+        {
+          "fold": 3,
+          "test_groups": [
+            "7468b6e1d8566448bd1cbe906ae132e699dee775dd798b8961f92a6d7af65918",
+            "c46274ceda46aaca3996e41139c5f8da4839fb29d6f26e6adb825d526c9c190c"
+          ],
+          "laya_val_groups": [
+            "dbf6ca6b1a861f5fe589d3ce8a516c34f044fb2e9b536c7f0c77c9cffd88b357",
+            "ef3672900472200a3a60f45b9f7a7eda5f41409ed8efd2a33b9235644cd42c29"
+          ],
+          "train_rows": 149,
+          "val_rows": 6,
+          "test_rows": 14,
+          "train_labels": {
+            "adversary": 25,
+            "agent": 13,
+            "none": 111
+          },
+          "val_labels": {
+            "adversary": 3,
+            "agent": 1,
+            "none": 2
+          },
+          "test_labels": {
+            "adversary": 4,
+            "agent": 2,
+            "none": 8
+          }
+        },
+        {
+          "fold": 4,
+          "test_groups": [
+            "dbf6ca6b1a861f5fe589d3ce8a516c34f044fb2e9b536c7f0c77c9cffd88b357",
+            "fa1e98047b48af5621f4229d2305a17ac1d5e0c28e4aeb69c012c9474de79f2e"
+          ],
+          "laya_val_groups": [
+            "30ac074d6c7488c512b2ebe254565527d4fe8d08e85aa993203558c0ccd9c22a",
+            "53640ddaa14c3673cb396384a8db0417017f95c2c76b850dfe803b24ad307b91"
+          ],
+          "train_rows": 64,
+          "val_rows": 82,
+          "test_rows": 23,
+          "train_labels": {
+            "adversary": 17,
+            "agent": 4,
+            "none": 43
+          },
+          "val_labels": {
+            "adversary": 11,
+            "agent": 10,
+            "none": 61
+          },
+          "test_labels": {
+            "adversary": 4,
+            "agent": 2,
+            "none": 17
+          }
+        }
+      ]
+    },
+    {
+      "split_seed": 45,
+      "folds": [
+        {
+          "fold": 0,
+          "test_groups": [
+            "7468b6e1d8566448bd1cbe906ae132e699dee775dd798b8961f92a6d7af65918",
+            "c46274ceda46aaca3996e41139c5f8da4839fb29d6f26e6adb825d526c9c190c"
+          ],
+          "laya_val_groups": [
+            "30ac074d6c7488c512b2ebe254565527d4fe8d08e85aa993203558c0ccd9c22a",
+            "53640ddaa14c3673cb396384a8db0417017f95c2c76b850dfe803b24ad307b91"
+          ],
+          "train_rows": 73,
+          "val_rows": 82,
+          "test_rows": 14,
+          "train_labels": {
+            "adversary": 17,
+            "agent": 4,
+            "none": 52
+          },
+          "val_labels": {
+            "adversary": 11,
+            "agent": 10,
+            "none": 61
+          },
+          "test_labels": {
+            "adversary": 4,
+            "agent": 2,
+            "none": 8
+          }
+        },
+        {
+          "fold": 1,
+          "test_groups": [
+            "7dbf6f366468bab0a62c38f05c1653146e583b79546f3deeea487c6aa7ec1741",
+            "fa1e98047b48af5621f4229d2305a17ac1d5e0c28e4aeb69c012c9474de79f2e"
+          ],
+          "laya_val_groups": [
+            "30ac074d6c7488c512b2ebe254565527d4fe8d08e85aa993203558c0ccd9c22a",
+            "dbf6ca6b1a861f5fe589d3ce8a516c34f044fb2e9b536c7f0c77c9cffd88b357"
+          ],
+          "train_rows": 108,
+          "val_rows": 39,
+          "test_rows": 22,
+          "train_labels": {
+            "adversary": 22,
+            "agent": 9,
+            "none": 77
+          },
+          "val_labels": {
+            "adversary": 7,
+            "agent": 5,
+            "none": 27
+          },
+          "test_labels": {
+            "adversary": 3,
+            "agent": 2,
+            "none": 17
+          }
+        },
+        {
+          "fold": 2,
+          "test_groups": [
+            "53640ddaa14c3673cb396384a8db0417017f95c2c76b850dfe803b24ad307b91",
+            "ef3672900472200a3a60f45b9f7a7eda5f41409ed8efd2a33b9235644cd42c29"
+          ],
+          "laya_val_groups": [
+            "0e29115ce0c6e7bf9d6747dacd90d48119b8334050cfdf182e25051025eb472f",
+            "fa1e98047b48af5621f4229d2305a17ac1d5e0c28e4aeb69c012c9474de79f2e"
+          ],
+          "train_rows": 73,
+          "val_rows": 47,
+          "test_rows": 49,
+          "train_labels": {
+            "adversary": 18,
+            "agent": 7,
+            "none": 48
+          },
+          "val_labels": {
+            "adversary": 7,
+            "agent": 3,
+            "none": 37
+          },
+          "test_labels": {
+            "adversary": 7,
+            "agent": 6,
+            "none": 36
+          }
+        },
+        {
+          "fold": 3,
+          "test_groups": [
+            "03c4abf619084ae21105b002a62f57529a6a3f982591983a3567ce5ab8e671f0",
+            "0e29115ce0c6e7bf9d6747dacd90d48119b8334050cfdf182e25051025eb472f"
+          ],
+          "laya_val_groups": [
+            "7dbf6f366468bab0a62c38f05c1653146e583b79546f3deeea487c6aa7ec1741",
+            "dbf6ca6b1a861f5fe589d3ce8a516c34f044fb2e9b536c7f0c77c9cffd88b357"
+          ],
+          "train_rows": 119,
+          "val_rows": 5,
+          "test_rows": 45,
+          "train_labels": {
+            "adversary": 18,
+            "agent": 15,
+            "none": 86
+          },
+          "val_labels": {
+            "adversary": 3,
+            "none": 2
+          },
+          "test_labels": {
+            "adversary": 11,
+            "agent": 1,
+            "none": 33
+          }
+        },
+        {
+          "fold": 4,
+          "test_groups": [
+            "30ac074d6c7488c512b2ebe254565527d4fe8d08e85aa993203558c0ccd9c22a",
+            "dbf6ca6b1a861f5fe589d3ce8a516c34f044fb2e9b536c7f0c77c9cffd88b357"
+          ],
+          "laya_val_groups": [
+            "03c4abf619084ae21105b002a62f57529a6a3f982591983a3567ce5ab8e671f0",
+            "ef3672900472200a3a60f45b9f7a7eda5f41409ed8efd2a33b9235644cd42c29"
+          ],
+          "train_rows": 109,
+          "val_rows": 21,
+          "test_rows": 39,
+          "train_labels": {
+            "adversary": 18,
+            "agent": 10,
+            "none": 81
+          },
+          "val_labels": {
+            "adversary": 7,
+            "agent": 1,
+            "none": 13
+          },
+          "test_labels": {
+            "adversary": 7,
+            "agent": 5,
+            "none": 27
+          }
+        }
+      ]
+    },
+    {
+      "split_seed": 46,
+      "folds": [
+        {
+          "fold": 0,
+          "test_groups": [
+            "53640ddaa14c3673cb396384a8db0417017f95c2c76b850dfe803b24ad307b91",
+            "ef3672900472200a3a60f45b9f7a7eda5f41409ed8efd2a33b9235644cd42c29"
+          ],
+          "laya_val_groups": [
+            "0e29115ce0c6e7bf9d6747dacd90d48119b8334050cfdf182e25051025eb472f",
+            "7dbf6f366468bab0a62c38f05c1653146e583b79546f3deeea487c6aa7ec1741"
+          ],
+          "train_rows": 91,
+          "val_rows": 29,
+          "test_rows": 49,
+          "train_labels": {
+            "adversary": 19,
+            "agent": 9,
+            "none": 63
+          },
+          "val_labels": {
+            "adversary": 6,
+            "agent": 1,
+            "none": 22
+          },
+          "test_labels": {
+            "adversary": 7,
+            "agent": 6,
+            "none": 36
+          }
+        },
+        {
+          "fold": 1,
+          "test_groups": [
+            "7468b6e1d8566448bd1cbe906ae132e699dee775dd798b8961f92a6d7af65918",
+            "dbf6ca6b1a861f5fe589d3ce8a516c34f044fb2e9b536c7f0c77c9cffd88b357"
+          ],
+          "laya_val_groups": [
+            "c46274ceda46aaca3996e41139c5f8da4839fb29d6f26e6adb825d526c9c190c",
+            "ef3672900472200a3a60f45b9f7a7eda5f41409ed8efd2a33b9235644cd42c29"
+          ],
+          "train_rows": 149,
+          "val_rows": 9,
+          "test_rows": 11,
+          "train_labels": {
+            "adversary": 25,
+            "agent": 13,
+            "none": 111
+          },
+          "val_labels": {
+            "adversary": 2,
+            "agent": 2,
+            "none": 5
+          },
+          "test_labels": {
+            "adversary": 5,
+            "agent": 1,
+            "none": 5
+          }
+        },
+        {
+          "fold": 2,
+          "test_groups": [
+            "03c4abf619084ae21105b002a62f57529a6a3f982591983a3567ce5ab8e671f0",
+            "30ac074d6c7488c512b2ebe254565527d4fe8d08e85aa993203558c0ccd9c22a"
+          ],
+          "laya_val_groups": [
+            "0e29115ce0c6e7bf9d6747dacd90d48119b8334050cfdf182e25051025eb472f",
+            "ef3672900472200a3a60f45b9f7a7eda5f41409ed8efd2a33b9235644cd42c29"
+          ],
+          "train_rows": 85,
+          "val_rows": 30,
+          "test_rows": 54,
+          "train_labels": {
+            "adversary": 15,
+            "agent": 9,
+            "none": 61
+          },
+          "val_labels": {
+            "adversary": 6,
+            "agent": 2,
+            "none": 22
+          },
+          "test_labels": {
+            "adversary": 11,
+            "agent": 5,
+            "none": 38
+          }
+        },
+        {
+          "fold": 3,
+          "test_groups": [
+            "7dbf6f366468bab0a62c38f05c1653146e583b79546f3deeea487c6aa7ec1741",
+            "c46274ceda46aaca3996e41139c5f8da4839fb29d6f26e6adb825d526c9c190c"
+          ],
+          "laya_val_groups": [
+            "7468b6e1d8566448bd1cbe906ae132e699dee775dd798b8961f92a6d7af65918",
+            "ef3672900472200a3a60f45b9f7a7eda5f41409ed8efd2a33b9235644cd42c29"
+          ],
+          "train_rows": 150,
+          "val_rows": 11,
+          "test_rows": 8,
+          "train_labels": {
+            "adversary": 26,
+            "agent": 13,
+            "none": 111
+          },
+          "val_labels": {
+            "adversary": 4,
+            "agent": 2,
+            "none": 5
+          },
+          "test_labels": {
+            "adversary": 2,
+            "agent": 1,
+            "none": 5
+          }
+        },
+        {
+          "fold": 4,
+          "test_groups": [
+            "0e29115ce0c6e7bf9d6747dacd90d48119b8334050cfdf182e25051025eb472f",
+            "fa1e98047b48af5621f4229d2305a17ac1d5e0c28e4aeb69c012c9474de79f2e"
+          ],
+          "laya_val_groups": [
+            "03c4abf619084ae21105b002a62f57529a6a3f982591983a3567ce5ab8e671f0",
+            "c46274ceda46aaca3996e41139c5f8da4839fb29d6f26e6adb825d526c9c190c"
+          ],
+          "train_rows": 98,
+          "val_rows": 24,
+          "test_rows": 47,
+          "train_labels": {
+            "adversary": 18,
+            "agent": 12,
+            "none": 68
+          },
+          "val_labels": {
+            "adversary": 7,
+            "agent": 1,
+            "none": 16
+          },
+          "test_labels": {
+            "adversary": 7,
+            "agent": 3,
+            "none": 37
+          }
+        }
+      ]
+    }
+  ]
+}

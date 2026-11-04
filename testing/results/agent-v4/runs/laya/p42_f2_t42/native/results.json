@@ -1,0 +1,83 @@
+{
+  "task": "banking",
+  "best_epoch": 4,
+  "best_validation_cross_entropy": 0.13546194901205288,
+  "epochs_completed": 4,
+  "elapsed_seconds": 560.8861215839861,
+  "checkpoint_reload_verified": true,
+  "test": {
+    "output_correct": {
+      "rows": 22,
+      "labels": [
+        false,
+        true
+      ],
+      "accuracy": 1.0,
+      "macro_f1": 1.0,
+      "per_class_f1": [
+        1.0,
+        1.0
+      ],
+      "class_support": [
+        5,
+        17
+      ],
+      "confusion_matrix": [
+        [
+          5,
+          0
+        ],
+        [
+          0,
+          17
+        ]
+      ],
+      "log_loss": 0.006170051526571368,
+      "auroc": 1.0,
+      "brier": 0.000249819545460909,
+      "false_positive_rate": 0.0,
+      "false_negative_rate": 0.0
+    },
+    "cause": {
+      "rows": 22,
+      "labels": [
+        "none",
+        "agent",
+        "adversary"
+      ],
+      "accuracy": 0.9545454545454546,
+      "macro_f1": 0.9422799422799423,
+      "per_class_f1": [
+        0.9696969696969697,
+        1.0,
+        0.8571428571428571
+      ],
+      "class_support": [
+        17,
+        2,
+        3
+      ],
+      "confusion_matrix": [
+        [
+          16,
+          0,
+          1
+        ],
+        [
+          0,
+          2,
+          0
+        ],
+        [
+          0,
+          0,
+          3
+        ]
+      ],
+      "log_loss": 0.14879440281550968
+    }
+  },
+  "warnings": [
+    "Banking data has 169 unique cases across 10 request groups; development results only."
+  ]
+}

@@ -1,0 +1,9 @@
+# Install the CUDA PyTorch build matching the target machine first; see README.
+torch==2.10.0
+laya==0.4.21
+transformers==5.3.0
+numpy==2.2.6
+scikit-learn==1.5.0
+safetensors==0.8.0
+huggingface-hub==1.33.0
+pytest==9.2.0

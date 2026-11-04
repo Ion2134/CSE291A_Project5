@@ -1,0 +1,17 @@
+Training local MLP: train=8893, val=1064, test=1178
+MLP epoch 1/40: train_loss=0.2092, val_loss=0.0661
+MLP epoch 2/40: train_loss=0.0071, val_loss=0.0301
+MLP epoch 3/40: train_loss=0.0015, val_loss=0.0262
+MLP epoch 4/40: train_loss=0.0004, val_loss=0.0260
+MLP epoch 5/40: train_loss=0.0003, val_loss=0.0256
+MLP epoch 6/40: train_loss=0.0002, val_loss=0.0248
+MLP epoch 7/40: train_loss=0.0001, val_loss=0.0247
+MLP epoch 8/40: train_loss=0.0001, val_loss=0.0258
+MLP epoch 9/40: train_loss=0.0000, val_loss=0.0269
+MLP epoch 10/40: train_loss=0.0000, val_loss=0.0280
+MLP epoch 11/40: train_loss=0.0000, val_loss=0.0288
+MLP epoch 12/40: train_loss=0.0000, val_loss=0.0287
+MLP epoch 13/40: train_loss=0.0000, val_loss=0.0289
+MLP epoch 14/40: train_loss=0.0000, val_loss=0.0292
+MLP epoch 15/40: train_loss=0.0000, val_loss=0.0282
+{"status": "complete", "parameters": 532802, "test_macro_f1": 0.8973428326810176, "results": "runs/reproduced-seed44/results.json"}

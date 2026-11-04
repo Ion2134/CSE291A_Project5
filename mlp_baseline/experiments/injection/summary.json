@@ -1,0 +1,236 @@
+{
+  "status": "complete",
+  "task": "benign versus injection classification",
+  "model_family": "MLP",
+  "is_auxiliary_to_banking_monitor": true,
+  "primary_seed": 42,
+  "training_seeds": [
+    42,
+    43,
+    44
+  ],
+  "seed_selection": "Primary seed 42 was retained; no seed was selected by test score.",
+  "splits": {
+    "train": {
+      "rows": 8893,
+      "label_counts": {
+        "benign": 5756,
+        "injection": 3137
+      },
+      "source_counts": {
+        "agentic5k": 3923,
+        "agentguard": 4970
+      },
+      "groups": 8294
+    },
+    "val": {
+      "rows": 1064,
+      "label_counts": {
+        "injection": 420,
+        "benign": 644
+      },
+      "source_counts": {
+        "agentic5k": 467,
+        "agentguard": 597
+      },
+      "groups": 1010
+    },
+    "test": {
+      "rows": 1178,
+      "label_counts": {
+        "benign": 785,
+        "injection": 393
+      },
+      "source_counts": {
+        "agentic5k": 545,
+        "agentguard": 633
+      },
+      "groups": 1056
+    }
+  },
+  "parameters": 532802,
+  "primary_test": {
+    "samples": 1178,
+    "accuracy": 0.9252971137521222,
+    "macro_f1": 0.9198155969121764,
+    "injection_precision": 0.8197064989517819,
+    "injection_recall": 0.9949109414758269,
+    "injection_f1": 0.8988505747126436,
+    "auroc": 0.9916208813471419,
+    "average_precision": 0.982861793887885,
+    "false_alarm_rate": 0.10955414012738854,
+    "missed_injection_rate": 0.005089058524173028,
+    "brier": 0.06847552561007679,
+    "log_loss": 0.42721524695713115,
+    "labels": [
+      "benign",
+      "injection"
+    ],
+    "confusion_matrix": [
+      [
+        699,
+        86
+      ],
+      [
+        2,
+        391
+      ]
+    ],
+    "per_class": {
+      "benign": {
+        "precision": 0.9971469329529244,
+        "recall": 0.8904458598726115,
+        "f1": 0.9407806191117093,
+        "support": 785
+      },
+      "injection": {
+        "precision": 0.8197064989517819,
+        "recall": 0.9949109414758269,
+        "f1": 0.8988505747126436,
+        "support": 393
+      }
+    },
+    "latency_ms": {
+      "median": 0.16604150005150586,
+      "p95": 0.18339579910389148,
+      "samples": 100
+    }
+  },
+  "test_mean_and_sample_std": {
+    "accuracy": {
+      "mean": 0.9153933220147142,
+      "sample_std": 0.011208433684402006
+    },
+    "macro_f1": {
+      "mean": 0.9096879452669384,
+      "sample_std": 0.011399304049585822
+    },
+    "injection_f1": {
+      "mean": 0.8870046996340837,
+      "sample_std": 0.013204718203454329
+    },
+    "injection_recall": {
+      "mean": 0.9940627650551314,
+      "sample_std": 0.0014690846544265098
+    },
+    "auroc": {
+      "mean": 0.9920271416454622,
+      "sample_std": 0.0013309542993899643
+    },
+    "false_alarm_rate": {
+      "mean": 0.12399150743099789,
+      "sample_std": 0.016963893295488894
+    }
+  },
+  "external_diagnostics": {
+    "toolfault-test": {
+      "samples": 441,
+      "accuracy": 0.8072562358276644,
+      "macro_f1": 0.6801539288548342,
+      "injection_precision": 0.319672131147541,
+      "injection_recall": 0.9512195121951219,
+      "injection_f1": 0.4785276073619632,
+      "auroc": 0.9389024390243902,
+      "average_precision": 0.6670657766796174,
+      "false_alarm_rate": 0.2075,
+      "missed_injection_rate": 0.04878048780487805,
+      "brier": 0.16860338592292962,
+      "log_loss": 1.0098249742753276,
+      "labels": [
+        "benign",
+        "injection"
+      ],
+      "confusion_matrix": [
+        [
+          317,
+          83
+        ],
+        [
+          2,
+          39
+        ]
+      ],
+      "per_class": {
+        "benign": {
+          "precision": 0.9937304075235109,
+          "recall": 0.7925,
+          "f1": 0.8817802503477051,
+          "support": 400
+        },
+        "injection": {
+          "precision": 0.319672131147541,
+          "recall": 0.9512195121951219,
+          "f1": 0.4785276073619632,
+          "support": 41
+        }
+      }
+    },
+    "toolfault-val": {
+      "samples": 81,
+      "accuracy": 0.7283950617283951,
+      "macro_f1": 0.6071428571428571,
+      "injection_precision": 0.2413793103448276,
+      "injection_recall": 1.0,
+      "injection_f1": 0.3888888888888889,
+      "auroc": 0.9787644787644788,
+      "average_precision": 0.8373376623376623,
+      "false_alarm_rate": 0.2972972972972973,
+      "missed_injection_rate": 0.0,
+      "brier": 0.1923114085096577,
+      "log_loss": 0.9459465029310493,
+      "labels": [
+        "benign",
+        "injection"
+      ],
+      "confusion_matrix": [
+        [
+          52,
+          22
+        ],
+        [
+          0,
+          7
+        ]
+      ],
+      "per_class": {
+        "benign": {
+          "precision": 1.0,
+          "recall": 0.7027027027027027,
+          "f1": 0.8253968253968254,
+          "support": 74
+        },
+        "injection": {
+          "precision": 0.2413793103448276,
+          "recall": 1.0,
+          "f1": 0.3888888888888889,
+          "support": 7
+        }
+      }
+    }
+  },
+  "checkpoint": "experiments/injection/seed42/model",
+  "model_bytes": 2133757,
+  "standalone_export_reload_verified": true,
+  "test_predictions_checked": 1178,
+  "automated_tests_passed": 18,
+  "trained_on": "local Mac CPU, 4 threads, isolated project venv",
+  "python": "3.12.4",
+  "machine": "arm64",
+  "cpu_count": 8,
+  "system_site_packages": false,
+  "user_site_enabled": false,
+  "versions": {
+    "torch": "2.10.0",
+    "numpy": "2.2.6",
+    "scikit-learn": "1.5.0",
+    "pyarrow": "26.0.0"
+  },
+  "verified_at_utc": "2026-11-02T04:18:24.192622+00:00",
+  "limitations": [
+    "Synthetic public messages; does not measure banking output correctness or error cause.",
+    "False alarms are material, especially on Agentic 5K hard negatives and ToolFault diagnostics.",
+    "Similarity grouping cannot guarantee absence of all related templates."
+  ],
+  "unchanged_simulator_tests_passed": 44,
+  "packaging_note": "All three seeds were rerun using the standalone package; all reported prediction-quality metrics reproduced exactly. experiments/injection/seedNN/train.log contains captured stdout from these reproduction runs."
+}

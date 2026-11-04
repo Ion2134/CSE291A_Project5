@@ -1,0 +1,24 @@
+{
+  "kind": "stacked_logreg",
+  "task": "banking_monitor",
+  "labels": [
+    "none",
+    "agent",
+    "adversary"
+  ],
+  "calibration": {
+    "cause": {
+      "temperature": 0.46009382531243753,
+      "fitted": true,
+      "samples": 136
+    },
+    "correctness": {
+      "temperature": 1.433955248015827,
+      "fitted": true,
+      "samples": 136
+    },
+    "source": "out-of-fold train-pool predictions only"
+  },
+  "base_checkpoint": "models/injection/seed42",
+  "features": "calibrated injection probability + TF-IDF (fit on first-party train pool only)"
+}

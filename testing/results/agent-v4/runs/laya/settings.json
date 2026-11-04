@@ -1,0 +1,8 @@
+{
+  "device": "mps",
+  "training_seeds": [
+    42
+  ],
+  "args": [],
+  "keep_checkpoints": false
+}

@@ -1,0 +1,1049 @@
+{
+  "config_name": "agent-v5",
+  "data_fingerprint": "93a9f0f5710e1ee07147653162d885142ce62c807607567612dd0ec30ea14510",
+  "runs": [
+    "agent-qwen36a3b",
+    "agent42",
+    "agent42-v2",
+    "triton42",
+    "triton42-v2",
+    "triton44",
+    "triton45",
+    "triton46",
+    "triton47",
+    "triton48",
+    "oracle49-agentheavy",
+    "triton49-agentheavy"
+  ],
+  "split_settings": {
+    "seeds": [
+      42,
+      43,
+      44,
+      45,
+      46
+    ],
+    "k": 5,
+    "max_test_fraction": 0.35,
+    "laya_val_fraction": 0.2
+  },
+  "pool": {
+    "rows": 580,
+    "groups": 35,
+    "labels": {
+      "adversary": 33,
+      "agent": 160,
+      "none": 387
+    },
+    "group_sizes": {
+      "03c4abf619084ae21105b002a62f57529a6a3f982591983a3567ce5ab8e671f0": 38,
+      "0853e4f5a4c054b78f05a7892033fe99397bbe54523e23ef1f72383fad153a43": 10,
+      "0c53b3daa64b956678a94082e4ea74cd945b7443cea3441d1d65245fd12ee286": 33,
+      "0e29115ce0c6e7bf9d6747dacd90d48119b8334050cfdf182e25051025eb472f": 27,
+      "1e5130f80fb0a599abdb64e20e8d383a69c55dbb9412e3112219eb754e5cfeb7": 25,
+      "2841829525d086e9f296cfd02a5eca7cf4f80c2af6f52b4757d60d0aa516a56a": 24,
+      "30ac074d6c7488c512b2ebe254565527d4fe8d08e85aa993203558c0ccd9c22a": 36,
+      "315173d1bd42572eea71f984841df9e70b416b4b66b9180a6669f5678f7091e0": 2,
+      "4f93572881951512900467e47f4a363531fd4aef3f4ea36d88d9e118b9ddeb7a": 20,
+      "53640ddaa14c3673cb396384a8db0417017f95c2c76b850dfe803b24ad307b91": 46,
+      "5973882c13dfb79de6094303fa4ad613dd4705b2d255ca6d576a6044cb301252": 2,
+      "5eba240b3ae1b1f6d29f4757ea49cafb773d98a038e4b3748abba388689484c5": 5,
+      "6386f8f2da4581976119620de9ea91f3aa98b2da82a5f1351a892c1e9023ab8e": 41,
+      "6b97e14ec82e260725564fd1f0ebd6e0497f073f50a8473594890d1b4b4adc54": 12,
+      "700a03180f65bd81fa35bbabb7e2786eb63edf5c00556ab44b3dcc81fe5f961f": 1,
+      "7468b6e1d8566448bd1cbe906ae132e699dee775dd798b8961f92a6d7af65918": 11,
+      "76e6a62234f66cb18e12bde91f251c54bf1ffa1dc663f267d49b072d0b729e57": 5,
+      "7dbf6f366468bab0a62c38f05c1653146e583b79546f3deeea487c6aa7ec1741": 3,
+      "8dbb55ea5430cf894100c69c380ec0e6b9f1fe551822cb3cd6e2179c605b8510": 76,
+      "9266b2ae9403db00be5b7737816237b31e2ea65f94136d26db2651917d5ebd24": 35,
+      "9e537b0828f89fae54f64248c67de3cf3c1d99d8b7e1ee9678710289c2e58d42": 1,
+      "ae250d75b22327ee61587f19a5992777d57857e1efca680c675301101137a971": 5,
+      "b82932149506f5f5a9b61370a6f1c8f95ddb663aa0e87f34edfc0bbc48006de7": 6,
+      "ba7191436c2249fed64ec8435edd2bccee6031a23f8a01acfa244fee06509d38": 4,
+      "be8fa409677bc373dd229449f9da36f91d3d58d312f0ab1f9295ae4d2f7dc065": 32,
+      "c46274ceda46aaca3996e41139c5f8da4839fb29d6f26e6adb825d526c9c190c": 11,
+      "d32176feeb5fb814e9f416e1dc4ae9e6b77242498a95a35a24b228d05100fed3": 21,
+      "d962e71015fb741a41022344e8ac9b2148e2d72655805806dd7543e7bdbc7edf": 1,
+      "dbf6ca6b1a861f5fe589d3ce8a516c34f044fb2e9b536c7f0c77c9cffd88b357": 3,
+      "dc65e11fd1a1b9488b2ba1b44b60e38e1fb12675e5150e47661d6636277988cf": 1,
+      "e00ac07ed3080d6be322471770df322b303f9452320758f94ae5d90d5be5fb7f": 2,
+      "ec56b80ffa0b0d621cb2f4adf76890c9b3c692d58d9fbe5fbef86ecb33d9b723": 12,
+      "ef3672900472200a3a60f45b9f7a7eda5f41409ed8efd2a33b9235644cd42c29": 5,
+      "fa1e98047b48af5621f4229d2305a17ac1d5e0c28e4aeb69c012c9474de79f2e": 20,
+      "fb06d20080fa6f1a1201e8b93dcaf0848e787b5055712a11eaa65bc1b02beff6": 4
+    }
+  },
+  "splits": [
+    {
+      "split_seed": 42,
+      "folds": [
+        {
+          "fold": 0,
+          "test_groups": [
+            "53640ddaa14c3673cb396384a8db0417017f95c2c76b850dfe803b24ad307b91",
+            "700a03180f65bd81fa35bbabb7e2786eb63edf5c00556ab44b3dcc81fe5f961f",
+            "9266b2ae9403db00be5b7737816237b31e2ea65f94136d26db2651917d5ebd24",
+            "b82932149506f5f5a9b61370a6f1c8f95ddb663aa0e87f34edfc0bbc48006de7",
+            "dbf6ca6b1a861f5fe589d3ce8a516c34f044fb2e9b536c7f0c77c9cffd88b357",
+            "fa1e98047b48af5621f4229d2305a17ac1d5e0c28e4aeb69c012c9474de79f2e",
+            "fb06d20080fa6f1a1201e8b93dcaf0848e787b5055712a11eaa65bc1b02beff6"
+          ],
+          "laya_val_groups": [
+            "1e5130f80fb0a599abdb64e20e8d383a69c55dbb9412e3112219eb754e5cfeb7",
+            "315173d1bd42572eea71f984841df9e70b416b4b66b9180a6669f5678f7091e0",
+            "6386f8f2da4581976119620de9ea91f3aa98b2da82a5f1351a892c1e9023ab8e",
+            "8dbb55ea5430cf894100c69c380ec0e6b9f1fe551822cb3cd6e2179c605b8510",
+            "ba7191436c2249fed64ec8435edd2bccee6031a23f8a01acfa244fee06509d38",
+            "e00ac07ed3080d6be322471770df322b303f9452320758f94ae5d90d5be5fb7f"
+          ],
+          "train_rows": 315,
+          "val_rows": 150,
+          "test_rows": 115,
+          "train_labels": {
+            "adversary": 23,
+            "agent": 99,
+            "none": 193
+          },
+          "val_labels": {
+            "agent": 40,
+            "none": 110
+          },
+          "test_labels": {
+            "adversary": 10,
+            "agent": 21,
+            "none": 84
+          }
+        },
+        {
+          "fold": 1,
+          "test_groups": [
+            "5973882c13dfb79de6094303fa4ad613dd4705b2d255ca6d576a6044cb301252",
+            "6386f8f2da4581976119620de9ea91f3aa98b2da82a5f1351a892c1e9023ab8e",
+            "6b97e14ec82e260725564fd1f0ebd6e0497f073f50a8473594890d1b4b4adc54",
+            "7468b6e1d8566448bd1cbe906ae132e699dee775dd798b8961f92a6d7af65918",
+            "ae250d75b22327ee61587f19a5992777d57857e1efca680c675301101137a971",
+            "dc65e11fd1a1b9488b2ba1b44b60e38e1fb12675e5150e47661d6636277988cf",
+            "e00ac07ed3080d6be322471770df322b303f9452320758f94ae5d90d5be5fb7f"
+          ],
+          "laya_val_groups": [
+            "2841829525d086e9f296cfd02a5eca7cf4f80c2af6f52b4757d60d0aa516a56a",
+            "315173d1bd42572eea71f984841df9e70b416b4b66b9180a6669f5678f7091e0",
+            "4f93572881951512900467e47f4a363531fd4aef3f4ea36d88d9e118b9ddeb7a",
+            "76e6a62234f66cb18e12bde91f251c54bf1ffa1dc663f267d49b072d0b729e57",
+            "ec56b80ffa0b0d621cb2f4adf76890c9b3c692d58d9fbe5fbef86ecb33d9b723",
+            "ef3672900472200a3a60f45b9f7a7eda5f41409ed8efd2a33b9235644cd42c29"
+          ],
+          "train_rows": 438,
+          "val_rows": 68,
+          "test_rows": 74,
+          "train_labels": {
+            "adversary": 29,
+            "agent": 106,
+            "none": 303
+          },
+          "val_labels": {
+            "adversary": 1,
+            "agent": 29,
+            "none": 38
+          },
+          "test_labels": {
+            "adversary": 3,
+            "agent": 25,
+            "none": 46
+          }
+        },
+        {
+          "fold": 2,
+          "test_groups": [
+            "0e29115ce0c6e7bf9d6747dacd90d48119b8334050cfdf182e25051025eb472f",
+            "2841829525d086e9f296cfd02a5eca7cf4f80c2af6f52b4757d60d0aa516a56a",
+            "30ac074d6c7488c512b2ebe254565527d4fe8d08e85aa993203558c0ccd9c22a",
+            "5eba240b3ae1b1f6d29f4757ea49cafb773d98a038e4b3748abba388689484c5",
+            "76e6a62234f66cb18e12bde91f251c54bf1ffa1dc663f267d49b072d0b729e57",
+            "7dbf6f366468bab0a62c38f05c1653146e583b79546f3deeea487c6aa7ec1741",
+            "8dbb55ea5430cf894100c69c380ec0e6b9f1fe551822cb3cd6e2179c605b8510"
+          ],
+          "laya_val_groups": [
+            "315173d1bd42572eea71f984841df9e70b416b4b66b9180a6669f5678f7091e0",
+            "b82932149506f5f5a9b61370a6f1c8f95ddb663aa0e87f34edfc0bbc48006de7",
+            "be8fa409677bc373dd229449f9da36f91d3d58d312f0ab1f9295ae4d2f7dc065",
+            "d32176feeb5fb814e9f416e1dc4ae9e6b77242498a95a35a24b228d05100fed3",
+            "e00ac07ed3080d6be322471770df322b303f9452320758f94ae5d90d5be5fb7f",
+            "ec56b80ffa0b0d621cb2f4adf76890c9b3c692d58d9fbe5fbef86ecb33d9b723"
+          ],
+          "train_rows": 329,
+          "val_rows": 75,
+          "test_rows": 176,
+          "train_labels": {
+            "adversary": 22,
+            "agent": 89,
+            "none": 218
+          },
+          "val_labels": {
+            "agent": 35,
+            "none": 40
+          },
+          "test_labels": {
+            "adversary": 11,
+            "agent": 36,
+            "none": 129
+          }
+        },
+        {
+          "fold": 3,
+          "test_groups": [
+            "0853e4f5a4c054b78f05a7892033fe99397bbe54523e23ef1f72383fad153a43",
+            "0c53b3daa64b956678a94082e4ea74cd945b7443cea3441d1d65245fd12ee286",
+            "9e537b0828f89fae54f64248c67de3cf3c1d99d8b7e1ee9678710289c2e58d42",
+            "ba7191436c2249fed64ec8435edd2bccee6031a23f8a01acfa244fee06509d38",
+            "c46274ceda46aaca3996e41139c5f8da4839fb29d6f26e6adb825d526c9c190c",
+            "d32176feeb5fb814e9f416e1dc4ae9e6b77242498a95a35a24b228d05100fed3",
+            "d962e71015fb741a41022344e8ac9b2148e2d72655805806dd7543e7bdbc7edf"
+          ],
+          "laya_val_groups": [
+            "2841829525d086e9f296cfd02a5eca7cf4f80c2af6f52b4757d60d0aa516a56a",
+            "315173d1bd42572eea71f984841df9e70b416b4b66b9180a6669f5678f7091e0",
+            "6b97e14ec82e260725564fd1f0ebd6e0497f073f50a8473594890d1b4b4adc54",
+            "700a03180f65bd81fa35bbabb7e2786eb63edf5c00556ab44b3dcc81fe5f961f",
+            "7468b6e1d8566448bd1cbe906ae132e699dee775dd798b8961f92a6d7af65918",
+            "dc65e11fd1a1b9488b2ba1b44b60e38e1fb12675e5150e47661d6636277988cf"
+          ],
+          "train_rows": 448,
+          "val_rows": 51,
+          "test_rows": 81,
+          "train_labels": {
+            "adversary": 29,
+            "agent": 110,
+            "none": 309
+          },
+          "val_labels": {
+            "adversary": 3,
+            "agent": 20,
+            "none": 28
+          },
+          "test_labels": {
+            "adversary": 1,
+            "agent": 30,
+            "none": 50
+          }
+        },
+        {
+          "fold": 4,
+          "test_groups": [
+            "03c4abf619084ae21105b002a62f57529a6a3f982591983a3567ce5ab8e671f0",
+            "1e5130f80fb0a599abdb64e20e8d383a69c55dbb9412e3112219eb754e5cfeb7",
+            "315173d1bd42572eea71f984841df9e70b416b4b66b9180a6669f5678f7091e0",
+            "4f93572881951512900467e47f4a363531fd4aef3f4ea36d88d9e118b9ddeb7a",
+            "be8fa409677bc373dd229449f9da36f91d3d58d312f0ab1f9295ae4d2f7dc065",
+            "ec56b80ffa0b0d621cb2f4adf76890c9b3c692d58d9fbe5fbef86ecb33d9b723",
+            "ef3672900472200a3a60f45b9f7a7eda5f41409ed8efd2a33b9235644cd42c29"
+          ],
+          "laya_val_groups": [
+            "2841829525d086e9f296cfd02a5eca7cf4f80c2af6f52b4757d60d0aa516a56a",
+            "6386f8f2da4581976119620de9ea91f3aa98b2da82a5f1351a892c1e9023ab8e",
+            "9e537b0828f89fae54f64248c67de3cf3c1d99d8b7e1ee9678710289c2e58d42",
+            "b82932149506f5f5a9b61370a6f1c8f95ddb663aa0e87f34edfc0bbc48006de7",
+            "d962e71015fb741a41022344e8ac9b2148e2d72655805806dd7543e7bdbc7edf",
+            "dc65e11fd1a1b9488b2ba1b44b60e38e1fb12675e5150e47661d6636277988cf"
+          ],
+          "train_rows": 372,
+          "val_rows": 74,
+          "test_rows": 134,
+          "train_labels": {
+            "adversary": 25,
+            "agent": 87,
+            "none": 260
+          },
+          "val_labels": {
+            "agent": 25,
+            "none": 49
+          },
+          "test_labels": {
+            "adversary": 8,
+            "agent": 48,
+            "none": 78
+          }
+        }
+      ]
+    },
+    {
+      "split_seed": 43,
+      "folds": [
+        {
+          "fold": 0,
+          "test_groups": [
+            "03c4abf619084ae21105b002a62f57529a6a3f982591983a3567ce5ab8e671f0",
+            "6386f8f2da4581976119620de9ea91f3aa98b2da82a5f1351a892c1e9023ab8e",
+            "6b97e14ec82e260725564fd1f0ebd6e0497f073f50a8473594890d1b4b4adc54",
+            "9e537b0828f89fae54f64248c67de3cf3c1d99d8b7e1ee9678710289c2e58d42",
+            "b82932149506f5f5a9b61370a6f1c8f95ddb663aa0e87f34edfc0bbc48006de7",
+            "fa1e98047b48af5621f4229d2305a17ac1d5e0c28e4aeb69c012c9474de79f2e",
+            "fb06d20080fa6f1a1201e8b93dcaf0848e787b5055712a11eaa65bc1b02beff6"
+          ],
+          "laya_val_groups": [
+            "0853e4f5a4c054b78f05a7892033fe99397bbe54523e23ef1f72383fad153a43",
+            "0c53b3daa64b956678a94082e4ea74cd945b7443cea3441d1d65245fd12ee286",
+            "30ac074d6c7488c512b2ebe254565527d4fe8d08e85aa993203558c0ccd9c22a",
+            "4f93572881951512900467e47f4a363531fd4aef3f4ea36d88d9e118b9ddeb7a",
+            "53640ddaa14c3673cb396384a8db0417017f95c2c76b850dfe803b24ad307b91",
+            "7468b6e1d8566448bd1cbe906ae132e699dee775dd798b8961f92a6d7af65918"
+          ],
+          "train_rows": 302,
+          "val_rows": 156,
+          "test_rows": 122,
+          "train_labels": {
+            "adversary": 10,
+            "agent": 92,
+            "none": 200
+          },
+          "val_labels": {
+            "adversary": 14,
+            "agent": 35,
+            "none": 107
+          },
+          "test_labels": {
+            "adversary": 9,
+            "agent": 33,
+            "none": 80
+          }
+        },
+        {
+          "fold": 1,
+          "test_groups": [
+            "0e29115ce0c6e7bf9d6747dacd90d48119b8334050cfdf182e25051025eb472f",
+            "1e5130f80fb0a599abdb64e20e8d383a69c55dbb9412e3112219eb754e5cfeb7",
+            "2841829525d086e9f296cfd02a5eca7cf4f80c2af6f52b4757d60d0aa516a56a",
+            "700a03180f65bd81fa35bbabb7e2786eb63edf5c00556ab44b3dcc81fe5f961f",
+            "76e6a62234f66cb18e12bde91f251c54bf1ffa1dc663f267d49b072d0b729e57",
+            "dbf6ca6b1a861f5fe589d3ce8a516c34f044fb2e9b536c7f0c77c9cffd88b357",
+            "e00ac07ed3080d6be322471770df322b303f9452320758f94ae5d90d5be5fb7f"
+          ],
+          "laya_val_groups": [
+            "0853e4f5a4c054b78f05a7892033fe99397bbe54523e23ef1f72383fad153a43",
+            "30ac074d6c7488c512b2ebe254565527d4fe8d08e85aa993203558c0ccd9c22a",
+            "6b97e14ec82e260725564fd1f0ebd6e0497f073f50a8473594890d1b4b4adc54",
+            "9266b2ae9403db00be5b7737816237b31e2ea65f94136d26db2651917d5ebd24",
+            "c46274ceda46aaca3996e41139c5f8da4839fb29d6f26e6adb825d526c9c190c",
+            "ec56b80ffa0b0d621cb2f4adf76890c9b3c692d58d9fbe5fbef86ecb33d9b723"
+          ],
+          "train_rows": 377,
+          "val_rows": 116,
+          "test_rows": 87,
+          "train_labels": {
+            "adversary": 20,
+            "agent": 99,
+            "none": 258
+          },
+          "val_labels": {
+            "adversary": 6,
+            "agent": 39,
+            "none": 71
+          },
+          "test_labels": {
+            "adversary": 7,
+            "agent": 22,
+            "none": 58
+          }
+        },
+        {
+          "fold": 2,
+          "test_groups": [
+            "0c53b3daa64b956678a94082e4ea74cd945b7443cea3441d1d65245fd12ee286",
+            "315173d1bd42572eea71f984841df9e70b416b4b66b9180a6669f5678f7091e0",
+            "4f93572881951512900467e47f4a363531fd4aef3f4ea36d88d9e118b9ddeb7a",
+            "53640ddaa14c3673cb396384a8db0417017f95c2c76b850dfe803b24ad307b91",
+            "ae250d75b22327ee61587f19a5992777d57857e1efca680c675301101137a971",
+            "be8fa409677bc373dd229449f9da36f91d3d58d312f0ab1f9295ae4d2f7dc065",
+            "c46274ceda46aaca3996e41139c5f8da4839fb29d6f26e6adb825d526c9c190c"
+          ],
+          "laya_val_groups": [
+            "03c4abf619084ae21105b002a62f57529a6a3f982591983a3567ce5ab8e671f0",
+            "1e5130f80fb0a599abdb64e20e8d383a69c55dbb9412e3112219eb754e5cfeb7",
+            "76e6a62234f66cb18e12bde91f251c54bf1ffa1dc663f267d49b072d0b729e57",
+            "8dbb55ea5430cf894100c69c380ec0e6b9f1fe551822cb3cd6e2179c605b8510",
+            "9266b2ae9403db00be5b7737816237b31e2ea65f94136d26db2651917d5ebd24",
+            "9e537b0828f89fae54f64248c67de3cf3c1d99d8b7e1ee9678710289c2e58d42"
+          ],
+          "train_rows": 251,
+          "val_rows": 180,
+          "test_rows": 149,
+          "train_labels": {
+            "adversary": 19,
+            "agent": 75,
+            "none": 157
+          },
+          "val_labels": {
+            "adversary": 7,
+            "agent": 47,
+            "none": 126
+          },
+          "test_labels": {
+            "adversary": 7,
+            "agent": 38,
+            "none": 104
+          }
+        },
+        {
+          "fold": 3,
+          "test_groups": [
+            "30ac074d6c7488c512b2ebe254565527d4fe8d08e85aa993203558c0ccd9c22a",
+            "5eba240b3ae1b1f6d29f4757ea49cafb773d98a038e4b3748abba388689484c5",
+            "7dbf6f366468bab0a62c38f05c1653146e583b79546f3deeea487c6aa7ec1741",
+            "9266b2ae9403db00be5b7737816237b31e2ea65f94136d26db2651917d5ebd24",
+            "d32176feeb5fb814e9f416e1dc4ae9e6b77242498a95a35a24b228d05100fed3",
+            "ec56b80ffa0b0d621cb2f4adf76890c9b3c692d58d9fbe5fbef86ecb33d9b723",
+            "ef3672900472200a3a60f45b9f7a7eda5f41409ed8efd2a33b9235644cd42c29"
+          ],
+          "laya_val_groups": [
+            "03c4abf619084ae21105b002a62f57529a6a3f982591983a3567ce5ab8e671f0",
+            "0c53b3daa64b956678a94082e4ea74cd945b7443cea3441d1d65245fd12ee286",
+            "0e29115ce0c6e7bf9d6747dacd90d48119b8334050cfdf182e25051025eb472f",
+            "7468b6e1d8566448bd1cbe906ae132e699dee775dd798b8961f92a6d7af65918",
+            "be8fa409677bc373dd229449f9da36f91d3d58d312f0ab1f9295ae4d2f7dc065",
+            "d962e71015fb741a41022344e8ac9b2148e2d72655805806dd7543e7bdbc7edf"
+          ],
+          "train_rows": 321,
+          "val_rows": 142,
+          "test_rows": 117,
+          "train_labels": {
+            "adversary": 11,
+            "agent": 93,
+            "none": 217
+          },
+          "val_labels": {
+            "adversary": 15,
+            "agent": 31,
+            "none": 96
+          },
+          "test_labels": {
+            "adversary": 7,
+            "agent": 36,
+            "none": 74
+          }
+        },
+        {
+          "fold": 4,
+          "test_groups": [
+            "0853e4f5a4c054b78f05a7892033fe99397bbe54523e23ef1f72383fad153a43",
+            "5973882c13dfb79de6094303fa4ad613dd4705b2d255ca6d576a6044cb301252",
+            "7468b6e1d8566448bd1cbe906ae132e699dee775dd798b8961f92a6d7af65918",
+            "8dbb55ea5430cf894100c69c380ec0e6b9f1fe551822cb3cd6e2179c605b8510",
+            "ba7191436c2249fed64ec8435edd2bccee6031a23f8a01acfa244fee06509d38",
+            "d962e71015fb741a41022344e8ac9b2148e2d72655805806dd7543e7bdbc7edf",
+            "dc65e11fd1a1b9488b2ba1b44b60e38e1fb12675e5150e47661d6636277988cf"
+          ],
+          "laya_val_groups": [
+            "03c4abf619084ae21105b002a62f57529a6a3f982591983a3567ce5ab8e671f0",
+            "0e29115ce0c6e7bf9d6747dacd90d48119b8334050cfdf182e25051025eb472f",
+            "30ac074d6c7488c512b2ebe254565527d4fe8d08e85aa993203558c0ccd9c22a",
+            "5eba240b3ae1b1f6d29f4757ea49cafb773d98a038e4b3748abba388689484c5",
+            "c46274ceda46aaca3996e41139c5f8da4839fb29d6f26e6adb825d526c9c190c",
+            "e00ac07ed3080d6be322471770df322b303f9452320758f94ae5d90d5be5fb7f"
+          ],
+          "train_rows": 356,
+          "val_rows": 119,
+          "test_rows": 105,
+          "train_labels": {
+            "adversary": 12,
+            "agent": 109,
+            "none": 235
+          },
+          "val_labels": {
+            "adversary": 18,
+            "agent": 20,
+            "none": 81
+          },
+          "test_labels": {
+            "adversary": 3,
+            "agent": 31,
+            "none": 71
+          }
+        }
+      ]
+    },
+    {
+      "split_seed": 44,
+      "folds": [
+        {
+          "fold": 0,
+          "test_groups": [
+            "0c53b3daa64b956678a94082e4ea74cd945b7443cea3441d1d65245fd12ee286",
+            "0e29115ce0c6e7bf9d6747dacd90d48119b8334050cfdf182e25051025eb472f",
+            "6386f8f2da4581976119620de9ea91f3aa98b2da82a5f1351a892c1e9023ab8e",
+            "76e6a62234f66cb18e12bde91f251c54bf1ffa1dc663f267d49b072d0b729e57",
+            "b82932149506f5f5a9b61370a6f1c8f95ddb663aa0e87f34edfc0bbc48006de7",
+            "ba7191436c2249fed64ec8435edd2bccee6031a23f8a01acfa244fee06509d38",
+            "ec56b80ffa0b0d621cb2f4adf76890c9b3c692d58d9fbe5fbef86ecb33d9b723"
+          ],
+          "laya_val_groups": [
+            "2841829525d086e9f296cfd02a5eca7cf4f80c2af6f52b4757d60d0aa516a56a",
+            "30ac074d6c7488c512b2ebe254565527d4fe8d08e85aa993203558c0ccd9c22a",
+            "8dbb55ea5430cf894100c69c380ec0e6b9f1fe551822cb3cd6e2179c605b8510",
+            "9e537b0828f89fae54f64248c67de3cf3c1d99d8b7e1ee9678710289c2e58d42",
+            "ae250d75b22327ee61587f19a5992777d57857e1efca680c675301101137a971",
+            "fa1e98047b48af5621f4229d2305a17ac1d5e0c28e4aeb69c012c9474de79f2e"
+          ],
+          "train_rows": 290,
+          "val_rows": 162,
+          "test_rows": 128,
+          "train_labels": {
+            "adversary": 21,
+            "agent": 90,
+            "none": 179
+          },
+          "val_labels": {
+            "adversary": 7,
+            "agent": 38,
+            "none": 117
+          },
+          "test_labels": {
+            "adversary": 5,
+            "agent": 32,
+            "none": 91
+          }
+        },
+        {
+          "fold": 1,
+          "test_groups": [
+            "2841829525d086e9f296cfd02a5eca7cf4f80c2af6f52b4757d60d0aa516a56a",
+            "5973882c13dfb79de6094303fa4ad613dd4705b2d255ca6d576a6044cb301252",
+            "5eba240b3ae1b1f6d29f4757ea49cafb773d98a038e4b3748abba388689484c5",
+            "7dbf6f366468bab0a62c38f05c1653146e583b79546f3deeea487c6aa7ec1741",
+            "9266b2ae9403db00be5b7737816237b31e2ea65f94136d26db2651917d5ebd24",
+            "dc65e11fd1a1b9488b2ba1b44b60e38e1fb12675e5150e47661d6636277988cf",
+            "fb06d20080fa6f1a1201e8b93dcaf0848e787b5055712a11eaa65bc1b02beff6"
+          ],
+          "laya_val_groups": [
+            "03c4abf619084ae21105b002a62f57529a6a3f982591983a3567ce5ab8e671f0",
+            "0c53b3daa64b956678a94082e4ea74cd945b7443cea3441d1d65245fd12ee286",
+            "6386f8f2da4581976119620de9ea91f3aa98b2da82a5f1351a892c1e9023ab8e",
+            "8dbb55ea5430cf894100c69c380ec0e6b9f1fe551822cb3cd6e2179c605b8510",
+            "ef3672900472200a3a60f45b9f7a7eda5f41409ed8efd2a33b9235644cd42c29",
+            "fa1e98047b48af5621f4229d2305a17ac1d5e0c28e4aeb69c012c9474de79f2e"
+          ],
+          "train_rows": 293,
+          "val_rows": 213,
+          "test_rows": 74,
+          "train_labels": {
+            "adversary": 22,
+            "agent": 89,
+            "none": 182
+          },
+          "val_labels": {
+            "adversary": 10,
+            "agent": 47,
+            "none": 156
+          },
+          "test_labels": {
+            "adversary": 1,
+            "agent": 24,
+            "none": 49
+          }
+        },
+        {
+          "fold": 2,
+          "test_groups": [
+            "03c4abf619084ae21105b002a62f57529a6a3f982591983a3567ce5ab8e671f0",
+            "1e5130f80fb0a599abdb64e20e8d383a69c55dbb9412e3112219eb754e5cfeb7",
+            "315173d1bd42572eea71f984841df9e70b416b4b66b9180a6669f5678f7091e0",
+            "6b97e14ec82e260725564fd1f0ebd6e0497f073f50a8473594890d1b4b4adc54",
+            "7468b6e1d8566448bd1cbe906ae132e699dee775dd798b8961f92a6d7af65918",
+            "be8fa409677bc373dd229449f9da36f91d3d58d312f0ab1f9295ae4d2f7dc065",
+            "c46274ceda46aaca3996e41139c5f8da4839fb29d6f26e6adb825d526c9c190c"
+          ],
+          "laya_val_groups": [
+            "9266b2ae9403db00be5b7737816237b31e2ea65f94136d26db2651917d5ebd24",
+            "9e537b0828f89fae54f64248c67de3cf3c1d99d8b7e1ee9678710289c2e58d42",
+            "ba7191436c2249fed64ec8435edd2bccee6031a23f8a01acfa244fee06509d38",
+            "d32176feeb5fb814e9f416e1dc4ae9e6b77242498a95a35a24b228d05100fed3",
+            "dc65e11fd1a1b9488b2ba1b44b60e38e1fb12675e5150e47661d6636277988cf",
+            "fb06d20080fa6f1a1201e8b93dcaf0848e787b5055712a11eaa65bc1b02beff6"
+          ],
+          "train_rows": 383,
+          "val_rows": 66,
+          "test_rows": 131,
+          "train_labels": {
+            "adversary": 22,
+            "agent": 95,
+            "none": 266
+          },
+          "val_labels": {
+            "agent": 23,
+            "none": 43
+          },
+          "test_labels": {
+            "adversary": 11,
+            "agent": 42,
+            "none": 78
+          }
+        },
+        {
+          "fold": 3,
+          "test_groups": [
+            "30ac074d6c7488c512b2ebe254565527d4fe8d08e85aa993203558c0ccd9c22a",
+            "4f93572881951512900467e47f4a363531fd4aef3f4ea36d88d9e118b9ddeb7a",
+            "53640ddaa14c3673cb396384a8db0417017f95c2c76b850dfe803b24ad307b91",
+            "ae250d75b22327ee61587f19a5992777d57857e1efca680c675301101137a971",
+            "d962e71015fb741a41022344e8ac9b2148e2d72655805806dd7543e7bdbc7edf",
+            "e00ac07ed3080d6be322471770df322b303f9452320758f94ae5d90d5be5fb7f",
+            "fa1e98047b48af5621f4229d2305a17ac1d5e0c28e4aeb69c012c9474de79f2e"
+          ],
+          "laya_val_groups": [
+            "0853e4f5a4c054b78f05a7892033fe99397bbe54523e23ef1f72383fad153a43",
+            "76e6a62234f66cb18e12bde91f251c54bf1ffa1dc663f267d49b072d0b729e57",
+            "7dbf6f366468bab0a62c38f05c1653146e583b79546f3deeea487c6aa7ec1741",
+            "9266b2ae9403db00be5b7737816237b31e2ea65f94136d26db2651917d5ebd24",
+            "b82932149506f5f5a9b61370a6f1c8f95ddb663aa0e87f34edfc0bbc48006de7",
+            "ef3672900472200a3a60f45b9f7a7eda5f41409ed8efd2a33b9235644cd42c29"
+          ],
+          "train_rows": 386,
+          "val_rows": 64,
+          "test_rows": 130,
+          "train_labels": {
+            "adversary": 18,
+            "agent": 111,
+            "none": 257
+          },
+          "val_labels": {
+            "adversary": 2,
+            "agent": 25,
+            "none": 37
+          },
+          "test_labels": {
+            "adversary": 13,
+            "agent": 24,
+            "none": 93
+          }
+        },
+        {
+          "fold": 4,
+          "test_groups": [
+            "0853e4f5a4c054b78f05a7892033fe99397bbe54523e23ef1f72383fad153a43",
+            "700a03180f65bd81fa35bbabb7e2786eb63edf5c00556ab44b3dcc81fe5f961f",
+            "8dbb55ea5430cf894100c69c380ec0e6b9f1fe551822cb3cd6e2179c605b8510",
+            "9e537b0828f89fae54f64248c67de3cf3c1d99d8b7e1ee9678710289c2e58d42",
+            "d32176feeb5fb814e9f416e1dc4ae9e6b77242498a95a35a24b228d05100fed3",
+            "dbf6ca6b1a861f5fe589d3ce8a516c34f044fb2e9b536c7f0c77c9cffd88b357",
+            "ef3672900472200a3a60f45b9f7a7eda5f41409ed8efd2a33b9235644cd42c29"
+          ],
+          "laya_val_groups": [
+            "1e5130f80fb0a599abdb64e20e8d383a69c55dbb9412e3112219eb754e5cfeb7",
+            "2841829525d086e9f296cfd02a5eca7cf4f80c2af6f52b4757d60d0aa516a56a",
+            "315173d1bd42572eea71f984841df9e70b416b4b66b9180a6669f5678f7091e0",
+            "53640ddaa14c3673cb396384a8db0417017f95c2c76b850dfe803b24ad307b91",
+            "b82932149506f5f5a9b61370a6f1c8f95ddb663aa0e87f34edfc0bbc48006de7",
+            "be8fa409677bc373dd229449f9da36f91d3d58d312f0ab1f9295ae4d2f7dc065"
+          ],
+          "train_rows": 328,
+          "val_rows": 135,
+          "test_rows": 117,
+          "train_labels": {
+            "adversary": 24,
+            "agent": 81,
+            "none": 223
+          },
+          "val_labels": {
+            "adversary": 6,
+            "agent": 41,
+            "none": 88
+          },
+          "test_labels": {
+            "adversary": 3,
+            "agent": 38,
+            "none": 76
+          }
+        }
+      ]
+    },
+    {
+      "split_seed": 45,
+      "folds": [
+        {
+          "fold": 0,
+          "test_groups": [
+            "1e5130f80fb0a599abdb64e20e8d383a69c55dbb9412e3112219eb754e5cfeb7",
+            "30ac074d6c7488c512b2ebe254565527d4fe8d08e85aa993203558c0ccd9c22a",
+            "315173d1bd42572eea71f984841df9e70b416b4b66b9180a6669f5678f7091e0",
+            "8dbb55ea5430cf894100c69c380ec0e6b9f1fe551822cb3cd6e2179c605b8510",
+            "9e537b0828f89fae54f64248c67de3cf3c1d99d8b7e1ee9678710289c2e58d42",
+            "ef3672900472200a3a60f45b9f7a7eda5f41409ed8efd2a33b9235644cd42c29",
+            "fb06d20080fa6f1a1201e8b93dcaf0848e787b5055712a11eaa65bc1b02beff6"
+          ],
+          "laya_val_groups": [
+            "0853e4f5a4c054b78f05a7892033fe99397bbe54523e23ef1f72383fad153a43",
+            "0c53b3daa64b956678a94082e4ea74cd945b7443cea3441d1d65245fd12ee286",
+            "7468b6e1d8566448bd1cbe906ae132e699dee775dd798b8961f92a6d7af65918",
+            "9266b2ae9403db00be5b7737816237b31e2ea65f94136d26db2651917d5ebd24",
+            "d962e71015fb741a41022344e8ac9b2148e2d72655805806dd7543e7bdbc7edf",
+            "fa1e98047b48af5621f4229d2305a17ac1d5e0c28e4aeb69c012c9474de79f2e"
+          ],
+          "train_rows": 321,
+          "val_rows": 110,
+          "test_rows": 149,
+          "train_labels": {
+            "adversary": 22,
+            "agent": 96,
+            "none": 203
+          },
+          "val_labels": {
+            "adversary": 5,
+            "agent": 29,
+            "none": 76
+          },
+          "test_labels": {
+            "adversary": 6,
+            "agent": 35,
+            "none": 108
+          }
+        },
+        {
+          "fold": 1,
+          "test_groups": [
+            "0c53b3daa64b956678a94082e4ea74cd945b7443cea3441d1d65245fd12ee286",
+            "0e29115ce0c6e7bf9d6747dacd90d48119b8334050cfdf182e25051025eb472f",
+            "c46274ceda46aaca3996e41139c5f8da4839fb29d6f26e6adb825d526c9c190c",
+            "d32176feeb5fb814e9f416e1dc4ae9e6b77242498a95a35a24b228d05100fed3",
+            "d962e71015fb741a41022344e8ac9b2148e2d72655805806dd7543e7bdbc7edf",
+            "dbf6ca6b1a861f5fe589d3ce8a516c34f044fb2e9b536c7f0c77c9cffd88b357",
+            "fa1e98047b48af5621f4229d2305a17ac1d5e0c28e4aeb69c012c9474de79f2e"
+          ],
+          "laya_val_groups": [
+            "5973882c13dfb79de6094303fa4ad613dd4705b2d255ca6d576a6044cb301252",
+            "5eba240b3ae1b1f6d29f4757ea49cafb773d98a038e4b3748abba388689484c5",
+            "6b97e14ec82e260725564fd1f0ebd6e0497f073f50a8473594890d1b4b4adc54",
+            "700a03180f65bd81fa35bbabb7e2786eb63edf5c00556ab44b3dcc81fe5f961f",
+            "7dbf6f366468bab0a62c38f05c1653146e583b79546f3deeea487c6aa7ec1741",
+            "fb06d20080fa6f1a1201e8b93dcaf0848e787b5055712a11eaa65bc1b02beff6"
+          ],
+          "train_rows": 437,
+          "val_rows": 27,
+          "test_rows": 116,
+          "train_labels": {
+            "adversary": 22,
+            "agent": 127,
+            "none": 288
+          },
+          "val_labels": {
+            "adversary": 1,
+            "agent": 11,
+            "none": 15
+          },
+          "test_labels": {
+            "adversary": 10,
+            "agent": 22,
+            "none": 84
+          }
+        },
+        {
+          "fold": 2,
+          "test_groups": [
+            "4f93572881951512900467e47f4a363531fd4aef3f4ea36d88d9e118b9ddeb7a",
+            "53640ddaa14c3673cb396384a8db0417017f95c2c76b850dfe803b24ad307b91",
+            "6b97e14ec82e260725564fd1f0ebd6e0497f073f50a8473594890d1b4b4adc54",
+            "76e6a62234f66cb18e12bde91f251c54bf1ffa1dc663f267d49b072d0b729e57",
+            "b82932149506f5f5a9b61370a6f1c8f95ddb663aa0e87f34edfc0bbc48006de7",
+            "ba7191436c2249fed64ec8435edd2bccee6031a23f8a01acfa244fee06509d38",
+            "be8fa409677bc373dd229449f9da36f91d3d58d312f0ab1f9295ae4d2f7dc065"
+          ],
+          "laya_val_groups": [
+            "03c4abf619084ae21105b002a62f57529a6a3f982591983a3567ce5ab8e671f0",
+            "0853e4f5a4c054b78f05a7892033fe99397bbe54523e23ef1f72383fad153a43",
+            "315173d1bd42572eea71f984841df9e70b416b4b66b9180a6669f5678f7091e0",
+            "7468b6e1d8566448bd1cbe906ae132e699dee775dd798b8961f92a6d7af65918",
+            "ae250d75b22327ee61587f19a5992777d57857e1efca680c675301101137a971",
+            "ef3672900472200a3a60f45b9f7a7eda5f41409ed8efd2a33b9235644cd42c29"
+          ],
+          "train_rows": 384,
+          "val_rows": 71,
+          "test_rows": 125,
+          "train_labels": {
+            "adversary": 16,
+            "agent": 96,
+            "none": 272
+          },
+          "val_labels": {
+            "adversary": 11,
+            "agent": 25,
+            "none": 35
+          },
+          "test_labels": {
+            "adversary": 6,
+            "agent": 39,
+            "none": 80
+          }
+        },
+        {
+          "fold": 3,
+          "test_groups": [
+            "03c4abf619084ae21105b002a62f57529a6a3f982591983a3567ce5ab8e671f0",
+            "2841829525d086e9f296cfd02a5eca7cf4f80c2af6f52b4757d60d0aa516a56a",
+            "5eba240b3ae1b1f6d29f4757ea49cafb773d98a038e4b3748abba388689484c5",
+            "700a03180f65bd81fa35bbabb7e2786eb63edf5c00556ab44b3dcc81fe5f961f",
+            "7dbf6f366468bab0a62c38f05c1653146e583b79546f3deeea487c6aa7ec1741",
+            "dc65e11fd1a1b9488b2ba1b44b60e38e1fb12675e5150e47661d6636277988cf",
+            "ec56b80ffa0b0d621cb2f4adf76890c9b3c692d58d9fbe5fbef86ecb33d9b723"
+          ],
+          "laya_val_groups": [
+            "1e5130f80fb0a599abdb64e20e8d383a69c55dbb9412e3112219eb754e5cfeb7",
+            "315173d1bd42572eea71f984841df9e70b416b4b66b9180a6669f5678f7091e0",
+            "5973882c13dfb79de6094303fa4ad613dd4705b2d255ca6d576a6044cb301252",
+            "7468b6e1d8566448bd1cbe906ae132e699dee775dd798b8961f92a6d7af65918",
+            "76e6a62234f66cb18e12bde91f251c54bf1ffa1dc663f267d49b072d0b729e57",
+            "9e537b0828f89fae54f64248c67de3cf3c1d99d8b7e1ee9678710289c2e58d42"
+          ],
+          "train_rows": 450,
+          "val_rows": 46,
+          "test_rows": 84,
+          "train_labels": {
+            "adversary": 22,
+            "agent": 116,
+            "none": 312
+          },
+          "val_labels": {
+            "adversary": 3,
+            "agent": 16,
+            "none": 27
+          },
+          "test_labels": {
+            "adversary": 8,
+            "agent": 28,
+            "none": 48
+          }
+        },
+        {
+          "fold": 4,
+          "test_groups": [
+            "0853e4f5a4c054b78f05a7892033fe99397bbe54523e23ef1f72383fad153a43",
+            "5973882c13dfb79de6094303fa4ad613dd4705b2d255ca6d576a6044cb301252",
+            "6386f8f2da4581976119620de9ea91f3aa98b2da82a5f1351a892c1e9023ab8e",
+            "7468b6e1d8566448bd1cbe906ae132e699dee775dd798b8961f92a6d7af65918",
+            "9266b2ae9403db00be5b7737816237b31e2ea65f94136d26db2651917d5ebd24",
+            "ae250d75b22327ee61587f19a5992777d57857e1efca680c675301101137a971",
+            "e00ac07ed3080d6be322471770df322b303f9452320758f94ae5d90d5be5fb7f"
+          ],
+          "laya_val_groups": [
+            "2841829525d086e9f296cfd02a5eca7cf4f80c2af6f52b4757d60d0aa516a56a",
+            "53640ddaa14c3673cb396384a8db0417017f95c2c76b850dfe803b24ad307b91",
+            "700a03180f65bd81fa35bbabb7e2786eb63edf5c00556ab44b3dcc81fe5f961f",
+            "8dbb55ea5430cf894100c69c380ec0e6b9f1fe551822cb3cd6e2179c605b8510",
+            "be8fa409677bc373dd229449f9da36f91d3d58d312f0ab1f9295ae4d2f7dc065",
+            "c46274ceda46aaca3996e41139c5f8da4839fb29d6f26e6adb825d526c9c190c"
+          ],
+          "train_rows": 284,
+          "val_rows": 190,
+          "test_rows": 106,
+          "train_labels": {
+            "adversary": 23,
+            "agent": 78,
+            "none": 183
+          },
+          "val_labels": {
+            "adversary": 7,
+            "agent": 46,
+            "none": 137
+          },
+          "test_labels": {
+            "adversary": 3,
+            "agent": 36,
+            "none": 67
+          }
+        }
+      ]
+    },
+    {
+      "split_seed": 46,
+      "folds": [
+        {
+          "fold": 0,
+          "test_groups": [
+            "315173d1bd42572eea71f984841df9e70b416b4b66b9180a6669f5678f7091e0",
+            "4f93572881951512900467e47f4a363531fd4aef3f4ea36d88d9e118b9ddeb7a",
+            "6b97e14ec82e260725564fd1f0ebd6e0497f073f50a8473594890d1b4b4adc54",
+            "9e537b0828f89fae54f64248c67de3cf3c1d99d8b7e1ee9678710289c2e58d42",
+            "d962e71015fb741a41022344e8ac9b2148e2d72655805806dd7543e7bdbc7edf",
+            "ef3672900472200a3a60f45b9f7a7eda5f41409ed8efd2a33b9235644cd42c29",
+            "fb06d20080fa6f1a1201e8b93dcaf0848e787b5055712a11eaa65bc1b02beff6"
+          ],
+          "laya_val_groups": [
+            "03c4abf619084ae21105b002a62f57529a6a3f982591983a3567ce5ab8e671f0",
+            "5eba240b3ae1b1f6d29f4757ea49cafb773d98a038e4b3748abba388689484c5",
+            "9266b2ae9403db00be5b7737816237b31e2ea65f94136d26db2651917d5ebd24",
+            "ae250d75b22327ee61587f19a5992777d57857e1efca680c675301101137a971",
+            "be8fa409677bc373dd229449f9da36f91d3d58d312f0ab1f9295ae4d2f7dc065",
+            "dc65e11fd1a1b9488b2ba1b44b60e38e1fb12675e5150e47661d6636277988cf"
+          ],
+          "train_rows": 419,
+          "val_rows": 116,
+          "test_rows": 45,
+          "train_labels": {
+            "adversary": 25,
+            "agent": 105,
+            "none": 289
+          },
+          "val_labels": {
+            "adversary": 7,
+            "agent": 36,
+            "none": 73
+          },
+          "test_labels": {
+            "adversary": 1,
+            "agent": 19,
+            "none": 25
+          }
+        },
+        {
+          "fold": 1,
+          "test_groups": [
+            "03c4abf619084ae21105b002a62f57529a6a3f982591983a3567ce5ab8e671f0",
+            "0c53b3daa64b956678a94082e4ea74cd945b7443cea3441d1d65245fd12ee286",
+            "30ac074d6c7488c512b2ebe254565527d4fe8d08e85aa993203558c0ccd9c22a",
+            "6386f8f2da4581976119620de9ea91f3aa98b2da82a5f1351a892c1e9023ab8e",
+            "c46274ceda46aaca3996e41139c5f8da4839fb29d6f26e6adb825d526c9c190c",
+            "dc65e11fd1a1b9488b2ba1b44b60e38e1fb12675e5150e47661d6636277988cf",
+            "ec56b80ffa0b0d621cb2f4adf76890c9b3c692d58d9fbe5fbef86ecb33d9b723"
+          ],
+          "laya_val_groups": [
+            "4f93572881951512900467e47f4a363531fd4aef3f4ea36d88d9e118b9ddeb7a",
+            "7468b6e1d8566448bd1cbe906ae132e699dee775dd798b8961f92a6d7af65918",
+            "8dbb55ea5430cf894100c69c380ec0e6b9f1fe551822cb3cd6e2179c605b8510",
+            "9266b2ae9403db00be5b7737816237b31e2ea65f94136d26db2651917d5ebd24",
+            "ae250d75b22327ee61587f19a5992777d57857e1efca680c675301101137a971",
+            "e00ac07ed3080d6be322471770df322b303f9452320758f94ae5d90d5be5fb7f"
+          ],
+          "train_rows": 259,
+          "val_rows": 149,
+          "test_rows": 172,
+          "train_labels": {
+            "adversary": 17,
+            "agent": 79,
+            "none": 163
+          },
+          "val_labels": {
+            "adversary": 3,
+            "agent": 41,
+            "none": 105
+          },
+          "test_labels": {
+            "adversary": 13,
+            "agent": 40,
+            "none": 119
+          }
+        },
+        {
+          "fold": 2,
+          "test_groups": [
+            "0853e4f5a4c054b78f05a7892033fe99397bbe54523e23ef1f72383fad153a43",
+            "0e29115ce0c6e7bf9d6747dacd90d48119b8334050cfdf182e25051025eb472f",
+            "2841829525d086e9f296cfd02a5eca7cf4f80c2af6f52b4757d60d0aa516a56a",
+            "76e6a62234f66cb18e12bde91f251c54bf1ffa1dc663f267d49b072d0b729e57",
+            "be8fa409677bc373dd229449f9da36f91d3d58d312f0ab1f9295ae4d2f7dc065",
+            "d32176feeb5fb814e9f416e1dc4ae9e6b77242498a95a35a24b228d05100fed3",
+            "e00ac07ed3080d6be322471770df322b303f9452320758f94ae5d90d5be5fb7f"
+          ],
+          "laya_val_groups": [
+            "315173d1bd42572eea71f984841df9e70b416b4b66b9180a6669f5678f7091e0",
+            "5973882c13dfb79de6094303fa4ad613dd4705b2d255ca6d576a6044cb301252",
+            "8dbb55ea5430cf894100c69c380ec0e6b9f1fe551822cb3cd6e2179c605b8510",
+            "c46274ceda46aaca3996e41139c5f8da4839fb29d6f26e6adb825d526c9c190c",
+            "d962e71015fb741a41022344e8ac9b2148e2d72655805806dd7543e7bdbc7edf",
+            "fb06d20080fa6f1a1201e8b93dcaf0848e787b5055712a11eaa65bc1b02beff6"
+          ],
+          "train_rows": 363,
+          "val_rows": 96,
+          "test_rows": 121,
+          "train_labels": {
+            "adversary": 27,
+            "agent": 95,
+            "none": 241
+          },
+          "val_labels": {
+            "adversary": 1,
+            "agent": 22,
+            "none": 73
+          },
+          "test_labels": {
+            "adversary": 5,
+            "agent": 43,
+            "none": 73
+          }
+        },
+        {
+          "fold": 3,
+          "test_groups": [
+            "53640ddaa14c3673cb396384a8db0417017f95c2c76b850dfe803b24ad307b91",
+            "5973882c13dfb79de6094303fa4ad613dd4705b2d255ca6d576a6044cb301252",
+            "5eba240b3ae1b1f6d29f4757ea49cafb773d98a038e4b3748abba388689484c5",
+            "700a03180f65bd81fa35bbabb7e2786eb63edf5c00556ab44b3dcc81fe5f961f",
+            "8dbb55ea5430cf894100c69c380ec0e6b9f1fe551822cb3cd6e2179c605b8510",
+            "ae250d75b22327ee61587f19a5992777d57857e1efca680c675301101137a971",
+            "fa1e98047b48af5621f4229d2305a17ac1d5e0c28e4aeb69c012c9474de79f2e"
+          ],
+          "laya_val_groups": [
+            "0853e4f5a4c054b78f05a7892033fe99397bbe54523e23ef1f72383fad153a43",
+            "30ac074d6c7488c512b2ebe254565527d4fe8d08e85aa993203558c0ccd9c22a",
+            "6386f8f2da4581976119620de9ea91f3aa98b2da82a5f1351a892c1e9023ab8e",
+            "76e6a62234f66cb18e12bde91f251c54bf1ffa1dc663f267d49b072d0b729e57",
+            "d962e71015fb741a41022344e8ac9b2148e2d72655805806dd7543e7bdbc7edf",
+            "fb06d20080fa6f1a1201e8b93dcaf0848e787b5055712a11eaa65bc1b02beff6"
+          ],
+          "train_rows": 328,
+          "val_rows": 97,
+          "test_rows": 155,
+          "train_labels": {
+            "adversary": 20,
+            "agent": 105,
+            "none": 203
+          },
+          "val_labels": {
+            "adversary": 5,
+            "agent": 24,
+            "none": 68
+          },
+          "test_labels": {
+            "adversary": 8,
+            "agent": 31,
+            "none": 116
+          }
+        },
+        {
+          "fold": 4,
+          "test_groups": [
+            "1e5130f80fb0a599abdb64e20e8d383a69c55dbb9412e3112219eb754e5cfeb7",
+            "7468b6e1d8566448bd1cbe906ae132e699dee775dd798b8961f92a6d7af65918",
+            "7dbf6f366468bab0a62c38f05c1653146e583b79546f3deeea487c6aa7ec1741",
+            "9266b2ae9403db00be5b7737816237b31e2ea65f94136d26db2651917d5ebd24",
+            "b82932149506f5f5a9b61370a6f1c8f95ddb663aa0e87f34edfc0bbc48006de7",
+            "ba7191436c2249fed64ec8435edd2bccee6031a23f8a01acfa244fee06509d38",
+            "dbf6ca6b1a861f5fe589d3ce8a516c34f044fb2e9b536c7f0c77c9cffd88b357"
+          ],
+          "laya_val_groups": [
+            "03c4abf619084ae21105b002a62f57529a6a3f982591983a3567ce5ab8e671f0",
+            "0c53b3daa64b956678a94082e4ea74cd945b7443cea3441d1d65245fd12ee286",
+            "6386f8f2da4581976119620de9ea91f3aa98b2da82a5f1351a892c1e9023ab8e",
+            "9e537b0828f89fae54f64248c67de3cf3c1d99d8b7e1ee9678710289c2e58d42",
+            "c46274ceda46aaca3996e41139c5f8da4839fb29d6f26e6adb825d526c9c190c",
+            "fb06d20080fa6f1a1201e8b93dcaf0848e787b5055712a11eaa65bc1b02beff6"
+          ],
+          "train_rows": 365,
+          "val_rows": 128,
+          "test_rows": 87,
+          "train_labels": {
+            "adversary": 19,
+            "agent": 104,
+            "none": 242
+          },
+          "val_labels": {
+            "adversary": 8,
+            "agent": 29,
+            "none": 91
+          },
+          "test_labels": {
+            "adversary": 6,
+            "agent": 27,
+            "none": 54
+          }
+        }
+      ]
+    }
+  ]
+}

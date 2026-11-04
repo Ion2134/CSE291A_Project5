@@ -1,0 +1,55 @@
+{
+  "unit": "laya p42 f4 t42",
+  "command": [
+    "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/testing/../agent_env/.venv/bin/python",
+    "laya_finetuning/train_laya.py",
+    "--task",
+    "banking",
+    "--train",
+    "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/testing/results/agent-v5/data/p42/f4/train.jsonl",
+    "--validation",
+    "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/testing/results/agent-v5/data/p42/f4/val.jsonl",
+    "--test",
+    "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/testing/results/agent-v5/data/p42/f4/test.jsonl",
+    "--seed",
+    "42",
+    "--device",
+    "mps",
+    "--output",
+    "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/testing/results/agent-v5/runs/laya/p42_f4_t42/native",
+    "--max-len",
+    "1024",
+    "--batch-size",
+    "1",
+    "--grad-accum",
+    "16",
+    "--eval-batch-size",
+    "1",
+    "--low-precision",
+    "bf16",
+    "--epochs",
+    "2"
+  ],
+  "settings": {
+    "device": "mps",
+    "training_seeds": [
+      42
+    ],
+    "args": [
+      "--max-len",
+      "1024",
+      "--batch-size",
+      "1",
+      "--grad-accum",
+      "16",
+      "--eval-batch-size",
+      "1",
+      "--low-precision",
+      "bf16",
+      "--epochs",
+      "2"
+    ],
+    "keep_checkpoints": false
+  },
+  "elapsed_seconds": 911.8953748340136
+}

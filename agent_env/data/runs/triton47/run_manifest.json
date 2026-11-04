@@ -1,0 +1,15 @@
+{
+  "seed": 47,
+  "episodes": 50,
+  "mode": "agent",
+  "model": "api-muse-glimmer-30b",
+  "models": [
+    "api-muse-glimmer-30b"
+  ],
+  "max_agent_steps": 8,
+  "multi_step": true,
+  "llm_samples": 0,
+  "concurrency": 2,
+  "task_count": 10,
+  "out_dir": "agent_env/data/runs/triton47"
+}

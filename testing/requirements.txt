@@ -1,0 +1,2 @@
+# The tester runs in the mlp_baseline environment; install these on top of mlp_baseline/requirements.txt.
+tqdm==4.70.1

@@ -1,0 +1,76 @@
+{
+  "name": "agent-v5",
+  "runs_dir": "agent_env/data/runs",
+  "runs": [
+    "agent-qwen36a3b",
+    "agent42",
+    "agent42-v2",
+    "triton42",
+    "triton42-v2",
+    "triton44",
+    "triton45",
+    "triton46",
+    "triton47",
+    "triton48",
+    "oracle49-agentheavy",
+    "triton49-agentheavy"
+  ],
+  "split": {
+    "seeds": [
+      42,
+      43,
+      44,
+      45,
+      46
+    ],
+    "k": 5,
+    "max_test_fraction": 0.35,
+    "laya_val_fraction": 0.2
+  },
+  "training_seeds": [
+    42,
+    43,
+    44
+  ],
+  "models": {
+    "mlp": {
+      "args": [
+        "--epochs",
+        "40",
+        "--batch-size",
+        "16",
+        "--max-features",
+        "4096",
+        "--k",
+        "5"
+      ]
+    },
+    "stacking": {
+      "args": [
+        "--max-features",
+        "4096",
+        "--k",
+        "5",
+        "--injection-checkpoint",
+        "mlp_baseline/experiments/injection/seed42/model"
+      ]
+    },
+    "laya": {
+      "device": "mps",
+      "training_seeds": [
+        42
+      ],
+      "args": [
+        "--max-len",
+        "1024",
+        "--batch-size",
+        "1",
+        "--grad-accum",
+        "16",
+        "--eval-batch-size",
+        "1"
+      ],
+      "keep_checkpoints": false
+    }
+  }
+}

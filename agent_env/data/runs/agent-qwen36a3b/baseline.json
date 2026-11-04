@@ -69,5 +69,9 @@
   "episode_errors": 0,
   "llm_samples_requested": 0,
   "max_agent_steps": 8,
-  "concurrency": 4
+  "concurrency": 4,
+  "models": [
+    "qwen/qwen3.6-35b-a3b"
+  ],
+  "model": "qwen/qwen3.6-35b-a3b"
 }

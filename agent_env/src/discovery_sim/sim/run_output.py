@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -18,6 +19,4 @@ def resolve_run_dir(requested: Path, seed: int, *, overwrite: bool, marker: str 
 
 
 def write_run_manifest(out_dir: Path, payload: dict[str, Any]) -> None:
-    import json
-
     (out_dir / "run_manifest.json").write_text(json.dumps(payload, indent=2))

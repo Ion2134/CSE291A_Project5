@@ -1,0 +1,13 @@
+{
+  "python": "mlp_baseline/.venv/bin/python",
+  "args": [
+    "--epochs",
+    "40",
+    "--batch-size",
+    "16",
+    "--max-features",
+    "4096",
+    "--k",
+    "5"
+  ]
+}

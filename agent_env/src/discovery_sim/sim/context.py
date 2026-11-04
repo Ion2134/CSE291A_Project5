@@ -42,8 +42,9 @@ class AgentContext:
         )
 
     def ledger_snapshot(self, ledger: SyntheticLedger) -> dict[str, Any]:
+        # Keep this small: full account dicts blow Laya sequence length on MPS.
         return {
-            "accounts": ledger.list_accounts(),
+            "balances": {account_id: account.balance_cents for account_id, account in ledger.accounts.items()},
             "payee_count": len(ledger.payees),
             "payment_count": len(ledger.payments),
         }
