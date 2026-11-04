@@ -45,6 +45,9 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--loss", choices=["soft-ce", "rlcd"], default="soft-ce")
     result.add_argument("--freeze-encoder", action="store_true",
                         help="Train only the decision head; full fine-tuning is the default")
+    result.add_argument("--low-precision", choices=["fp16", "bf16"], default=None,
+                        help="Cast weights to a lower precision before training (MPS memory experiment; "
+                             "optimizer stays fp32). fp16 is unstable; bf16 is the safe choice on Apple silicon.")
     result.add_argument("--log-every", type=int, default=100)
     return result
 

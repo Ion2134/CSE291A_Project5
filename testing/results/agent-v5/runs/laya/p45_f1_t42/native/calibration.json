@@ -1,0 +1,17 @@
+{
+  "temperature": [
+    1.0990740060806274,
+    1.0,
+    1.0021871328353882
+  ],
+  "temperature_by_options": {},
+  "n_by_bucket": {
+    "noul:2": 27,
+    "choice:3-5": 27
+  },
+  "temperature_clamped": {},
+  "skipped_types": {},
+  "source": "validation only",
+  "minimum_items": 20,
+  "validation_sha256": "e98183efa8365410a7cb414f760f5bb13b415b311a0fbd15f0d298b3f3e40217"
+}

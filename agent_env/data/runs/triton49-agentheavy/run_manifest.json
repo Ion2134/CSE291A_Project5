@@ -1,0 +1,28 @@
+{
+  "seed": 49,
+  "episodes": 80,
+  "mode": "agent",
+  "model": "api-glm-5.3-flash",
+  "models": [
+    "api-glm-5.3-flash"
+  ],
+  "max_agent_steps": 8,
+  "multi_step": true,
+  "llm_samples": 0,
+  "concurrency": 1,
+  "temperature": 0.2,
+  "task_set": "core",
+  "task_sample": "parameterized",
+  "task_count": 10,
+  "operators": [
+    "llm_wrong_account",
+    "llm_wrong_amount",
+    "benign"
+  ],
+  "operator_weights": {
+    "llm_wrong_account": 4.0,
+    "llm_wrong_amount": 4.0,
+    "benign": 1.0
+  },
+  "out_dir": "data/runs/triton49-agentheavy"
+}

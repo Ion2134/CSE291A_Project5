@@ -1,0 +1,141 @@
+{
+  "task": "banking",
+  "parameters": 421293827,
+  "device": "mps",
+  "training_items": 630,
+  "config": {
+    "epochs": 2,
+    "micro_batch": 1,
+    "grad_accum": 16,
+    "encoder_lr": 2.5e-05,
+    "head_lr": 0.0001,
+    "min_lr": 1e-06,
+    "weight_decay": 0.01,
+    "grad_clip": 1.0,
+    "loss": "soft-ce",
+    "rl_samples": 4,
+    "sigma_start": 0.4,
+    "sigma_end": 0.1,
+    "w_sph": 0.75,
+    "w_rps": 1.0,
+    "shuffle_options": [],
+    "option_layout": null,
+    "freeze_encoder": false,
+    "calib_max": 0,
+    "calib_frac": 0,
+    "calib_seed": 20260922,
+    "seed": 42,
+    "max_len": 1024,
+    "head_max_len": 256,
+    "amp": false,
+    "gradient_checkpointing": true,
+    "log_every": 100,
+    "label_smoothing": 0.0,
+    "text_column": "text",
+    "label_column": "label",
+    "question_id": "label",
+    "instructions": null,
+    "eval_data": null,
+    "target_error": 0.1,
+    "min_abstain_n": 10
+  }
+}
+epoch 1/2 step 100 loss 1.0511
+epoch 1/2 step 200 loss 0.1903
+epoch 1/2 step 300 loss 0.2485
+epoch 1/2 step 400 loss 0.1199
+epoch 1/2 step 500 loss 0.4312
+epoch 1/2 step 600 loss 0.2079
+epoch 1/2 mean loss 0.5865
+epoch 1: validation CE=0.429204
+epoch 2/2 step 100 loss 0.4566
+epoch 2/2 step 200 loss 0.6363
+epoch 2/2 step 300 loss 0.0629
+epoch 2/2 step 400 loss 0.0486
+epoch 2/2 step 500 loss 0.0475
+epoch 2/2 step 600 loss 0.0167
+epoch 2/2 mean loss 0.3989
+epoch 2: validation CE=0.427540
+{
+  "task": "banking",
+  "best_epoch": 2,
+  "best_validation_cross_entropy": 0.42753970995559104,
+  "epochs_completed": 2,
+  "elapsed_seconds": 813.5096456250176,
+  "checkpoint_reload_verified": true,
+  "test": {
+    "output_correct": {
+      "rows": 115,
+      "labels": [
+        false,
+        true
+      ],
+      "accuracy": 0.8,
+      "macro_f1": 0.7378332837744077,
+      "per_class_f1": [
+        0.6101694915254238,
+        0.8654970760233918
+      ],
+      "class_support": [
+        31,
+        84
+      ],
+      "confusion_matrix": [
+        [
+          18,
+          13
+        ],
+        [
+          10,
+          74
+        ]
+      ],
+      "log_loss": 0.41583001634412703,
+      "auroc": 0.8352534562211982,
+      "brier": 0.13641990452173913,
+      "false_positive_rate": 0.41935483870967744,
+      "false_negative_rate": 0.11904761904761904
+    },
+    "cause": {
+      "rows": 115,
+      "labels": [
+        "none",
+        "agent",
+        "adversary"
+      ],
+      "accuracy": 0.782608695652174,
+      "macro_f1": 0.5615984405458089,
+      "per_class_f1": [
+        0.8777777777777778,
+        0.47368421052631576,
+        0.3333333333333333
+      ],
+      "class_support": [
+        84,
+        21,
+        10
+      ],
+      "confusion_matrix": [
+        [
+          79,
+          5,
+          0
+        ],
+        [
+          12,
+          9,
+          0
+        ],
+        [
+          5,
+          3,
+          2
+        ]
+      ],
+      "log_loss": 0.5390474567340938
+    }
+  },
+  "warnings": [
+    "Banking data has 580 unique cases across 10 request groups; development results only."
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "device": "mps",
+  "training_seeds": [
+    42
+  ],
+  "args": [
+    "--max-len",
+    "1024",
+    "--batch-size",
+    "1",
+    "--grad-accum",
+    "16",
+    "--eval-batch-size",
+    "1",
+    "--low-precision",
+    "bf16",
+    "--epochs",
+    "2"
+  ],
+  "keep_checkpoints": false
+}

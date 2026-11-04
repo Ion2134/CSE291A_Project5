@@ -156,6 +156,9 @@ def _train_and_report(args, config, device, checkpoint, splits, items, data_repo
     model, tokenizer, cfg = load_checkpoint(str(checkpoint))
     cfg.update(max_len=args.max_len, head_max_len=args.head_max_len, temperature=[1., 1., 1.])
     cfg.pop("temperature_by_options", None)  # Inherited base calibration is cleared before training.
+    low_precision = getattr(args, "low_precision", None)
+    if low_precision:
+        model = model.to(torch.bfloat16 if low_precision == "bf16" else torch.float16)
 
     manifest.update(parameters=sum(p.numel() for p in model.parameters()), device=str(device), gpu=_gpu_name(device))
     write_json(files.manifest, manifest)

@@ -26,6 +26,7 @@ from discovery_sim.sim.orchestrator import AgentOrchestrator, ToolCallError, age
 from discovery_sim.sim.run_config import RunConfig
 from discovery_sim.sim.run_output import resolve_run_dir, write_run_manifest
 from discovery_sim.sim.scenarios import EpisodeScenario, all_scenarios, tool_call_from_planned
+from discovery_sim.sim.task_sample import choose_agent_task
 from discovery_sim.sim.types import AttackSpec, EpisodeOutcome, LabeledExample, OperatorId, ToolCall
 
 
@@ -112,6 +113,26 @@ class EpisodeRunner:
             return LmStudioPlanner(base_url=self.config.llm_base_url, model=self.config.llm_model)
         return TemplatePlanner()
 
+    def _allowed_operators(self) -> list[OperatorId] | None:
+        if not self.config.operators:
+            return None
+        return [OperatorId(name) for name in self.config.operators]
+
+    def _operator_weights(self) -> dict[OperatorId, float] | None:
+        if not self.config.operator_weights:
+            return None
+        return {OperatorId(name): float(weight) for name, weight in self.config.operator_weights.items()}
+
+    def _pick_attack(self, rng: random.Random, operator_override: OperatorId | None) -> AttackSpec:
+        catalog = operator_catalog()
+        if operator_override is not None:
+            return catalog[operator_override]
+        return pick_operator(
+            rng,
+            allowed=self._allowed_operators(),
+            weights=self._operator_weights(),
+        )
+
     async def run_one(
         self,
         operator_override: OperatorId | None = None,
@@ -141,11 +162,16 @@ class EpisodeRunner:
         episode_rng: random.Random | None = None,
     ) -> EpisodeOutcome | None:
         rng = self._roll_rng(episode_rng)
-        tasks = agent_tasks(self.config.task_set)
-        idx = scenario_index if scenario_index is not None else rng.randrange(len(tasks))
-        task = tasks[idx]
+        allowed = self._allowed_operators()
+        task = choose_agent_task(
+            rng,
+            task_set=self.config.task_set,
+            task_sample=self.config.task_sample,
+            scenario_index=scenario_index,
+            operators=allowed,
+        )
         catalog = operator_catalog()
-        attack = catalog[operator_override] if operator_override else pick_operator(rng)
+        attack = self._pick_attack(rng, operator_override)
         if attack.operator == OperatorId.TAINT_PRIOR_OUTPUT:
             attack = catalog[OperatorId.BENIGN]
         if fault_call_index_override is not None:
@@ -158,7 +184,9 @@ class EpisodeRunner:
         pool = AgentPool(SyntheticLedger())
         orchestrator = AgentOrchestrator(self._chat_for_episode(), max_steps=self.config.max_agent_steps)
         try:
-            run = await orchestrator.run_episode(task, pool, attack, fault_call_index, self.seed)
+            run = await orchestrator.run_episode(
+                task, pool, attack, fault_call_index, self.seed, rng=rng
+            )
         except Exception as exc:
             details: dict[str, Any] = {
                 "task_id": task.task_id,
@@ -194,10 +222,7 @@ class EpisodeRunner:
         scenario = _clone_scenario(scenario)
 
         catalog = operator_catalog()
-        if operator_override is not None:
-            attack = catalog[operator_override]
-        else:
-            attack = pick_operator(rng)
+        attack = self._pick_attack(rng, operator_override)
 
         if attack.operator == OperatorId.TAINT_PRIOR_OUTPUT and len(scenario.steps) < 2:
             attack = catalog[OperatorId.BENIGN]
@@ -235,6 +260,7 @@ class EpisodeRunner:
                 step_attack,
                 call_index=step_index,
                 context=context,
+                rng=rng,
             )
             labels = label_call(task, record, pool.ledger)
             context.record_call(step_index, record, labels.output_correct)
@@ -323,15 +349,8 @@ class EpisodeRunner:
         result = await TemplatePlanner().plan(context, step_hint=hint)
         if result.call is None:
             return None
-        llm_call = tool_call_from_planned(result.call)
-        if attack.hop == "llm" and attack.operator in (
-            OperatorId.LLM_WRONG_ACCOUNT,
-            OperatorId.LLM_WRONG_AMOUNT,
-        ):
-            from discovery_sim.sim.operators import apply_llm_attack
-
-            llm_call = apply_llm_attack(task, llm_call, attack.operator)
-        return llm_call
+        # LLM-hop mutations are applied once in execute_tool_call (same path as agent mode).
+        return tool_call_from_planned(result.call)
 
 
 def _clone_scenario(scenario: EpisodeScenario) -> EpisodeScenario:
@@ -483,7 +502,10 @@ def _run_manifest(config: RunConfig, workers: int, planners: list[str], out_dir:
         "concurrency": workers,
         "temperature": config.temperature,
         "task_set": config.task_set,
+        "task_sample": config.task_sample,
         "task_count": len(agent_tasks(config.task_set)),
+        "operators": list(config.operators) if config.operators else None,
+        "operator_weights": dict(config.operator_weights) if config.operator_weights else None,
         "out_dir": str(out_dir),
     }
 

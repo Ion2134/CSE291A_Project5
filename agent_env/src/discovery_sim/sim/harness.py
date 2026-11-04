@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import uuid
+import random
 from typing import Any
 
 from discovery_sim.a2a.types import Message, SendMessageRequest, data_part
@@ -48,13 +48,20 @@ async def execute_tool_call(
     attack: AttackSpec,
     call_index: int = 0,
     context: AgentContext | None = None,
+    rng: random.Random | None = None,
 ) -> CallRecord:
     llm_effective = llm_call
     if attack.hop == "llm" and attack.operator in (
         OperatorId.LLM_WRONG_ACCOUNT,
         OperatorId.LLM_WRONG_AMOUNT,
     ):
-        llm_effective = apply_llm_attack(task, llm_call, attack.operator)
+        llm_effective = apply_llm_attack(
+            task,
+            llm_call,
+            attack.operator,
+            rng=rng,
+            account_ids=list(pool.ledger.accounts),
+        )
     if attack.operator == OperatorId.TAINT_PRIOR_OUTPUT and context is not None:
         llm_effective = apply_taint_attack(llm_effective, context)
 

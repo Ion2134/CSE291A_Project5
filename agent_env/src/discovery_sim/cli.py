@@ -13,6 +13,7 @@ from discovery_sim.agents.payment import PaymentAgent
 from discovery_sim.ledger.store import SyntheticLedger
 from discovery_sim.llm.chat import CHAT_BACKENDS, DEFAULT_TEMPERATURE
 from discovery_sim.sim.episode import run_episodes
+from discovery_sim.sim.operators import parse_operator_ids, parse_operator_weights
 from discovery_sim.sim.prompt_data import PromptGenConfig, generate_prompt_data
 from discovery_sim.sim.run_config import RunConfig
 
@@ -70,6 +71,19 @@ def _cmd_agents(args: argparse.Namespace) -> None:
 
 
 def _cmd_run(args: argparse.Namespace) -> None:
+    operators = tuple(op.value for op in parse_operator_ids(args.operators)) if args.operators else None
+    weights = (
+        {op.value: weight for op, weight in parse_operator_weights(args.operator_weights).items()}
+        if args.operator_weights
+        else {}
+    )
+    if operators is not None and weights:
+        allowed = set(operators)
+        unknown = [name for name in weights if name not in allowed]
+        if unknown:
+            raise SystemExit(
+                f"--operator-weights names {unknown} are not in --operators {list(operators)}"
+            )
     config = RunConfig(
         episodes=args.episodes,
         seed=args.seed,
@@ -84,6 +98,9 @@ def _cmd_run(args: argparse.Namespace) -> None:
         concurrency=max(1, args.concurrency),
         temperature=args.temperature,
         task_set=args.task_set,
+        task_sample=args.task_sample,
+        operators=operators,
+        operator_weights=weights,
     )
     summary = asyncio.run(run_episodes(config, Path(args.out)))
     print(summary)
@@ -179,6 +196,24 @@ def main() -> None:
         "--task-set",
         default="core",
         help="Agent-mode task set to draw tasks from (default: core, the original ten tasks)",
+    )
+    run.add_argument(
+        "--task-sample",
+        choices=["fixed", "parameterized"],
+        default="fixed",
+        help="Agent-mode task selection: fixed list from --task-set, or parameterized paraphrases",
+    )
+    run.add_argument(
+        "--operators",
+        default=None,
+        metavar="LIST",
+        help="Comma-separated operator allow-list (e.g. llm_wrong_account,llm_wrong_amount,benign)",
+    )
+    run.add_argument(
+        "--operator-weights",
+        default=None,
+        metavar="MAP",
+        help="Comma-separated name=weight map for sampling among allowed operators",
     )
     run.set_defaults(func=_cmd_run)
 

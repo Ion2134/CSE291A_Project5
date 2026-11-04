@@ -23,6 +23,8 @@ COMBINED_RUNS = (
     "triton46",
     "triton47",
     "triton48",
+    "oracle49-agentheavy",
+    "triton49-agentheavy"
 )
 
 # Files inside one run directory.

@@ -1,0 +1,83 @@
+{
+  "task": "banking",
+  "best_epoch": 2,
+  "best_validation_cross_entropy": 0.7090320599805601,
+  "epochs_completed": 2,
+  "elapsed_seconds": 894.8521497080219,
+  "checkpoint_reload_verified": true,
+  "test": {
+    "output_correct": {
+      "rows": 105,
+      "labels": [
+        false,
+        true
+      ],
+      "accuracy": 0.8285714285714286,
+      "macro_f1": 0.7699610516066212,
+      "per_class_f1": [
+        0.6538461538461539,
+        0.8860759493670886
+      ],
+      "class_support": [
+        34,
+        71
+      ],
+      "confusion_matrix": [
+        [
+          17,
+          17
+        ],
+        [
+          1,
+          70
+        ]
+      ],
+      "log_loss": 0.3845658794423218,
+      "auroc": 0.8844241922120961,
+      "brier": 0.11757818390476192,
+      "false_positive_rate": 0.5,
+      "false_negative_rate": 0.014084507042253521
+    },
+    "cause": {
+      "rows": 105,
+      "labels": [
+        "none",
+        "agent",
+        "adversary"
+      ],
+      "accuracy": 0.8380952380952381,
+      "macro_f1": 0.53723991507431,
+      "per_class_f1": [
+        0.89171974522293,
+        0.72,
+        0.0
+      ],
+      "class_support": [
+        71,
+        31,
+        3
+      ],
+      "confusion_matrix": [
+        [
+          70,
+          1,
+          0
+        ],
+        [
+          13,
+          18,
+          0
+        ],
+        [
+          3,
+          0,
+          0
+        ]
+      ],
+      "log_loss": 0.5359746484566462
+    }
+  },
+  "warnings": [
+    "Banking data has 580 unique cases across 10 request groups; development results only."
+  ]
+}

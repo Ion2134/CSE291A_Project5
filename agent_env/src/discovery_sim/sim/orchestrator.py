@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import json
+import random
 import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
-from discovery_sim.llm.chat import ChatClient, ChatTurn, ToolCallRequest
+from discovery_sim.llm.chat import ChatClient, ToolCallRequest
 from discovery_sim.mcp.openai_tools import all_openai_tools, parse_tool_name, validate_tool_call
 from discovery_sim.sim.context import AgentContext
 from discovery_sim.sim.harness import AgentPool, execute_tool_call
@@ -70,8 +71,10 @@ class AgentOrchestrator:
         attack: AttackSpec,
         fault_call_index: int,
         seed: int,
+        rng: random.Random | None = None,
     ) -> AgentRunResult:
         catalog = operator_catalog()
+        attack_rng = rng if rng is not None else random.Random(seed)
         context = AgentContext.from_mandate(task.user_message, task.mandate)
         messages: list[dict[str, Any]] = [
             {"role": "system", "content": SYSTEM_PROMPT},
@@ -144,6 +147,7 @@ class AgentOrchestrator:
                         tool_round,
                         seed,
                         messages,
+                        attack_rng,
                     )
                 except Exception as exc:
                     raise ToolCallError(
@@ -186,6 +190,7 @@ class AgentOrchestrator:
         call_index: int,
         seed: int,
         messages: list[dict[str, Any]],
+        rng: random.Random,
     ) -> tuple[CallRecord, LabeledExample]:
         agent, tool_name = parse_tool_name(tc.name)
         llm_call = ToolCall(tool_name=tool_name, arguments=dict(tc.arguments), agent=agent)
@@ -206,6 +211,7 @@ class AgentOrchestrator:
             step_attack,
             call_index=call_index,
             context=context,
+            rng=rng,
         )
         labels = label_call(base, record, pool.ledger)
         context.record_call(call_index, record, labels.output_correct)

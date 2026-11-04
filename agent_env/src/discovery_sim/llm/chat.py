@@ -34,8 +34,8 @@ DEFAULT_ENV_PATH = Path(__file__).resolve().parents[3] / ".env"
 # Agent-mode runs can override it with ``--temperature``.
 DEFAULT_TEMPERATURE = 0.2
 
-ChatBackend = Literal["lmstudio", "triton"]
-CHAT_BACKENDS: tuple[str, ...] = ("lmstudio", "triton")
+ChatBackend = Literal["lmstudio", "triton", "oracle"]
+CHAT_BACKENDS: tuple[str, ...] = ("lmstudio", "triton", "oracle")
 
 
 def make_chat_client(backend: ChatBackend, base_url: str | None = None, model: str | None = None,
@@ -44,6 +44,8 @@ def make_chat_client(backend: ChatBackend, base_url: str | None = None, model: s
         return LmStudioChat(base_url=base_url, model=model, temperature=temperature)
     if backend == "triton":
         return TritonAPIChat(base_url=base_url, model=model, temperature=temperature)
+    if backend == "oracle":
+        return OracleChat(model=model)
     raise ValueError(f"unknown chat backend {backend!r}; expected one of {CHAT_BACKENDS}")
 
 def _parse_chat_completion(body: dict[str, Any]) -> ChatTurn:
@@ -192,3 +194,67 @@ class ScriptChatClient(ChatClient):
         turn = self._turns[self._index]
         self._index += 1
         return turn
+
+
+class OracleChat(ChatClient):
+    """Always emits on-mandate tool calls. Used to generate emulated LLM-hop failures offline."""
+
+    def __init__(self, model: str | None = None) -> None:
+        self.model_id = model or "oracle"
+        self._plan: list[ToolCallRequest] | None = None
+        self._index = 0
+
+    async def complete(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> ChatTurn:
+        if self._plan is None:
+            self._plan = _oracle_plan_from_messages(messages)
+            self._index = 0
+        if self._index >= len(self._plan):
+            return ChatTurn(content="Done.", tool_calls=[])
+        call = self._plan[self._index]
+        self._index += 1
+        return ChatTurn(content=None, tool_calls=[call])
+
+
+def _oracle_plan_from_messages(messages: list[dict[str, Any]]) -> list[ToolCallRequest]:
+    mandate: dict[str, Any] = {}
+    for message in messages:
+        if message.get("role") != "user":
+            continue
+        content = message.get("content") or ""
+        marker = "Authoritative mandate"
+        if marker not in content:
+            continue
+        raw = content.split(":", 1)[-1].strip()
+        try:
+            mandate = json.loads(raw)
+        except json.JSONDecodeError:
+            continue
+    action = mandate.get("action")
+    if action == "list_accounts":
+        return [ToolCallRequest("c1", "bank__list_accounts", {})]
+    if action == "read_holder":
+        return [ToolCallRequest("c1", "bank__get_account_holder",
+                                {"account_id": mandate.get("account_id")})]
+    if action == "read_transactions":
+        return [ToolCallRequest(
+            "c1",
+            "bank__get_transactions",
+            {"account_id": mandate.get("account_id"), "limit": int(mandate.get("limit", 10))},
+        )]
+    if action == "read_balance":
+        return [ToolCallRequest("c1", "bank__get_balance", {"account_id": mandate.get("account_id")})]
+    if "amount_cents" in mandate and "from_account_id" in mandate:
+        transfer_args = {
+            "from_account_id": mandate.get("from_account_id"),
+            "payee_id": mandate.get("payee_id"),
+            "amount_cents": int(mandate["amount_cents"]),
+        }
+        if "account_id" in mandate:
+            return [
+                ToolCallRequest("c1", "bank__get_balance", {"account_id": mandate.get("account_id")}),
+                ToolCallRequest("c2", "payment__initiate_transfer", transfer_args),
+            ]
+        return [ToolCallRequest("c1", "payment__initiate_transfer", transfer_args)]
+    if "account_id" in mandate:
+        return [ToolCallRequest("c1", "bank__get_balance", {"account_id": mandate.get("account_id")})]
+    return []

@@ -86,10 +86,26 @@ discovery-sim run --mode scripted --episodes 100 --seed 42 --out data/runs/scrip
 | `--llm-base-url`, `--llm-model` | env | Override the backend's base URL and model env vars |
 | `--temperature T` | 0.2 | Agent mode: the model's sampling temperature |
 | `--task-set NAME` | `core` | Agent mode: which task set episodes draw from (`core` = the ten tasks below) |
+| `--task-sample fixed\|parameterized` | `fixed` | Agent mode: use the static task list, or sample paraphrased tasks (more `request_group`s after merge) |
+| `--operators LIST` | all | Comma-separated allow-list of operators (e.g. `llm_wrong_account,llm_wrong_amount,benign`) |
+| `--operator-weights MAP` | uniform | Comma-separated `name=weight` sampling weights among the allowed operators |
+
+Example agent-heavy run (biased toward emulated LLM mistakes, paraphrased tasks):
+
+```bash
+discovery-sim run --mode agent --episodes 80 --seed 49 \
+  --operators llm_wrong_account,llm_wrong_amount,benign \
+  --operator-weights llm_wrong_account=4,llm_wrong_amount=4,benign=1 \
+  --task-sample parameterized \
+  --llm-backend triton --concurrency 4 \
+  --out data/runs/triton49-agentheavy
+```
+
+`--llm-backend oracle` skips the live model and always emits on-mandate tool calls, so emulated `llm_*` attacks still produce `cause=agent` rows offline.
 
 ### Tasks
 
-There are 10 banking tasks: balance lookup on two accounts, list accounts, transaction history, account holder lookup, three transfer variants, and two "check balance, then pay" flows. They are defined in `src/discovery_sim/sim/task_defs.py`.
+There are 10 banking tasks in the `core` set: balance lookup on two accounts, list accounts, transaction history, account holder lookup, three transfer variants, and two "check balance, then pay" flows. They are defined in `src/discovery_sim/sim/task_defs.py`. With `--task-sample parameterized`, episodes instead sample account/payee/amount plus a curated paraphrase so merged training data spans many more request groups.
 
 ### Batches over knobs
 

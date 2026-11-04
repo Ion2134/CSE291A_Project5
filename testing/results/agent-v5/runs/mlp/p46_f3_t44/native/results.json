@@ -1,0 +1,184 @@
+{
+  "model": "mlp",
+  "seed": 44,
+  "train_rows": 425,
+  "test_rows": 155,
+  "inner_cv": {
+    "requested_k": 5,
+    "k": 5,
+    "degraded": false
+  },
+  "details": {
+    "kind": "mlp",
+    "data": "first-party train pool only",
+    "epoch_selection": {
+      "per_fold_best_epoch": [
+        10,
+        9,
+        7,
+        7,
+        9
+      ],
+      "selected_epochs": 9
+    },
+    "cv_metrics": {
+      "cause_macro_f1": {
+        "mean": 0.6863673411376638,
+        "std": 0.06393047031233225,
+        "folds": 5,
+        "per_fold": [
+          0.648888888888889,
+          0.7018685625740589,
+          0.6391847146564128,
+          0.636766334440753,
+          0.8051282051282053
+        ]
+      },
+      "error_auroc": {
+        "mean": 0.8689177087786313,
+        "std": 0.03872720549944494,
+        "folds": 5,
+        "per_fold": [
+          0.8667108753315651,
+          0.9385964912280702,
+          0.8717948717948718,
+          0.8425806451612904,
+          0.8249056603773585
+        ]
+      },
+      "error_type_accuracy": {
+        "mean": 0.7441642851031061,
+        "std": 0.03822585324154952,
+        "folds": 5,
+        "per_fold": [
+          0.6896551724137931,
+          0.8,
+          0.7692307692307693,
+          0.7419354838709677,
+          0.72
+        ]
+      },
+      "error_detection_f1": {
+        "mean": 0.7190125646637362,
+        "std": 0.05140430205473939,
+        "folds": 5,
+        "per_fold": [
+          0.6451612903225806,
+          0.8,
+          0.723404255319149,
+          0.7368421052631579,
+          0.6896551724137931
+        ]
+      },
+      "false_alarm_rate": {
+        "mean": 0.2592956760304984,
+        "std": 0.08928671471647812,
+        "folds": 5,
+        "per_fold": [
+          0.25,
+          0.10526315789473684,
+          0.3559322033898305,
+          0.34,
+          0.24528301886792453
+        ]
+      },
+      "missed_error_rate": {
+        "mean": 0.18706482986794443,
+        "std": 0.07368779895875781,
+        "folds": 5,
+        "per_fold": [
+          0.3103448275862069,
+          0.2,
+          0.1282051282051282,
+          0.0967741935483871,
+          0.2
+        ]
+      },
+      "correctness_brier": {
+        "mean": 0.14811900004066197,
+        "std": 0.02562338443338233,
+        "folds": 5,
+        "per_fold": [
+          0.1598181737104222,
+          0.09782845699544179,
+          0.15222019625148422,
+          0.16697249141393594,
+          0.16375568183202568
+        ]
+      }
+    },
+    "calibration": {
+      "cause": {
+        "temperature": 1.1486983549970349,
+        "fitted": true,
+        "samples": 425
+      },
+      "correctness": {
+        "temperature": 1.1172871380722198,
+        "fitted": true,
+        "samples": 425
+      },
+      "source": "out-of-fold train-pool predictions only"
+    }
+  },
+  "test": {
+    "samples": 155,
+    "cause_labels": [
+      "none",
+      "agent",
+      "adversary"
+    ],
+    "cause_accuracy": 0.7741935483870968,
+    "cause_macro_f1": 0.7121645864345968,
+    "cause_per_class": {
+      "none": {
+        "precision": 0.9175257731958762,
+        "recall": 0.7672413793103449,
+        "f1": 0.8356807511737089,
+        "support": 116
+      },
+      "agent": {
+        "precision": 0.5098039215686274,
+        "recall": 0.8387096774193549,
+        "f1": 0.6341463414634146,
+        "support": 31
+      },
+      "adversary": {
+        "precision": 0.7142857142857143,
+        "recall": 0.625,
+        "f1": 0.6666666666666666,
+        "support": 8
+      }
+    },
+    "cause_confusion_matrix": [
+      [
+        89,
+        25,
+        2
+      ],
+      [
+        5,
+        26,
+        0
+      ],
+      [
+        3,
+        0,
+        5
+      ]
+    ],
+    "error_type_accuracy": 0.7948717948717948,
+    "error_type_support": 39,
+    "error_type_accuracy_when_detected": 1.0,
+    "error_type_detected_support": 31,
+    "correctness_accuracy": 0.7677419354838709,
+    "error_detection_f1": 0.6538461538461539,
+    "error_auroc": 0.8704686118479221,
+    "false_alarm_rate": 0.2672413793103448,
+    "missed_error_rate": 0.1282051282051282,
+    "correctness_brier": 0.15791171986712257,
+    "correctness_ece": 0.06489455956994006,
+    "inconsistent_answers": 7
+  },
+  "elapsed_seconds": 3.0311526670120656
+}

@@ -1,0 +1,59 @@
+{
+  "samples": 172,
+  "cause_labels": [
+    "none",
+    "agent",
+    "adversary"
+  ],
+  "cause_accuracy": 0.7616279069767442,
+  "cause_macro_f1": 0.6873900293255132,
+  "cause_per_class": {
+    "none": {
+      "precision": 0.9108910891089109,
+      "recall": 0.773109243697479,
+      "f1": 0.8363636363636363,
+      "support": 119
+    },
+    "agent": {
+      "precision": 0.5660377358490566,
+      "recall": 0.75,
+      "f1": 0.6451612903225806,
+      "support": 40
+    },
+    "adversary": {
+      "precision": 0.5,
+      "recall": 0.6923076923076923,
+      "f1": 0.5806451612903226,
+      "support": 13
+    }
+  },
+  "cause_confusion_matrix": [
+    [
+      92,
+      19,
+      8
+    ],
+    [
+      9,
+      30,
+      1
+    ],
+    [
+      0,
+      4,
+      9
+    ]
+  ],
+  "error_type_accuracy": 0.7358490566037735,
+  "error_type_support": 53,
+  "error_type_accuracy_when_detected": 0.8863636363636364,
+  "error_type_detected_support": 44,
+  "correctness_accuracy": 0.7848837209302325,
+  "error_detection_f1": 0.704,
+  "error_auroc": 0.9007452037418741,
+  "false_alarm_rate": 0.23529411764705882,
+  "missed_error_rate": 0.16981132075471697,
+  "correctness_brier": 0.1383493107002413,
+  "correctness_ece": 0.058233156774120956,
+  "inconsistent_answers": 1
+}

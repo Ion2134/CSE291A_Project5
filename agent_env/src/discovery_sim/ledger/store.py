@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 
@@ -39,6 +39,27 @@ class Payment:
     created_at: str
 
 
+# Seed IDs used by attacks/task sampling; kept as module constants so operators can import them
+# without constructing a ledger.
+SEED_ACCOUNT_IDS: tuple[str, ...] = (
+    "acct_synth_0031",
+    "acct_synth_0042",
+    "acct_synth_0055",
+    "acct_synth_0068",
+    "acct_synth_0073",
+    "acct_synth_0089",
+    "acct_synth_0094",
+    "acct_synth_0101",
+)
+
+SEED_PAYEE_IDS: tuple[str, ...] = (
+    "payee_synth_0007",
+    "payee_synth_0012",
+    "payee_synth_0019",
+    "payee_synth_0024",
+)
+
+
 class SyntheticLedger:
     """In-memory synthetic bank state for simulation."""
 
@@ -50,22 +71,31 @@ class SyntheticLedger:
         self._seed_defaults()
 
     def _seed_defaults(self) -> None:
-        self.accounts["acct_synth_0031"] = Account(
-            account_id="acct_synth_0031",
-            holder_name="Alex Synth",
-            balance_cents=120_000,
-            is_primary=True,
-        )
-        self.accounts["acct_synth_0042"] = Account(
-            account_id="acct_synth_0042",
-            holder_name="Alex Synth",
-            balance_cents=45_000,
-        )
-        self.payees["payee_synth_0007"] = Payee(
-            payee_id="payee_synth_0007",
-            name="Synth Utilities",
-            routing_hint="demo-routing-007",
-        )
+        seeds = [
+            ("acct_synth_0031", "Alex Synth", 120_000, True),
+            ("acct_synth_0042", "Alex Synth", 45_000, False),
+            ("acct_synth_0055", "Blair Synth", 88_500, False),
+            ("acct_synth_0068", "Casey Synth", 210_000, False),
+            ("acct_synth_0073", "Drew Synth", 33_250, False),
+            ("acct_synth_0089", "Eden Synth", 67_800, False),
+            ("acct_synth_0094", "Finley Synth", 15_000, False),
+            ("acct_synth_0101", "Gray Synth", 142_000, False),
+        ]
+        for account_id, holder, balance, primary in seeds:
+            self.accounts[account_id] = Account(
+                account_id=account_id,
+                holder_name=holder,
+                balance_cents=balance,
+                is_primary=primary,
+            )
+        payees = [
+            ("payee_synth_0007", "Synth Utilities", "demo-routing-007"),
+            ("payee_synth_0012", "Synth Rent Co", "demo-routing-012"),
+            ("payee_synth_0019", "Synth Mobile", "demo-routing-019"),
+            ("payee_synth_0024", "Synth Insurance", "demo-routing-024"),
+        ]
+        for payee_id, name, routing in payees:
+            self.payees[payee_id] = Payee(payee_id=payee_id, name=name, routing_hint=routing)
         self.transactions.append(
             Transaction(
                 transaction_id="txn_synth_0001",
