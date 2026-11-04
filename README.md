@@ -36,12 +36,29 @@ The tester runs in the `mlp_baseline` venv.
 
 ## Run each part
 
-**1. Generate data** (`agent_env/`, needs an LLM: LM Studio locally, or TritonAI with keys in `agent_env/.env`)
+**1. Generate data** (`agent_env/`; the agent needs an LLM, picked with `--llm-backend`)
+
+| Backend | Where the model runs | Settings |
+| --- | --- | --- |
+| `lmstudio` (default) | Local [LM Studio](https://lmstudio.ai) server; load a model with tool calling and start the server | Shell env vars: `LMSTUDIO_MODEL` (the loaded model's id), `LMSTUDIO_BASE_URL` (default `http://127.0.0.1:1234/v1`) |
+| `triton` | Hosted TritonAI API | `agent_env/.env` (gitignored): `cp .env.example .env`, then fill in `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `OPENAI_MODEL` |
+| `oracle` | No model: always makes the correct (on-mandate) tool calls; offline and free | None |
+
+`--llm-model` and `--llm-base-url` override either backend's settings. LM Studio's settings are read
+from the shell only, not from `.env`.
 
 ```bash
 cd agent_env
-.venv/bin/discovery-sim run --llm-backend triton --episodes 50 --seed 42 --concurrency 2 --out data/runs/my-run
-.venv/bin/discovery-sim batch --config configs/batch-example.json --dry-run   # model × temperature grid, 300-episode budget
+
+# LM Studio (local)
+export LMSTUDIO_MODEL=qwen/qwen3.6-35b-a3b
+.venv/bin/discovery-sim run --llm-backend lmstudio --episodes 50 --seed 42 --out data/runs/my-local-run
+
+# TritonAI (hosted; reads .env)
+.venv/bin/discovery-sim run --llm-backend triton --episodes 50 --seed 42 --concurrency 2 --out data/runs/my-triton-run
+
+# A model × temperature grid with a 300-episode budget ("backend" and "models" are set in the config)
+.venv/bin/discovery-sim batch --config configs/batch-example.json --dry-run
 ```
 
 **2. Evaluate the monitors over many splits** (`testing/`; add new run names to the config's `runs`)
