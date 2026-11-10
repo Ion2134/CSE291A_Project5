@@ -6,15 +6,18 @@ injects attacks into some calls. A **monitor** reads one tool call at a time and
 - **output_correct**: did this call produce the result the user's mandate called for?
 - **cause**: if not, was it the `agent`'s mistake or an `adversary`'s tampering (`none` if correct)?
 
-We generate labeled data with the simulator, train two kinds of monitors (small MLPs and a
-fine-tuned Laya model), and compare them on the same cross-validation splits.
+We generate labeled data with the simulator, build several monitors (a hand-written rule cascade,
+logistic regression and kNN on comparison features, small MLPs, and a fine-tuned Laya model), and
+compare them on the same cross-validation splits. A monitor can be scored on the full state or on
+the **middleware view**, which hides the simulator-only ledger and tool-received arguments; see
+[`mlp_baseline/README.md`](mlp_baseline/README.md#banking-monitor).
 
 ## Layout
 
 | Folder | What it does | Details |
 | --- | --- | --- |
 | [`agent_env/`](agent_env/) | Simulator: runs the agent on banking tasks with attacks and writes labeled data | [README](agent_env/README.md) |
-| [`mlp_baseline/`](mlp_baseline/) | CPU baselines: the injection detector and the `mlp` / `stacking` monitors | [README](mlp_baseline/README.md) |
+| [`mlp_baseline/`](mlp_baseline/) | CPU baselines: the injection detector, the comparison features, and the rules / logreg / kNN / `mlp` / `stacking` monitors | [README](mlp_baseline/README.md) |
 | [`laya_finetuning/`](laya_finetuning/) | Fine-tunes the Laya monitor (GPU) | [README](laya_finetuning/README.md) |
 | [`testing/`](testing/) | Unified tester: trains and scores every monitor over many splits and seeds | [README](testing/README.md) |
 

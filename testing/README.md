@@ -1,15 +1,15 @@
 # Unified tester
 
 With so little first-party data, one train/test split decides a lot of the score. This folder
-evaluates the banking monitors — the MLP, the stacking model and Laya — over many
+evaluates the banking monitors — rules, logistic regression, kNN, MLPs, the stacking model and Laya — over many
 cross-validation splits and reports the distribution, not a single number.
 
 The tester **does not train anything itself**. For each fold it calls the model's own command:
 
 | Model | Command it calls | Owned by |
 | --- | --- | --- |
-| `mlp` | `mlp-baseline fit-predict --model mlp …` | `mlp_baseline/` |
-| `stacking` | `mlp-baseline fit-predict --model stacking …` | `mlp_baseline/` |
+| `mlp`, `mlp_embed`, `stacking` | `mlp-baseline fit-predict --model <name> …` | `mlp_baseline/` |
+| `rules`, `rules_plus`, `logreg_checks`, `logreg_memory`, `knn`, `knn_embed` | `mlp-baseline fit-predict --model <name> …` | `mlp_baseline/` |
 | `laya` | `laya_finetuning/train_laya.py --task banking …` | `laya_finetuning/` |
 
 Every model gets the same files and is scored by the same `mlp_baseline.metrics.evaluate`.
@@ -58,7 +58,7 @@ relative to the repository root. To test a different pool, copy the file and cha
 | `split.laya_val_fraction` | Training groups held out as Laya's validation set |
 | `training_seeds` | Training seeds run on every split (a model can override this) |
 | `models.<name>.python` | Optional interpreter override; defaults to the Python running the sweep |
-| `models.<name>.args` | Extra flags passed to that model's command |
+| `models.<name>.args` | Extra flags passed to that model's command, e.g. `--use-checks`, `--view middleware` |
 
 The same file works with `mlp-baseline prepare-agent-data --config …` and
 `laya_finetuning/prepare_banking_data.py --config …`, so all tools can share one run list.

@@ -5,10 +5,10 @@ A standalone CPU package with two jobs:
 1. **The injection detector**: an MLP that classifies a message as **benign** or **prompt
    injection**, trained on public datasets. Its checkpoint is also the frozen base of the
    `stacking` model.
-2. **The banking monitor MLPs** (`mlp` and `stacking`): they predict whether a banking tool call's
-   output is correct and, if not, the cause (`none` / `agent` / `adversary`). These are trained
-   and compared against Laya by the unified tester in [`../testing/`](../testing/), which calls
-   this package's `fit-predict` command.
+2. **The banking monitors** (rules, logistic regression, kNN, MLPs and `stacking`): they predict
+   whether a banking tool call's output is correct and, if not, the cause (`none` / `agent` /
+   `adversary`). These are trained and compared against Laya by the unified tester in
+   [`../testing/`](../testing/), which calls this package's `fit-predict` command.
 
 It does not import or edit `agent_env`, and has no Laya dependency.
 
@@ -80,18 +80,80 @@ builds cross-validation folds from the agent runs and calls, for each fold:
 
 ```bash
 mlp-baseline fit-predict --model mlp --train train.jsonl --validation val.jsonl --test test.jsonl \
-  --out runs/fold --seed 42 --k 5
+  --out runs/fold --seed 42 --k 5 --use-checks --view middleware
 ```
-
-- **`mlp`**: a three-class TF-IDF MLP trained on first-party rows only. Inner group
-  cross-validation picks the epoch count and fits temperature calibration on out-of-fold
-  predictions; the final model is refit on all training rows.
-- **`stacking`**: the frozen injection detector (`experiments/injection/seed42/model`) supplies
-  P(injection) as a feature; a logistic regression on that plus TF-IDF features predicts the
-  cause. It lets first-party labels teach that a resisted attack is `none`, not `adversary`.
 
 `--validation` rows are added to training, because the inner cross-validation already holds
 data out. Correctness is `P(cause = none)`.
+
+### What the monitor sees: the `state` string and the two views
+
+Each row's `state` is a text block: `user_message`, `trusted` (the mandate), `prior_calls`, the
+current `tool`, `model_call`, `received_args`, `output`, and `ledger_snapshot`. Two of those lines
+are **privileged**: a monitor in the middleware between agent and tool client would not have them.
+
+| `--view` | What the model sees |
+| --- | --- |
+| `full` (default) | Everything, including `ledger_snapshot` and `received_args`. An oracle: it shows what the privileged fields are worth, not a deployable score. |
+| `middleware` | `ledger_snapshot` and `received_args` removed before any model sees the row (`checks.middleware_view`). The text models and the comparison features all get the same stripped input, so TF-IDF cannot read the ledger either. |
+
+Without `received_args` the tool is assumed to have received the call as sent. Without the
+ledger, the balance check compares a `get_balance` output with an earlier read of the same account
+in the episode. Predictions are always keyed by the original `input_id`, so the tester can join them.
+`tests/test_checks.py` fails if the view-level features or rules change when the privileged lines
+are replaced with garbage.
+
+### Comparison features (`checks.py`)
+
+A TF-IDF bag of words cannot tell whether two fields are equal, yet the label is almost a
+function of exactly that. `comparison_features` parses the state and returns 12 binary flags
+(all zeros if the state cannot be parsed):
+
+| Feature | Fires when |
+| --- | --- |
+| `parse_ok` | The state parsed |
+| `call_account_mismatch`, `call_payee_mismatch`, `call_amount_mismatch` | The model's call differs from the trusted mandate (the **agent** deviated) |
+| `call_any_mismatch` | Any of the three above |
+| `args_differ_from_call` | `received_args` differs from `model_call` (needs the full view; always 0 in the middleware view) |
+| `output_differs_from_args` | The output echoes an account, payee or amount that differs from the arguments |
+| `output_has_private_key` | The output has an extra key starting with `_` |
+| `output_injection_text` | A string in the output matches an injection phrase ("ignore previous", "system prompt", …) |
+| `balance_differs_from_ledger` | A first `get_balance` disagrees with the ledger (full view) or with an earlier read of that account (middleware view) |
+| `tool_is_transfer`, `tool_is_read` | Which kind of tool ran |
+
+The `mlp` and `stacking` models append these to their text features with `--use-checks`.
+
+### Models
+
+Pass the model name to `fit-predict --model`; the tester uses the same names.
+
+| Model | What it is | Trained on |
+| --- | --- | --- |
+| `rules` | `checks.rule_cause`, a hand-written cascade: any call mismatch → `agent`; else any integrity flag → `adversary`; else `none`. Fixed 0.97 confidence. | Nothing |
+| `logreg_checks` | Multinomial logistic regression on the 12 flags. Learns the cascade from labels and gives real probabilities. Weights are saved in `results.json`. | Training rows |
+| `mlp` | Three-class TF-IDF MLP. Inner group cross-validation picks the epoch count and fits temperature calibration on out-of-fold predictions; the final model is refit on all training rows. | Training rows |
+| `mlp_embed` | The same MLP on a sentence embedding (`BAAI/bge-small-en-v1.5`, from the local Hugging Face cache) instead of TF-IDF | Training rows |
+| `knn`, `knn_embed` | Cosine k-nearest-neighbours (`--neighbors`, default 5) on the MLP's input features; votes are weighted by closeness and inverse class frequency | Training rows |
+| `stacking` | The frozen injection detector (`experiments/injection/seed42/model`) supplies P(injection); a logistic regression on that plus TF-IDF predicts the cause. It lets first-party labels teach that a resisted attack is `none`, not `adversary`. | Training rows (+ external data for the frozen base) |
+| `rules_plus`, `logreg_memory` | `rules` / `logreg_checks` plus two extra checks, described below | Training rows |
+
+Embeddings are cached on disk by (model, text) hash in `~/.cache/mlp_baseline_embeddings`
+(`MLP_EMBED_CACHE` moves it). The model is loaded from the local cache only; nothing is downloaded.
+
+### Read `rules_plus` and `logreg_memory` as upper bounds
+
+They add (1) `balance_unseen`: a first-read balance never seen for that account in training rows
+labelled `none`, and (2) `empty_transfer_output`: a finished transfer whose output is `{}`. The
+balance table is built from the training fold only (the memory columns for training rows leave out
+their own request group), so there is no test leakage. But:
+
+- Both checks were found by inspecting the folds' errors, so their scores are partly in-sample.
+- The balance check works because every simulated episode starts from the same seeded ledger. In a
+  real deployment balances change after each transfer, and it would fail silently.
+- The empty-transfer check rests on 3 distinct rows.
+
+Headline the generic `rules` and `logreg_checks`; confirm the extra checks on a freshly generated pool
+before relying on them.
 
 Two commands build datasets from agent runs (`agent_env/data/runs/<name>/`), taking the run
 list from a tester config:
@@ -113,12 +175,15 @@ train/val/test format.
 | Module | What it does |
 | --- | --- |
 | `common.py` | Cause labels, row identity (`input_id`) and request grouping, file helpers, `RunRecord` |
-| `mlp.py` | The TF-IDF MLP and `TrainSettings`: train, save, load |
+| `mlp.py` | The MLP (TF-IDF or embedding input) and `TrainSettings`: train, save, load |
+| `checks.py` | `middleware_view`, the 12 comparison features, and the `rules` cascade |
+| `embeddings.py` | Cached sentence embeddings of a state (`mlp_embed`, `knn_embed`) |
+| `variants.py` | `rules_plus`, `logreg_checks` / `logreg_memory` and the kNN |
 | `metrics.py` | Banking-monitor metrics, temperature calibration, majority baseline |
 | `splits.py` | Group-disjoint stratified partitions and cross-validation folds |
 | `agent_runs.py` | Read agent runs, repair the legacy label bug, merge them into unique rows |
 | `monitor_datasets.py` | Merged runs → train/test dataset (`prepare-agent-data`), checks, Laya export |
-| `monitor_training.py` | The `mlp` and `stacking` monitors and `fit-predict` (one tester fold) |
+| `monitor_training.py` | Dispatches every monitor and runs `fit-predict` (one tester fold) |
 | `stacking.py` | The stacked monitor on the frozen injection detector |
 | `comparison.py` | The archived single-split comparison report (`run-agent-comparison`) |
 | `injection_data.py` | Builds the injection dataset from the pinned public sources |
