@@ -83,8 +83,6 @@
       "args": [
         "--max-features",
         "4096",
-        "--k",
-        "5",
         "--use-checks",
         "--neighbors",
         "5",
@@ -97,8 +95,6 @@
         42
       ],
       "args": [
-        "--k",
-        "5",
         "--use-checks",
         "--neighbors",
         "5",
@@ -112,9 +108,7 @@
       ],
       "args": [
         "--view",
-        "middleware",
-        "--k",
-        "5"
+        "middleware"
       ]
     },
     "logreg_memory": {
@@ -123,9 +117,7 @@
       ],
       "args": [
         "--view",
-        "middleware",
-        "--k",
-        "5"
+        "middleware"
       ]
     },
     "stacking": {

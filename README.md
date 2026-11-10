@@ -17,7 +17,9 @@ the **middleware view**, which hides the simulator-only ledger and tool-received
 | Folder | What it does | Details |
 | --- | --- | --- |
 | [`agent_env/`](agent_env/) | Simulator: runs the agent on banking tasks with attacks and writes labeled data | [README](agent_env/README.md) |
-| [`mlp_baseline/`](mlp_baseline/) | CPU baselines: the injection detector, the comparison features, and the rules / logreg / kNN / `mlp` / `stacking` monitors | [README](mlp_baseline/README.md) |
+| [`mlp_baseline/`](mlp_baseline/) | CPU baselines: the injection detector, the comparison features, and the rules / `mlp` / `stacking` monitors | [README](mlp_baseline/README.md) |
+| [`logreg_baseline/`](logreg_baseline/) | Logistic regression on the comparison features (`logreg_checks`, `logreg_memory`) | [README](logreg_baseline/README.md) |
+| [`knn_baseline/`](knn_baseline/) | k-nearest-neighbours monitors (`knn`, `knn_embed`) | [README](knn_baseline/README.md) |
 | [`laya_finetuning/`](laya_finetuning/) | Fine-tunes the Laya monitor (GPU) | [README](laya_finetuning/README.md) |
 | [`testing/`](testing/) | Unified tester: trains and scores every monitor over many splits and seeds | [README](testing/README.md) |
 
@@ -69,7 +71,7 @@ laya_finetuning/.venv/bin/python laya_finetuning/train_laya.py --task banking --
 
 ```bash
 agent_env/.venv/bin/python -m pytest -q agent_env/tests
-mlp_baseline/.venv/bin/python -m pytest -q mlp_baseline/tests testing/tests
+mlp_baseline/.venv/bin/python -m pytest -q mlp_baseline/tests testing/tests logreg_baseline/tests knn_baseline/tests
 laya_finetuning/.venv/bin/python -m pytest -q laya_finetuning/tests      # offline, tiny model
 ```
 

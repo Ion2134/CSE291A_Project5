@@ -2,9 +2,7 @@
   "unit": "knn p42 f0 t42",
   "command": [
     "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/agent_env/.venv/bin/python",
-    "-m",
-    "mlp_baseline.cli",
-    "fit-predict",
+    "knn_baseline/fit_predict.py",
     "--model",
     "knn",
     "--train",
@@ -19,8 +17,6 @@
     "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/testing/results/agent-v6/runs/knn/p42_f0_t42/native",
     "--max-features",
     "4096",
-    "--k",
-    "5",
     "--use-checks",
     "--neighbors",
     "5",
@@ -34,8 +30,6 @@
     "args": [
       "--max-features",
       "4096",
-      "--k",
-      "5",
       "--use-checks",
       "--neighbors",
       "5",
@@ -43,5 +37,5 @@
       "middleware"
     ]
   },
-  "elapsed_seconds": 1.2763691250002012
+  "elapsed_seconds": 1.1510122501058504
 }

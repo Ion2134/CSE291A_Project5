@@ -49,7 +49,8 @@ def test_rule_on_real_fold_data():
 import pytest
 
 from mlp_baseline.checks import apply_view, middleware_view
-from mlp_baseline.variants import fit_balance_memory, rule_cause_plus
+from mlp_baseline.checks import fit_balance_memory
+from mlp_baseline.variants import rule_cause_plus
 
 READ = ("user_message: balance\ntrusted: {'account_id': 'a1', 'action': 'read_balance'}\nprior_calls:\n"
         "ledger_snapshot: {'accounts': [{'account_id': 'a1', 'balance_cents': LEDGER}]}\ncall_index: 0\n"
@@ -99,20 +100,3 @@ def test_empty_transfer_output_needs_an_output_line():
     assert rule_cause_plus(done, {}) == "adversary"
     pre_call = "\n".join(line for line in done.splitlines() if not line.startswith("output: "))
     assert rule_cause_plus(pre_call, {}) == "none"  # a call that has not run yet is not an empty result
-
-
-def test_logreg_checks_learns_the_rule_and_memory_columns_ignore_own_group():
-    import numpy as np
-    from mlp_baseline.variants import _out_of_group_memory_columns, logreg_probabilities
-
-    def row(call, cause, group):
-        return {"state": f"user_message: pay {group}\n" + state(call).split("\n", 1)[1],
-                "expected": {"cause": cause, "output_correct": cause == "none"}, "questions": []}
-    wrong = {**OK, "amount_cents": 750}
-    train = [row(OK, "none", i) for i in range(6)] + [row(wrong, "agent", i) for i in range(6, 12)] + \
-            [row({**OK}, "adversary", 12)]
-    train[-1]["state"] = train[-1]["state"].replace("received_args: " + str(OK), "received_args: " + str({**OK, "payee_id": "p9"}))
-    probabilities, details = logreg_probabilities(train, [row(OK, "none", 20), row(wrong, "agent", 21)])
-    assert np.allclose(probabilities.sum(axis=1), 1) and probabilities.argmax(axis=1).tolist() == [0, 1]
-    assert "call_any_mismatch" in details["features"]
-    assert _out_of_group_memory_columns(train).shape == (len(train), 2)

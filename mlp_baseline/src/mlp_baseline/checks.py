@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import ast
 import re
+from collections import defaultdict
 
 import numpy as np
 
@@ -139,3 +140,34 @@ def rule_cause(state: str) -> str:
             or f["output_injection_text"] or f["balance_differs_from_ledger"]):
         return "adversary"
     return "none"
+
+
+# ---------------------------------------------------------------- what the training fold remembers
+
+def fit_balance_memory(train_rows) -> dict:
+    """account -> the set of balances its ``get_balance`` outputs showed in training rows labelled ``none``."""
+    seen = defaultdict(set)
+    for row in train_rows:
+        parsed = parse_state(row["state"])
+        if parsed and parsed.get("tool") == "get_balance" and row["expected"]["cause"] == "none":
+            output = parsed["output"] if isinstance(parsed["output"], dict) else {}
+            if "balance_cents" in output:
+                seen[output.get("account_id")].add(output["balance_cents"])
+    return dict(seen)
+
+
+def empty_transfer(parsed) -> bool:
+    """A finished transfer call whose result is empty (a call that has not run yet has no output line)."""
+    return bool(parsed and parsed["has_output"] and parsed.get("tool") == "initiate_transfer"
+                and parsed["output"] == {})
+
+
+def balance_unseen(parsed, memory: dict) -> bool:
+    """A first-read balance that training never showed for that (known) account."""
+    if not parsed or parsed.get("tool") != "get_balance" or parsed["prior_transfer"]:
+        return False
+    output = parsed["output"]
+    if not isinstance(output, dict) or "balance_cents" not in output:
+        return False
+    known = memory.get(output.get("account_id"))
+    return bool(known) and output["balance_cents"] not in known

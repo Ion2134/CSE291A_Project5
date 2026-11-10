@@ -1,18 +1,13 @@
 {
   "model": "knn",
   "view": "middleware",
-  "seed": 42,
   "train_rows": 318,
   "test_rows": 262,
-  "inner_cv": {
-    "requested_k": 5,
-    "k": 5,
-    "degraded": false
-  },
   "details": {
     "kind": "knn",
     "neighbors": 5,
-    "embedding": null
+    "embedding": null,
+    "use_checks": true
   },
   "test": {
     "samples": 262,
@@ -73,5 +68,5 @@
     "correctness_ece": 0.10485477734959672,
     "inconsistent_answers": 0
   },
-  "elapsed_seconds": 0.2206889169756323
+  "elapsed_seconds": 0.08187808305956423
 }

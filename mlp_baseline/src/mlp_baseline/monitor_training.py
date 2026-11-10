@@ -18,7 +18,7 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from .checks import apply_view, rule_cause
+from .checks import apply_view, fit_balance_memory, rule_cause
 from .common import (DEFAULT_INJECTION_CHECKPOINT, LABELS, check_monitor_row, input_id, read_jsonl, request_group,
                      require_empty_dir, write_json, write_jsonl)
 from .injection_model import InjectionMLPPredictor, load_injection_mlp
@@ -26,10 +26,10 @@ from .metrics import apply_calibration, evaluate, fit_calibration
 from .mlp import MONITOR_FILE, TrainSettings, load_mlp, train_mlp
 from .embeddings import DEFAULT_EMBEDDING
 from .splits import group_kfold
-from .variants import fit_balance_memory, knn_probabilities, logreg_probabilities, rule_cause_plus, rule_probabilities
+from .variants import rule_cause_plus, rule_probabilities
 from .stacking import StackedMonitor, fit_stacker, save_stacker
 
-MODELS = ("mlp", "mlp_embed", "stacking", "rules", "rules_plus", "knn", "knn_embed", "logreg_checks", "logreg_memory")
+MODELS = ("mlp", "mlp_embed", "stacking", "rules", "rules_plus")
 OUT_OF_FOLD = "out-of-fold train-pool predictions only"
 # Fold metrics summarized in each scenario's ``cv_metrics``.
 CV_METRICS = ("cause_macro_f1", "error_auroc", "error_type_accuracy", "error_detection_f1",
@@ -44,7 +44,6 @@ class MonitorSettings:
     train: TrainSettings = field(default_factory=TrainSettings)
     k: int = 5                                                # Inner cross-validation folds.
     injection_checkpoint: Path = DEFAULT_INJECTION_CHECKPOINT  # The stacking monitor's frozen base.
-    neighbors: int = 5                                        # kNN only.
     view: str = "full"                                        # "middleware" hides ledger_snapshot and received_args.
 
 
@@ -89,14 +88,6 @@ def fit_predict(train: Path, test: Path, out: Path, settings: MonitorSettings = 
         output = rule_reference(test_rows)
     elif model == "rules_plus":
         output = rule_plus_reference(train_rows, test_rows)
-    elif model.startswith("logreg"):
-        cause, details = logreg_probabilities(train_rows, test_rows, memory=model == "logreg_memory",
-                                              seed=settings.train.seed)
-        output = ScenarioOutput(cause, cause[:, 0], {"kind": model, **details})
-    elif model.startswith("knn"):
-        cause = knn_probabilities(train_rows, test_rows, train_settings, neighbors=settings.neighbors)
-        output = ScenarioOutput(cause, cause[:, 0], {"kind": model, "neighbors": settings.neighbors,
-                                                     "embedding": train_settings.embedding})
     elif model.startswith("mlp"):
         output = train_first_party_mlp(folds_result["folds"], train_rows, test_rows, models_dir, train_settings)
     else:

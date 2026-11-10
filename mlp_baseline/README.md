@@ -5,7 +5,7 @@ A standalone CPU package with two jobs:
 1. **The injection detector**: an MLP that classifies a message as **benign** or **prompt
    injection**, trained on public datasets. Its checkpoint is also the frozen base of the
    `stacking` model.
-2. **The banking monitors** (rules, logistic regression, kNN, MLPs and `stacking`): they predict
+2. **The banking monitors** (rules, MLPs and `stacking`): they predict
    whether a banking tool call's output is correct and, if not, the cause (`none` / `agent` /
    `adversary`). These are trained and compared against Laya by the unified tester in
    [`../testing/`](../testing/), which calls this package's `fit-predict` command.
@@ -125,22 +125,22 @@ The `mlp` and `stacking` models append these to their text features with `--use-
 
 ### Models
 
-Pass the model name to `fit-predict --model`; the tester uses the same names.
+Pass the model name to `fit-predict --model`; the tester uses the same names. Logistic regression
+(`logreg_checks`, `logreg_memory`) and kNN (`knn`, `knn_embed`) have their own folders,
+[`../logreg_baseline/`](../logreg_baseline/) and [`../knn_baseline/`](../knn_baseline/).
 
 | Model | What it is | Trained on |
 | --- | --- | --- |
 | `rules` | `checks.rule_cause`, a hand-written cascade: any call mismatch → `agent`; else any integrity flag → `adversary`; else `none`. Fixed 0.97 confidence. | Nothing |
-| `logreg_checks` | Multinomial logistic regression on the 12 flags. Learns the cascade from labels and gives real probabilities. Weights are saved in `results.json`. | Training rows |
 | `mlp` | Three-class TF-IDF MLP. Inner group cross-validation picks the epoch count and fits temperature calibration on out-of-fold predictions; the final model is refit on all training rows. | Training rows |
 | `mlp_embed` | The same MLP on a sentence embedding (`BAAI/bge-small-en-v1.5`, from the local Hugging Face cache) instead of TF-IDF | Training rows |
-| `knn`, `knn_embed` | Cosine k-nearest-neighbours (`--neighbors`, default 5) on the MLP's input features; votes are weighted by closeness and inverse class frequency | Training rows |
 | `stacking` | The frozen injection detector (`experiments/injection/seed42/model`) supplies P(injection); a logistic regression on that plus TF-IDF predicts the cause. It lets first-party labels teach that a resisted attack is `none`, not `adversary`. | Training rows (+ external data for the frozen base) |
-| `rules_plus`, `logreg_memory` | `rules` / `logreg_checks` plus two extra checks, described below | Training rows |
+| `rules_plus` | `rules` plus two extra checks, described below | Training rows |
 
 Embeddings are cached on disk by (model, text) hash in `~/.cache/mlp_baseline_embeddings`
 (`MLP_EMBED_CACHE` moves it). The model is loaded from the local cache only; nothing is downloaded.
 
-### Read `rules_plus` and `logreg_memory` as upper bounds
+### Read `rules_plus` (and `logreg_memory`) as upper bounds
 
 They add (1) `balance_unseen`: a first-read balance never seen for that account in training rows
 labelled `none`, and (2) `empty_transfer_output`: a finished transfer whose output is `{}`. The
@@ -152,7 +152,7 @@ their own request group), so there is no test leakage. But:
   real deployment balances change after each transfer, and it would fail silently.
 - The empty-transfer check rests on 3 distinct rows.
 
-Headline the generic `rules` and `logreg_checks`; confirm the extra checks on a freshly generated pool
+`logreg_memory` in `logreg_baseline/` uses the same two checks. Headline the generic `rules` and `logreg_checks`; confirm the extra checks on a freshly generated pool
 before relying on them.
 
 Two commands build datasets from agent runs (`agent_env/data/runs/<name>/`), taking the run
@@ -176,9 +176,9 @@ train/val/test format.
 | --- | --- |
 | `common.py` | Cause labels, row identity (`input_id`) and request grouping, file helpers, `RunRecord` |
 | `mlp.py` | The MLP (TF-IDF or embedding input) and `TrainSettings`: train, save, load |
-| `checks.py` | `middleware_view`, the 12 comparison features, and the `rules` cascade |
-| `embeddings.py` | Cached sentence embeddings of a state (`mlp_embed`, `knn_embed`) |
-| `variants.py` | `rules_plus`, `logreg_checks` / `logreg_memory` and the kNN |
+| `checks.py` | `middleware_view`, the 12 comparison features, the `rules` cascade, and the balance memory |
+| `embeddings.py` | Cached sentence embeddings of a state (`mlp_embed`, and `knn_embed` in `knn_baseline/`) |
+| `variants.py` | `rules_plus` |
 | `metrics.py` | Banking-monitor metrics, temperature calibration, majority baseline |
 | `splits.py` | Group-disjoint stratified partitions and cross-validation folds |
 | `agent_runs.py` | Read agent runs, repair the legacy label bug, merge them into unique rows |

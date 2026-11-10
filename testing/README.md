@@ -9,7 +9,9 @@ The tester **does not train anything itself**. For each fold it calls the model'
 | Model | Command it calls | Owned by |
 | --- | --- | --- |
 | `mlp`, `mlp_embed`, `stacking` | `mlp-baseline fit-predict --model <name> …` | `mlp_baseline/` |
-| `rules`, `rules_plus`, `logreg_checks`, `logreg_memory`, `knn`, `knn_embed` | `mlp-baseline fit-predict --model <name> …` | `mlp_baseline/` |
+| `rules`, `rules_plus` | `mlp-baseline fit-predict --model <name> …` | `mlp_baseline/` |
+| `logreg_checks`, `logreg_memory` | `logreg_baseline/fit_predict.py --model <name> …` | `logreg_baseline/` |
+| `knn`, `knn_embed` | `knn_baseline/fit_predict.py --model <name> …` | `knn_baseline/` |
 | `laya` | `laya_finetuning/train_laya.py --task banking …` | `laya_finetuning/` |
 
 Every model gets the same files and is scored by the same `mlp_baseline.metrics.evaluate`.

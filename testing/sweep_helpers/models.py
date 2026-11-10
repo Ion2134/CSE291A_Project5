@@ -2,7 +2,8 @@
 
 The tester never trains anything itself:
 
-- ``mlp`` / ``stacking`` run ``mlp-baseline fit-predict`` in the mlp_baseline environment
+- ``mlp`` / ``stacking`` / ``rules`` ... run ``mlp-baseline fit-predict`` in the mlp_baseline environment
+- ``logreg_*`` and ``knn*`` run their own folder's ``fit_predict.py`` (same environment)
 - ``laya`` runs ``laya_finetuning/train_laya.py --task banking`` in the Laya environment
 
 Rerunning the sweep skips every unit that already finished.
@@ -27,6 +28,9 @@ _SETTINGS_LOCK_IGNORE = frozenset({"python"})
 
 # Both training commands write their test predictions under this name.
 NATIVE_PREDICTIONS = "test_predictions.jsonl"
+# Models that have their own folder and fit-predict script instead of ``mlp-baseline fit-predict``.
+SCRIPT_MODELS = {"logreg_checks": "logreg_baseline/fit_predict.py", "logreg_memory": "logreg_baseline/fit_predict.py",
+                 "knn": "knn_baseline/fit_predict.py", "knn_embed": "knn_baseline/fit_predict.py"}
 # Checkpoint folders train_laya.py saves; removed after scoring unless keep_checkpoints is set.
 LAYA_CHECKPOINTS = ("model", "last_model")
 # run_unit's status for a unit that finished in an earlier sweep.
@@ -117,6 +121,9 @@ def build_command(sweep: Sweep, unit: Unit, native: Path) -> list[str]:
     if settings.is_laya:
         return [python, "laya_finetuning/train_laya.py", "--task", "banking", *data,
                 "--device", settings.device, "--output", str(native), *settings.args]
+    if settings.name in SCRIPT_MODELS:
+        return [python, SCRIPT_MODELS[settings.name], "--model", settings.name, *data,
+                "--out", str(native), *settings.args]
     return [python, "-m", "mlp_baseline.cli", "fit-predict", "--model", settings.name, *data,
             "--out", str(native), *settings.args]
 

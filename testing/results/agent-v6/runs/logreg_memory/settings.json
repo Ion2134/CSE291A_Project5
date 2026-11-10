@@ -4,8 +4,6 @@
   ],
   "args": [
     "--view",
-    "middleware",
-    "--k",
-    "5"
+    "middleware"
   ]
 }

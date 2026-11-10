@@ -4,11 +4,6 @@
   "seed": 42,
   "train_rows": 313,
   "test_rows": 267,
-  "inner_cv": {
-    "requested_k": 5,
-    "k": 5,
-    "degraded": false
-  },
   "details": {
     "kind": "logreg_memory",
     "features": [
@@ -138,5 +133,5 @@
     "correctness_ece": 0.059218324783217445,
     "inconsistent_answers": 0
   },
-  "elapsed_seconds": 0.40907724999124184
+  "elapsed_seconds": 0.25584079197142273
 }

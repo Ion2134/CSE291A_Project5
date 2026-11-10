@@ -2,9 +2,7 @@
   "unit": "logreg_checks p42 f1 t42",
   "command": [
     "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/agent_env/.venv/bin/python",
-    "-m",
-    "mlp_baseline.cli",
-    "fit-predict",
+    "logreg_baseline/fit_predict.py",
     "--model",
     "logreg_checks",
     "--train",
@@ -18,9 +16,7 @@
     "--out",
     "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/testing/results/agent-v6/runs/logreg_checks/p42_f1_t42/native",
     "--view",
-    "middleware",
-    "--k",
-    "5"
+    "middleware"
   ],
   "settings": {
     "training_seeds": [
@@ -28,10 +24,8 @@
     ],
     "args": [
       "--view",
-      "middleware",
-      "--k",
-      "5"
+      "middleware"
     ]
   },
-  "elapsed_seconds": 1.2431176669779234
+  "elapsed_seconds": 0.584326000069268
 }
