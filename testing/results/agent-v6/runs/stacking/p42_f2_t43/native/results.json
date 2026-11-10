@@ -1,0 +1,175 @@
+{
+  "model": "stacking",
+  "seed": 43,
+  "train_rows": 404,
+  "test_rows": 176,
+  "inner_cv": {
+    "requested_k": 5,
+    "k": 5,
+    "degraded": false
+  },
+  "details": {
+    "kind": "stacked_logreg",
+    "data": "external data trains the frozen binary base only; the stacker trains on the first-party train pool",
+    "base_checkpoint": "mlp_baseline/experiments/injection/seed42/model",
+    "cv_metrics": {
+      "cause_macro_f1": {
+        "mean": 0.9778966131907308,
+        "std": 0.04420677361853831,
+        "folds": 5,
+        "per_fold": [
+          1.0,
+          1.0,
+          1.0,
+          0.8894830659536542,
+          1.0
+        ]
+      },
+      "error_auroc": {
+        "mean": 1.0,
+        "std": 0.0,
+        "folds": 5,
+        "per_fold": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "error_type_accuracy": {
+        "mean": 0.9806451612903226,
+        "std": 0.03870967741935485,
+        "folds": 5,
+        "per_fold": [
+          1.0,
+          1.0,
+          1.0,
+          0.9032258064516129,
+          1.0
+        ]
+      },
+      "error_detection_f1": {
+        "mean": 1.0,
+        "std": 0.0,
+        "folds": 5,
+        "per_fold": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "false_alarm_rate": {
+        "mean": 0.0,
+        "std": 0.0,
+        "folds": 5,
+        "per_fold": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "missed_error_rate": {
+        "mean": 0.0,
+        "std": 0.0,
+        "folds": 5,
+        "per_fold": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "correctness_brier": {
+        "mean": 0.0005620689889266145,
+        "std": 0.0001498337622256686,
+        "folds": 5,
+        "per_fold": [
+          0.0004451259988014138,
+          0.00042419414211444936,
+          0.000832456379283702,
+          0.0004980032259530545,
+          0.000610565198480453
+        ]
+      }
+    },
+    "calibration": {
+      "cause": {
+        "temperature": 0.801069877589622,
+        "fitted": true,
+        "samples": 404
+      },
+      "correctness": {
+        "temperature": 0.25,
+        "fitted": true,
+        "samples": 404
+      },
+      "source": "out-of-fold train-pool predictions only"
+    }
+  },
+  "test": {
+    "samples": 176,
+    "cause_labels": [
+      "none",
+      "agent",
+      "adversary"
+    ],
+    "cause_accuracy": 1.0,
+    "cause_macro_f1": 1.0,
+    "cause_per_class": {
+      "none": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 129
+      },
+      "agent": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 36
+      },
+      "adversary": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 11
+      }
+    },
+    "cause_confusion_matrix": [
+      [
+        129,
+        0,
+        0
+      ],
+      [
+        0,
+        36,
+        0
+      ],
+      [
+        0,
+        0,
+        11
+      ]
+    ],
+    "error_type_accuracy": 1.0,
+    "error_type_support": 47,
+    "error_type_accuracy_when_detected": 1.0,
+    "error_type_detected_support": 47,
+    "correctness_accuracy": 1.0,
+    "error_detection_f1": 1.0,
+    "error_auroc": 1.0,
+    "false_alarm_rate": 0.0,
+    "missed_error_rate": 0.0,
+    "correctness_brier": 2.2522872539609348e-14,
+    "correctness_ece": 3.906954049170963e-08,
+    "inconsistent_answers": 0
+  },
+  "elapsed_seconds": 0.8389896670123562
+}

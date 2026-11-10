@@ -1,0 +1,28 @@
+{
+  "unit": "rules p42 f3 t42",
+  "command": [
+    "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/agent_env/.venv/bin/python",
+    "-m",
+    "mlp_baseline.cli",
+    "fit-predict",
+    "--model",
+    "rules",
+    "--train",
+    "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/testing/results/agent-v6/data/p42/f3/train.jsonl",
+    "--validation",
+    "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/testing/results/agent-v6/data/p42/f3/val.jsonl",
+    "--test",
+    "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/testing/results/agent-v6/data/p42/f3/test.jsonl",
+    "--seed",
+    "42",
+    "--out",
+    "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/testing/results/agent-v6/runs/rules/p42_f3_t42/native"
+  ],
+  "settings": {
+    "training_seeds": [
+      42
+    ],
+    "args": []
+  },
+  "elapsed_seconds": 1.3686877089785412
+}

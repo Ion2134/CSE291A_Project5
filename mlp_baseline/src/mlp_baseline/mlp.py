@@ -10,6 +10,7 @@ import torch
 from sklearn.feature_extraction.text import TfidfVectorizer
 from torch import nn
 
+from .checks import check_matrix
 from .common import LABELS, read_json, write_json
 
 # Files in a checkpoint directory.
@@ -22,6 +23,7 @@ NGRAM_RANGE = (1, 2)
 SECOND_LAYER = 64
 DROPOUT = 0.1
 WEIGHT_DECAY = 0.01
+CHECK_SCALE = 2.0  # Comparison features are 0/1; scaled so the L2-normalised TF-IDF block does not drown them.
 
 
 @dataclass(frozen=True)
@@ -35,6 +37,7 @@ class TrainSettings:
     patience: int | None = None    # Early-stopping patience in epochs (needs validation rows).
     threads: int = 4
     verbose: bool = False          # Print one line per epoch.
+    use_checks: bool = False       # Append explicit comparison features (see checks.py) to the TF-IDF input.
 
 
 class MLP(nn.Module):
@@ -50,14 +53,15 @@ class MLP(nn.Module):
 class MLPPredictor:
     """A loaded checkpoint: vectorizer + network, in eval mode."""
 
-    def __init__(self, model, vectorizer, device="cpu"):
+    def __init__(self, model, vectorizer, device="cpu", use_checks=False):
         self.device = torch.device(device)
         self.model = model.to(self.device).eval()
         self.vectorizer = vectorizer
+        self.use_checks = use_checks
 
     @torch.no_grad()
     def predict_proba(self, rows):
-        values = self.vectorizer.transform([row["state"] for row in rows]).toarray()
+        values = _dense(self.vectorizer, rows, self.use_checks, fit=False)
         return self.model(torch.from_numpy(values).to(self.device)).softmax(-1).cpu().numpy()
 
     def predict(self, rows):
@@ -84,8 +88,8 @@ def train_mlp(train, val, out: Path, settings: TrainSettings = TrainSettings(), 
     torch.manual_seed(settings.seed)
     vectorizer = TfidfVectorizer(max_features=settings.max_features, ngram_range=NGRAM_RANGE, dtype=np.float32)
     # Vocabulary and IDF come from training rows only, never from a holdout.
-    x_train = _features(vectorizer.fit_transform(_texts(train)), device)
-    x_val = None if val is None else _features(vectorizer.transform(_texts(val)), device)
+    x_train = torch.from_numpy(_dense(vectorizer, train, settings.use_checks, fit=True)).to(device)
+    x_val = None if val is None else torch.from_numpy(_dense(vectorizer, val, settings.use_checks, fit=False)).to(device)
     y_train = _targets(train, labels, target, device)
     y_val = None if val is None else _targets(val, labels, target, device)
 
@@ -101,7 +105,8 @@ def train_mlp(train, val, out: Path, settings: TrainSettings = TrainSettings(), 
     report = {"architecture": f"TF-IDF -> {hidden} ReLU -> {SECOND_LAYER} ReLU -> {len(labels)} {target} logits",
               "input_features": x_train.shape[1], "hidden": hidden,
               "parameters": sum(p.numel() for p in model.parameters()), "labels": list(labels), "target": target,
-              "seed": settings.seed, "epochs": settings.epochs, "batch_size": settings.batch_size, "lr": lr,
+              "use_checks": settings.use_checks, "seed": settings.seed, "epochs": settings.epochs,
+              "batch_size": settings.batch_size, "lr": lr,
               "best_epoch": best_epoch, "epochs_completed": len(history), "patience": settings.patience,
               "selection": ("minimum validation cross entropy" if val is not None
                             else "fixed epoch count selected by cross-validation"),
@@ -161,8 +166,13 @@ def _texts(rows) -> list[str]:
     return [row["state"] for row in rows]
 
 
-def _features(matrix, device):
-    return torch.from_numpy(matrix.toarray()).to(device)
+def _dense(vectorizer, rows, use_checks: bool, *, fit: bool) -> np.ndarray:
+    """TF-IDF matrix (plus scaled comparison features when ``use_checks``) as a dense float32 array."""
+    texts = _texts(rows)
+    tfidf = (vectorizer.fit_transform(texts) if fit else vectorizer.transform(texts)).toarray().astype(np.float32)
+    if not use_checks:
+        return tfidf
+    return np.hstack([tfidf, CHECK_SCALE * check_matrix(texts)])
 
 
 def _targets(rows, labels, target, device):
@@ -185,4 +195,4 @@ def load_mlp(path: Path, device="cpu") -> MLPPredictor:
 
     model = MLP(config["input_features"], config["hidden"], len(config["labels"]))
     model.load_state_dict(torch.load(path / WEIGHTS_FILE, map_location="cpu", weights_only=True))
-    return MLPPredictor(model, vectorizer, device)
+    return MLPPredictor(model, vectorizer, device, use_checks=config.get("use_checks", False))

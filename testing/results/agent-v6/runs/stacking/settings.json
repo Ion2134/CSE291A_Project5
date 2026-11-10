@@ -1,0 +1,11 @@
+{
+  "args": [
+    "--max-features",
+    "4096",
+    "--k",
+    "5",
+    "--injection-checkpoint",
+    "mlp_baseline/experiments/injection/seed42/model",
+    "--use-checks"
+  ]
+}

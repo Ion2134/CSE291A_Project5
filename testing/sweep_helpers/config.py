@@ -14,7 +14,7 @@ REPO = Path(__file__).resolve().parents[2]
 # The tester reuses mlp_baseline's merge, grouping and scoring code (never its training code).
 sys.path.insert(0, str(REPO / "mlp_baseline" / "src"))
 
-MODELS = ("mlp", "stacking", "laya")
+MODELS = ("mlp", "stacking", "rules", "laya")
 
 
 # ---------------------------------------------------------------- config

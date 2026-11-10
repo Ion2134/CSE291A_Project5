@@ -1,0 +1,40 @@
+{
+  "unit": "stacking p42 f3 t43",
+  "command": [
+    "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/agent_env/.venv/bin/python",
+    "-m",
+    "mlp_baseline.cli",
+    "fit-predict",
+    "--model",
+    "stacking",
+    "--train",
+    "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/testing/results/agent-v6/data/p42/f3/train.jsonl",
+    "--validation",
+    "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/testing/results/agent-v6/data/p42/f3/val.jsonl",
+    "--test",
+    "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/testing/results/agent-v6/data/p42/f3/test.jsonl",
+    "--seed",
+    "43",
+    "--out",
+    "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/testing/results/agent-v6/runs/stacking/p42_f3_t43/native",
+    "--max-features",
+    "4096",
+    "--k",
+    "5",
+    "--injection-checkpoint",
+    "mlp_baseline/experiments/injection/seed42/model",
+    "--use-checks"
+  ],
+  "settings": {
+    "args": [
+      "--max-features",
+      "4096",
+      "--k",
+      "5",
+      "--injection-checkpoint",
+      "mlp_baseline/experiments/injection/seed42/model",
+      "--use-checks"
+    ]
+  },
+  "elapsed_seconds": 2.1888007919769734
+}

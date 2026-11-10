@@ -1,0 +1,44 @@
+{
+  "unit": "mlp p43 f3 t44",
+  "command": [
+    "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/agent_env/.venv/bin/python",
+    "-m",
+    "mlp_baseline.cli",
+    "fit-predict",
+    "--model",
+    "mlp",
+    "--train",
+    "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/testing/results/agent-v6/data/p43/f3/train.jsonl",
+    "--validation",
+    "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/testing/results/agent-v6/data/p43/f3/val.jsonl",
+    "--test",
+    "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/testing/results/agent-v6/data/p43/f3/test.jsonl",
+    "--seed",
+    "44",
+    "--out",
+    "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/testing/results/agent-v6/runs/mlp/p43_f3_t44/native",
+    "--epochs",
+    "40",
+    "--batch-size",
+    "16",
+    "--max-features",
+    "4096",
+    "--k",
+    "5",
+    "--use-checks"
+  ],
+  "settings": {
+    "args": [
+      "--epochs",
+      "40",
+      "--batch-size",
+      "16",
+      "--max-features",
+      "4096",
+      "--k",
+      "5",
+      "--use-checks"
+    ]
+  },
+  "elapsed_seconds": 5.198378750006668
+}
