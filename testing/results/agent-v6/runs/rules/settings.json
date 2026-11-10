@@ -2,5 +2,8 @@
   "training_seeds": [
     42
   ],
-  "args": []
+  "args": [
+    "--view",
+    "middleware"
+  ]
 }

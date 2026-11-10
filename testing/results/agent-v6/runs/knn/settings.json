@@ -1,0 +1,16 @@
+{
+  "training_seeds": [
+    42
+  ],
+  "args": [
+    "--max-features",
+    "4096",
+    "--k",
+    "5",
+    "--use-checks",
+    "--neighbors",
+    "5",
+    "--view",
+    "middleware"
+  ]
+}

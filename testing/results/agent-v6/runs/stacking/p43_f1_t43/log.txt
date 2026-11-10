@@ -108,6 +108,6 @@
   ret = a @ b
 {
   "model": "stacking",
-  "test_rows": 87,
+  "test_rows": 267,
   "predictions": "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/testing/results/agent-v6/runs/stacking/p43_f1_t43/native/test_predictions.jsonl"
 }

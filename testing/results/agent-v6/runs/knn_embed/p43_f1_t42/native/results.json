@@ -1,0 +1,77 @@
+{
+  "model": "knn_embed",
+  "view": "middleware",
+  "seed": 42,
+  "train_rows": 313,
+  "test_rows": 267,
+  "inner_cv": {
+    "requested_k": 5,
+    "k": 5,
+    "degraded": false
+  },
+  "details": {
+    "kind": "knn_embed",
+    "neighbors": 5,
+    "embedding": "BAAI/bge-small-en-v1.5"
+  },
+  "test": {
+    "samples": 267,
+    "cause_labels": [
+      "none",
+      "agent",
+      "adversary"
+    ],
+    "cause_accuracy": 0.8689138576779026,
+    "cause_macro_f1": 0.7396176584695661,
+    "cause_per_class": {
+      "none": {
+        "precision": 1.0,
+        "recall": 0.8128654970760234,
+        "f1": 0.896774193548387,
+        "support": 171
+      },
+      "agent": {
+        "precision": 0.9655172413793104,
+        "recall": 1.0,
+        "f1": 0.9824561403508771,
+        "support": 84
+      },
+      "adversary": {
+        "precision": 0.21951219512195122,
+        "recall": 0.75,
+        "f1": 0.33962264150943394,
+        "support": 12
+      }
+    },
+    "cause_confusion_matrix": [
+      [
+        139,
+        0,
+        32
+      ],
+      [
+        0,
+        84,
+        0
+      ],
+      [
+        0,
+        3,
+        9
+      ]
+    ],
+    "error_type_accuracy": 0.96875,
+    "error_type_support": 96,
+    "error_type_accuracy_when_detected": 0.96875,
+    "error_type_detected_support": 96,
+    "correctness_accuracy": 0.8801498127340824,
+    "error_detection_f1": 0.8571428571428571,
+    "error_auroc": 0.9998172514619883,
+    "false_alarm_rate": 0.1871345029239766,
+    "missed_error_rate": 0.0,
+    "correctness_brier": 0.06532126659839903,
+    "correctness_ece": 0.14385333446088383,
+    "inconsistent_answers": 0
+  },
+  "elapsed_seconds": 0.2025579169858247
+}

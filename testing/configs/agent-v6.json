@@ -18,13 +18,10 @@
   "split": {
     "seeds": [
       42,
-      43,
-      44,
-      45,
-      46
+      43
     ],
-    "k": 5,
-    "max_test_fraction": 0.35,
+    "k": 2,
+    "max_test_fraction": 0.65,
     "laya_val_fraction": 0.2
   },
   "training_seeds": [
@@ -43,7 +40,92 @@
         "4096",
         "--k",
         "5",
-        "--use-checks"
+        "--use-checks",
+        "--view",
+        "middleware"
+      ]
+    },
+    "rules": {
+      "training_seeds": [
+        42
+      ],
+      "args": [
+        "--view",
+        "middleware"
+      ]
+    },
+    "mlp_embed": {
+      "args": [
+        "--epochs",
+        "40",
+        "--batch-size",
+        "16",
+        "--k",
+        "5",
+        "--use-checks",
+        "--view",
+        "middleware"
+      ]
+    },
+    "rules_plus": {
+      "training_seeds": [
+        42
+      ],
+      "args": [
+        "--view",
+        "middleware"
+      ]
+    },
+    "knn": {
+      "training_seeds": [
+        42
+      ],
+      "args": [
+        "--max-features",
+        "4096",
+        "--k",
+        "5",
+        "--use-checks",
+        "--neighbors",
+        "5",
+        "--view",
+        "middleware"
+      ]
+    },
+    "knn_embed": {
+      "training_seeds": [
+        42
+      ],
+      "args": [
+        "--k",
+        "5",
+        "--use-checks",
+        "--neighbors",
+        "5",
+        "--view",
+        "middleware"
+      ]
+    },
+    "logreg_checks": {
+      "training_seeds": [
+        42
+      ],
+      "args": [
+        "--view",
+        "middleware",
+        "--k",
+        "5"
+      ]
+    },
+    "logreg_memory": {
+      "training_seeds": [
+        42
+      ],
+      "args": [
+        "--view",
+        "middleware",
+        "--k",
+        "5"
       ]
     },
     "stacking": {
@@ -54,14 +136,10 @@
         "5",
         "--injection-checkpoint",
         "mlp_baseline/experiments/injection/seed42/model",
-        "--use-checks"
+        "--use-checks",
+        "--view",
+        "middleware"
       ]
-    },
-    "rules": {
-      "training_seeds": [
-        42
-      ],
-      "args": []
     }
   }
 }

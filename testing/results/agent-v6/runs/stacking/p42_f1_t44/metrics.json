@@ -1,59 +1,59 @@
 {
-  "samples": 74,
+  "samples": 318,
   "cause_labels": [
     "none",
     "agent",
     "adversary"
   ],
-  "cause_accuracy": 1.0,
-  "cause_macro_f1": 1.0,
+  "cause_accuracy": 0.9748427672955975,
+  "cause_macro_f1": 0.9202602444832899,
   "cause_per_class": {
     "none": {
-      "precision": 1.0,
-      "recall": 1.0,
-      "f1": 1.0,
-      "support": 46
+      "precision": 0.981042654028436,
+      "recall": 0.9951923076923077,
+      "f1": 0.9880668257756563,
+      "support": 208
     },
     "agent": {
-      "precision": 1.0,
+      "precision": 0.967032967032967,
       "recall": 1.0,
-      "f1": 1.0,
-      "support": 25
+      "f1": 0.9832402234636871,
+      "support": 88
     },
     "adversary": {
-      "precision": 1.0,
-      "recall": 1.0,
-      "f1": 1.0,
-      "support": 3
+      "precision": 0.9375,
+      "recall": 0.6818181818181818,
+      "f1": 0.7894736842105263,
+      "support": 22
     }
   },
   "cause_confusion_matrix": [
     [
-      46,
+      207,
       0,
-      0
+      1
     ],
     [
       0,
-      25,
+      88,
       0
     ],
     [
-      0,
-      0,
-      3
+      4,
+      3,
+      15
     ]
   ],
-  "error_type_accuracy": 1.0,
-  "error_type_support": 28,
-  "error_type_accuracy_when_detected": 1.0,
-  "error_type_detected_support": 28,
-  "correctness_accuracy": 1.0,
-  "error_detection_f1": 1.0,
-  "error_auroc": 1.0,
-  "false_alarm_rate": 0.0,
-  "missed_error_rate": 0.0,
-  "correctness_brier": 1.0259873319388989e-16,
-  "correctness_ece": 2.5730667596590706e-09,
+  "error_type_accuracy": 0.9363636363636364,
+  "error_type_support": 110,
+  "error_type_accuracy_when_detected": 0.9716981132075472,
+  "error_type_detected_support": 106,
+  "correctness_accuracy": 0.9842767295597484,
+  "error_detection_f1": 0.9769585253456221,
+  "error_auroc": 0.9968531468531469,
+  "false_alarm_rate": 0.004807692307692308,
+  "missed_error_rate": 0.03636363636363636,
+  "correctness_brier": 0.01488080869317214,
+  "correctness_ece": 0.011273458950069586,
   "inconsistent_answers": 0
 }

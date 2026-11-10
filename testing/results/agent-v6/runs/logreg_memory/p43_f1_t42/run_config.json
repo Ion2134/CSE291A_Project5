@@ -1,0 +1,37 @@
+{
+  "unit": "logreg_memory p43 f1 t42",
+  "command": [
+    "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/agent_env/.venv/bin/python",
+    "-m",
+    "mlp_baseline.cli",
+    "fit-predict",
+    "--model",
+    "logreg_memory",
+    "--train",
+    "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/testing/results/agent-v6/data/p43/f1/train.jsonl",
+    "--validation",
+    "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/testing/results/agent-v6/data/p43/f1/val.jsonl",
+    "--test",
+    "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/testing/results/agent-v6/data/p43/f1/test.jsonl",
+    "--seed",
+    "42",
+    "--out",
+    "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/testing/results/agent-v6/runs/logreg_memory/p43_f1_t42/native",
+    "--view",
+    "middleware",
+    "--k",
+    "5"
+  ],
+  "settings": {
+    "training_seeds": [
+      42
+    ],
+    "args": [
+      "--view",
+      "middleware",
+      "--k",
+      "5"
+    ]
+  },
+  "elapsed_seconds": 1.4651853330433369
+}

@@ -8,6 +8,8 @@
     "4096",
     "--k",
     "5",
-    "--use-checks"
+    "--use-checks",
+    "--view",
+    "middleware"
   ]
 }

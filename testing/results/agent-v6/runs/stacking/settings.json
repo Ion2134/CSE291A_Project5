@@ -6,6 +6,8 @@
     "5",
     "--injection-checkpoint",
     "mlp_baseline/experiments/injection/seed42/model",
-    "--use-checks"
+    "--use-checks",
+    "--view",
+    "middleware"
   ]
 }

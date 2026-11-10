@@ -25,7 +25,9 @@
     "4096",
     "--k",
     "5",
-    "--use-checks"
+    "--use-checks",
+    "--view",
+    "middleware"
   ],
   "settings": {
     "args": [
@@ -37,8 +39,10 @@
       "4096",
       "--k",
       "5",
-      "--use-checks"
+      "--use-checks",
+      "--view",
+      "middleware"
     ]
   },
-  "elapsed_seconds": 5.314450709032826
+  "elapsed_seconds": 3.4292464579921216
 }

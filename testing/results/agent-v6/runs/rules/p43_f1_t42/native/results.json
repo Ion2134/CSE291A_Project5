@@ -1,8 +1,9 @@
 {
   "model": "rules",
+  "view": "middleware",
   "seed": 42,
-  "train_rows": 493,
-  "test_rows": 87,
+  "train_rows": 313,
+  "test_rows": 267,
   "inner_cv": {
     "requested_k": 5,
     "k": 5,
@@ -13,63 +14,63 @@
     "data": "none; hand-written rule on comparison features"
   },
   "test": {
-    "samples": 87,
+    "samples": 267,
     "cause_labels": [
       "none",
       "agent",
       "adversary"
     ],
-    "cause_accuracy": 1.0,
-    "cause_macro_f1": 1.0,
+    "cause_accuracy": 0.9812734082397003,
+    "cause_macro_f1": 0.9044947640418877,
     "cause_per_class": {
       "none": {
-        "precision": 1.0,
+        "precision": 0.9884393063583815,
         "recall": 1.0,
-        "f1": 1.0,
-        "support": 58
+        "f1": 0.9941860465116279,
+        "support": 171
       },
       "agent": {
-        "precision": 1.0,
+        "precision": 0.9655172413793104,
         "recall": 1.0,
-        "f1": 1.0,
-        "support": 22
+        "f1": 0.9824561403508771,
+        "support": 84
       },
       "adversary": {
         "precision": 1.0,
-        "recall": 1.0,
-        "f1": 1.0,
-        "support": 7
+        "recall": 0.5833333333333334,
+        "f1": 0.7368421052631579,
+        "support": 12
       }
     },
     "cause_confusion_matrix": [
       [
-        58,
+        171,
         0,
         0
       ],
       [
         0,
-        22,
+        84,
         0
       ],
       [
-        0,
-        0,
+        2,
+        3,
         7
       ]
     ],
-    "error_type_accuracy": 1.0,
-    "error_type_support": 29,
-    "error_type_accuracy_when_detected": 1.0,
-    "error_type_detected_support": 29,
-    "correctness_accuracy": 1.0,
-    "error_detection_f1": 1.0,
-    "error_auroc": 1.0,
+    "error_type_accuracy": 0.9479166666666666,
+    "error_type_support": 96,
+    "error_type_accuracy_when_detected": 0.9680851063829787,
+    "error_type_detected_support": 94,
+    "correctness_accuracy": 0.9925093632958801,
+    "error_detection_f1": 0.9894736842105263,
+    "error_auroc": 0.9895833333333333,
     "false_alarm_rate": 0.0,
-    "missed_error_rate": 0.0,
-    "correctness_brier": 0.0006750000000000014,
-    "correctness_ece": 0.025000000000000022,
+    "missed_error_rate": 0.020833333333333332,
+    "correctness_brier": 0.007703558052434458,
+    "correctness_ece": 0.017228464419475564,
     "inconsistent_answers": 0
   },
-  "elapsed_seconds": 0.25889712502248585
+  "elapsed_seconds": 0.18674304202431813
 }

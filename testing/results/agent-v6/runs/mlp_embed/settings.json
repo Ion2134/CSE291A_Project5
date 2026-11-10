@@ -1,0 +1,13 @@
+{
+  "args": [
+    "--epochs",
+    "40",
+    "--batch-size",
+    "16",
+    "--k",
+    "5",
+    "--use-checks",
+    "--view",
+    "middleware"
+  ]
+}

@@ -1,0 +1,77 @@
+{
+  "model": "knn",
+  "view": "middleware",
+  "seed": 42,
+  "train_rows": 262,
+  "test_rows": 318,
+  "inner_cv": {
+    "requested_k": 5,
+    "k": 5,
+    "degraded": false
+  },
+  "details": {
+    "kind": "knn",
+    "neighbors": 5,
+    "embedding": null
+  },
+  "test": {
+    "samples": 318,
+    "cause_labels": [
+      "none",
+      "agent",
+      "adversary"
+    ],
+    "cause_accuracy": 0.9339622641509434,
+    "cause_macro_f1": 0.8606939631401967,
+    "cause_per_class": {
+      "none": {
+        "precision": 1.0,
+        "recall": 0.9134615384615384,
+        "f1": 0.9547738693467337,
+        "support": 208
+      },
+      "agent": {
+        "precision": 0.967032967032967,
+        "recall": 1.0,
+        "f1": 0.9832402234636871,
+        "support": 88
+      },
+      "adversary": {
+        "precision": 0.5135135135135135,
+        "recall": 0.8636363636363636,
+        "f1": 0.6440677966101694,
+        "support": 22
+      }
+    },
+    "cause_confusion_matrix": [
+      [
+        190,
+        0,
+        18
+      ],
+      [
+        0,
+        88,
+        0
+      ],
+      [
+        0,
+        3,
+        19
+      ]
+    ],
+    "error_type_accuracy": 0.9727272727272728,
+    "error_type_support": 110,
+    "error_type_accuracy_when_detected": 0.9727272727272728,
+    "error_type_detected_support": 110,
+    "correctness_accuracy": 0.9433962264150944,
+    "error_detection_f1": 0.9243697478991597,
+    "error_auroc": 0.9993881118881119,
+    "false_alarm_rate": 0.08653846153846154,
+    "missed_error_rate": 0.0,
+    "correctness_brier": 0.040270838545464115,
+    "correctness_ece": 0.10876645612447691,
+    "inconsistent_answers": 0
+  },
+  "elapsed_seconds": 0.1995791660156101
+}
