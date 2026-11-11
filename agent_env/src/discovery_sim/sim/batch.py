@@ -19,7 +19,7 @@ from typing import Any
 from discovery_sim.sim.episode import run_episodes
 from discovery_sim.sim.run_config import RunConfig
 from discovery_sim.sim.run_output import RUN_MARKER
-from discovery_sim.sim.task_defs import task_sets
+from discovery_sim.sim.task_defs import task_set_names
 from discovery_sim.sim.task_sample import TASK_SAMPLE_MODES
 
 AGENT_ENV = Path(__file__).resolve().parents[3]   # agent_env/ (batch.py -> sim -> discovery_sim -> src)
@@ -50,7 +50,7 @@ class BatchConfig:
     models: tuple[str, ...]
     temperatures: tuple[float, ...]
     task_sets: tuple[str, ...] = ("core",)
-    task_sample: str = "fixed"         # For every run: fixed, parameterized, hard or mixed.
+    task_sample: str = "fixed"         # For every core run: fixed or parameterized (hard ignores it).
     episodes: int = 50
     max_episodes: int | None = None    # Episode budget; None runs the whole grid.
     sample_seed: int = 0               # Which cells the budget picks.
@@ -80,9 +80,9 @@ class BatchConfig:
     def validate(self) -> None:
         if not self.models or not self.temperatures or not self.task_sets:
             raise ValueError("A batch needs at least one model, temperature and task set")
-        unknown_sets = set(self.task_sets) - set(task_sets())
+        unknown_sets = set(self.task_sets) - set(task_set_names())
         if unknown_sets:
-            raise ValueError(f"Unknown task sets {sorted(unknown_sets)}; expected some of {sorted(task_sets())}")
+            raise ValueError(f"Unknown task sets {sorted(unknown_sets)}; expected some of {task_set_names()}")
         if self.task_sample not in TASK_SAMPLE_MODES:
             raise ValueError(f"task_sample must be one of {TASK_SAMPLE_MODES}")
         if self.episodes < 1:

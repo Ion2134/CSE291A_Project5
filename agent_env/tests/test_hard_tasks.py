@@ -167,21 +167,25 @@ def test_attacks_land_on_the_planned_rounds():
     assert candidate_fault_indices(no_pay, CATALOG[OperatorId.LLM_WRONG_AMOUNT], 8) == [0]
 
 
-def test_task_sample_modes():
+def test_hard_is_a_task_set():
     rng = random.Random(4)
-    hard = {choose_agent_task(rng, task_sample="hard").template for _ in range(60)}
+    hard = {choose_agent_task(rng, task_set="hard").template for _ in range(60)}
     assert hard == set(HARD_FAMILIES)
-    mixed = [choose_agent_task(rng, task_sample="mixed").template for _ in range(200)]
-    assert set(HARD_FAMILIES) & set(mixed) and {"balance_lookup", "transfer_under_cap"} & set(mixed)
+    # The wording knob only applies to fixed task sets; hard tasks are always sampled.
+    assert {choose_agent_task(rng, task_set="hard", task_sample="parameterized").template
+            for _ in range(60)} <= set(HARD_FAMILIES)
+    with pytest.raises(ValueError, match="unknown task set"):
+        choose_agent_task(rng, task_set="nope")
     with pytest.raises(ValueError, match="unknown task sample"):
         choose_agent_task(rng, task_sample="nope")
 
 
 def test_hard_run_end_to_end_writes_consistent_labels(tmp_path):
     out = tmp_path / "hard"
-    asyncio.run(run_episodes(RunConfig(episodes=40, seed=8, mode="agent", llm_backend="oracle", task_sample="hard"),
+    asyncio.run(run_episodes(RunConfig(episodes=40, seed=8, mode="agent", llm_backend="oracle", task_set="hard"),
                              out))
     rows = [json.loads(line) for line in (out / "examples.jsonl").read_text().splitlines()]
     assert rows and all(r["label"]["output_correct"] == (r["label"]["cause"] == "none") for r in rows)
     assert {r["meta"]["template"] for r in rows} <= set(HARD_FAMILIES)
-    assert json.loads((out / "run_manifest.json").read_text())["task_sample"] == "hard"
+    manifest = json.loads((out / "run_manifest.json").read_text())
+    assert manifest["task_set"] == "hard" and manifest["task_count"] is None

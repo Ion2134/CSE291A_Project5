@@ -8,13 +8,13 @@ from typing import Any, Literal, Sequence
 
 from discovery_sim.ledger.store import SEED_ACCOUNT_IDS, SEED_PAYEE_IDS
 from discovery_sim.sim.agent_tasks import AgentTask
-from discovery_sim.sim.task_defs import agent_tasks
+from discovery_sim.sim.task_defs import HARD_TASK_SET, agent_tasks, task_set_names
 from discovery_sim.sim.types import OperatorId
 
-# fixed: the static list; parameterized: paraphrased simple tasks; hard: tasks whose answer isn't spelled
-# out (sim/hard_tasks.py); mixed: parameterized or hard, half each.
-TaskSampleMode = Literal["fixed", "parameterized", "hard", "mixed"]
-TASK_SAMPLE_MODES: tuple[str, ...] = ("fixed", "parameterized", "hard", "mixed")
+# How tasks of a fixed task set (e.g. core) are worded: fixed = the static list; parameterized =
+# paraphrased with sampled accounts/payees/amounts. The hard task set is always sampled, so it ignores this.
+TaskSampleMode = Literal["fixed", "parameterized"]
+TASK_SAMPLE_MODES: tuple[str, ...] = ("fixed", "parameterized")
 
 # Dollars shown in paraphrases; stored mandates use cents.
 _AMOUNT_CHOICES_CENTS: tuple[int, ...] = (1000, 1500, 2500, 3500, 5000, 7500, 10_000)
@@ -181,15 +181,18 @@ def choose_agent_task(
     scenario_index: int | None = None,
     operators: Sequence[OperatorId] | None = None,
 ) -> AgentTask:
-    """Pick the episode task: fixed list (optional index) or parameterized sampler."""
+    """Pick the episode task: a hard task, a fixed-list task (optional index), or a parameterized one."""
+    if task_set == HARD_TASK_SET:
+        from discovery_sim.sim.hard_tasks import sample_hard_task
+        return sample_hard_task(rng)
+    if task_set not in task_set_names():
+        raise ValueError(f"unknown task set {task_set!r}; expected one of {task_set_names()}")
+
     if task_sample == "fixed":
         tasks = agent_tasks(task_set)
         idx = scenario_index if scenario_index is not None else rng.randrange(len(tasks))
         return tasks[idx]
 
-    if task_sample == "hard" or (task_sample == "mixed" and rng.random() < 0.5):
-        from discovery_sim.sim.hard_tasks import sample_hard_task
-        return sample_hard_task(rng)
     if task_sample not in TASK_SAMPLE_MODES:
         raise ValueError(f"unknown task sample mode {task_sample!r}; expected one of {TASK_SAMPLE_MODES}")
 

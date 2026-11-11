@@ -26,6 +26,7 @@ from discovery_sim.sim.orchestrator import AgentOrchestrator, ToolCallError, age
 from discovery_sim.sim.run_config import RunConfig
 from discovery_sim.sim.run_output import resolve_run_dir, write_run_manifest
 from discovery_sim.sim.scenarios import EpisodeScenario, all_scenarios, tool_call_from_planned
+from discovery_sim.sim.task_defs import task_sets
 from discovery_sim.sim.task_sample import choose_agent_task
 from discovery_sim.sim.types import AttackSpec, EpisodeOutcome, LabeledExample, OperatorId, ToolCall
 
@@ -503,7 +504,7 @@ def _run_manifest(config: RunConfig, workers: int, planners: list[str], out_dir:
         "temperature": config.temperature,
         "task_set": config.task_set,
         "task_sample": config.task_sample,
-        "task_count": len(agent_tasks(config.task_set)),
+        "task_count": len(agent_tasks(config.task_set)) if config.task_set in task_sets() else None,
         "operators": list(config.operators) if config.operators else None,
         "operator_weights": dict(config.operator_weights) if config.operator_weights else None,
         "out_dir": str(out_dir),

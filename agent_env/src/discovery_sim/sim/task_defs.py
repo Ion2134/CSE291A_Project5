@@ -169,19 +169,29 @@ def all_task_defs() -> list[TaskDef]:
     ]
 
 
+# A task set that is generated fresh each episode (sim/hard_tasks.py) instead of being a fixed list.
+HARD_TASK_SET = "hard"
+
+
 def task_sets() -> dict[str, list[TaskDef]]:
-    """Named groups of tasks an agent-mode run can draw from (``--task-set``).
+    """The fixed task lists an agent-mode run can draw from (``--task-set``).
 
     ``core`` is the original ten tasks; add a set here to make new tasks selectable without
-    changing what existing runs (and seeds) produce.
+    changing what existing runs (and seeds) produce. ``hard`` is also a task set, but it is
+    generated per episode, so it is not listed here (see ``task_set_names``).
     """
     return {"core": all_task_defs()}
+
+
+def task_set_names() -> list[str]:
+    """Every valid ``--task-set`` value."""
+    return sorted([*task_sets(), HARD_TASK_SET])
 
 
 def agent_tasks(task_set: str = "core") -> list[AgentTask]:
     sets = task_sets()
     if task_set not in sets:
-        raise ValueError(f"unknown task set {task_set!r}; expected one of {sorted(sets)}")
+        raise ValueError(f"unknown task set {task_set!r}; expected one of {sorted(sets)} (fixed lists)")
     return [
         AgentTask(
             task_id=t.task_id,

@@ -16,6 +16,8 @@ from discovery_sim.sim.episode import run_episodes
 from discovery_sim.sim.operators import parse_operator_ids, parse_operator_weights
 from discovery_sim.sim.prompt_data import PromptGenConfig, generate_prompt_data
 from discovery_sim.sim.run_config import RunConfig
+from discovery_sim.sim.task_defs import task_set_names
+from discovery_sim.sim.task_sample import TASK_SAMPLE_MODES
 
 
 async def _serve_all(host: str, chatbot_port: int, bank_port: int, payment_port: int) -> None:
@@ -195,14 +197,14 @@ def main() -> None:
     run.add_argument(
         "--task-set",
         default="core",
-        help="Agent-mode task set to draw tasks from (default: core, the original ten tasks)",
+        choices=task_set_names(),
+        help="Agent-mode task set: core (the original ten tasks) or hard (answer not spelled out)",
     )
     run.add_argument(
         "--task-sample",
-        choices=["fixed", "parameterized", "hard", "mixed"],
+        choices=list(TASK_SAMPLE_MODES),
         default="fixed",
-        help=("Agent-mode task selection: fixed list from --task-set, parameterized paraphrases, hard tasks "
-              "whose answer isn't spelled out, or mixed (parameterized or hard)"),
+        help="How core tasks are worded: the fixed list, or parameterized paraphrases (hard ignores this)",
     )
     run.add_argument(
         "--operators",

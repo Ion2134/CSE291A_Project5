@@ -85,8 +85,8 @@ discovery-sim run --mode scripted --episodes 100 --seed 42 --out data/runs/scrip
 | `--llm-backend lmstudio\|triton` | `lmstudio` | Chat client for agent mode (see [Model backends](#model-backends)) |
 | `--llm-base-url`, `--llm-model` | env | Override the backend's base URL and model env vars |
 | `--temperature T` | 0.2 | Agent mode: the model's sampling temperature |
-| `--task-set NAME` | `core` | Agent mode: which task set episodes draw from (`core` = the ten tasks below) |
-| `--task-sample fixed\|parameterized\|hard\|mixed` | `fixed` | Agent mode: the static task list, paraphrased simple tasks (more `request_group`s after merge), [hard tasks](#hard-tasks) whose answer isn't spelled out, or `mixed` (parameterized or hard, half each) |
+| `--task-set core\|hard` | `core` | Agent mode: which task set episodes draw from: `core` (the ten tasks below) or `hard` ([hard tasks](#hard-tasks), whose answer isn't spelled out) |
+| `--task-sample fixed\|parameterized` | `fixed` | Agent mode: how `core` tasks are worded: the static list, or paraphrased with sampled accounts/payees/amounts (more `request_group`s after merge). `hard` tasks are always sampled and ignore it |
 | `--operators LIST` | all | Comma-separated allow-list of operators (e.g. `llm_wrong_account,llm_wrong_amount,benign`) |
 | `--operator-weights MAP` | uniform | Comma-separated `name=weight` sampling weights among the allowed operators |
 
@@ -109,7 +109,7 @@ There are 10 banking tasks in the `core` set: balance lookup on two accounts, li
 
 ### Hard tasks
 
-With `--task-sample hard` (or `mixed`), tasks no longer spell out the correct arguments. The agent
+With `--task-set hard`, tasks no longer spell out the correct arguments. The agent
 and the monitor only see what the user said (the `trusted:` line holds this **instruction**); the
 correct calls are resolved from the seeded ledger into a hidden **mandate** that only labels and
 attacks use. Defined in `src/discovery_sim/sim/hard_tasks.py`:
@@ -142,6 +142,10 @@ discovery-sim batch --config configs/batch-example.json --dry-run   # list the p
 discovery-sim batch --config configs/batch-example.json             # run them
 ```
 
+`configs/batch-hard.json` adds [hard tasks](#hard-tasks): `task_sets: ["core", "hard"]` with
+paraphrased core tasks, over 3 models × 3 temperatures; the budget picks 6 runs of 50 episodes
+(300 total), covering both task sets. Runs are named `hard1-<model>-t<temp>-<core|hard>`.
+
 | Config key | Meaning |
 |---|---|
 | `name` | Batch name; runs go to `data/runs/<name>-<model>-t<temperature>-<task set>` |
@@ -149,7 +153,7 @@ discovery-sim batch --config configs/batch-example.json             # run them
 | `episodes` | Episodes per run (default 50) |
 | `max_episodes` | Episode budget: runs `max_episodes // episodes` distinct cells (default: the whole grid) |
 | `sample_seed` | Which cells the budget picks; the same seed always gives the same runs |
-| `task_sample` | `fixed` (default), `parameterized`, `hard` or `mixed`, for every run in the batch |
+| `task_sample` | `fixed` (default) or `parameterized`: how `core` runs are worded (`hard` runs ignore it) |
 | `base_seed` | Cell *i* of the full grid uses seed `base_seed + i` |
 | `backend`, `base_url`, `concurrency`, `max_agent_steps` | As for `run` |
 
