@@ -11,7 +11,10 @@ from discovery_sim.sim.agent_tasks import AgentTask
 from discovery_sim.sim.task_defs import agent_tasks
 from discovery_sim.sim.types import OperatorId
 
-TaskSampleMode = Literal["fixed", "parameterized"]
+# fixed: the static list; parameterized: paraphrased simple tasks; hard: tasks whose answer isn't spelled
+# out (sim/hard_tasks.py); mixed: parameterized or hard, half each.
+TaskSampleMode = Literal["fixed", "parameterized", "hard", "mixed"]
+TASK_SAMPLE_MODES: tuple[str, ...] = ("fixed", "parameterized", "hard", "mixed")
 
 # Dollars shown in paraphrases; stored mandates use cents.
 _AMOUNT_CHOICES_CENTS: tuple[int, ...] = (1000, 1500, 2500, 3500, 5000, 7500, 10_000)
@@ -183,6 +186,12 @@ def choose_agent_task(
         tasks = agent_tasks(task_set)
         idx = scenario_index if scenario_index is not None else rng.randrange(len(tasks))
         return tasks[idx]
+
+    if task_sample == "hard" or (task_sample == "mixed" and rng.random() < 0.5):
+        from discovery_sim.sim.hard_tasks import sample_hard_task
+        return sample_hard_task(rng)
+    if task_sample not in TASK_SAMPLE_MODES:
+        raise ValueError(f"unknown task sample mode {task_sample!r}; expected one of {TASK_SAMPLE_MODES}")
 
     prefer_payment = bool(operators) and OperatorId.LLM_WRONG_AMOUNT in operators
     return sample_agent_task(rng, prefer_payment=prefer_payment)

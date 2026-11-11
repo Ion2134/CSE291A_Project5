@@ -11,13 +11,22 @@ _BANK_TEMPLATES = frozenset(
 )
 
 
+def _plan_rounds(task: AgentTask, prefix: str) -> list[int]:
+    """Rounds of the task's planned calls whose tool name starts with ``prefix`` ("" for all)."""
+    return [index for index, (name, _) in enumerate(task.plan) if name.startswith(prefix)]
+
+
 def _expected_rounds_for_task(task: AgentTask) -> list[int]:
+    if task.plan is not None:
+        return _plan_rounds(task, "")
     if task.template == "balance_then_transfer":
         return [0, 1]
     return [0]
 
 
 def _bank_rounds(task: AgentTask) -> list[int]:
+    if task.plan is not None:
+        return _plan_rounds(task, "bank__")
     if task.template == "balance_then_transfer":
         return [0]
     if task.template in _BANK_TEMPLATES:
@@ -26,6 +35,8 @@ def _bank_rounds(task: AgentTask) -> list[int]:
 
 
 def _payment_rounds(task: AgentTask) -> list[int]:
+    if task.plan is not None:
+        return _plan_rounds(task, "payment__")
     if task.template == "balance_then_transfer":
         return [1]
     if task.template == "transfer_under_cap":

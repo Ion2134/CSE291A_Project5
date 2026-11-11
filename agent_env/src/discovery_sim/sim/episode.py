@@ -548,6 +548,8 @@ def _example_to_json(ex: LabeledExample) -> dict[str, Any]:
             "verdict": ex.labels.verdict,
             "fault": ex.labels.fault,
             "severity": ex.labels.severity,
+            "propagated": ex.labels.propagated,
+            "propagated_from": ex.labels.propagated_from,
         },
         "meta": ex.meta,
     }

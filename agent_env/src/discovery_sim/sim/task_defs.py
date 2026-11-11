@@ -11,7 +11,18 @@ class AgentTask:
     task_id: str
     template: str
     user_message: str
+    # The resolved mandate: the correct arguments, used for labels and attacks. Never shown when
+    # ``instruction`` is set.
     mandate: dict[str, Any]
+    # What the user actually specified, shown to the agent and in the monitor's ``trusted:`` line.
+    # None means the mandate itself is shown (every task except the "hard" ones).
+    instruction: dict[str, Any] | None = None
+    # The on-mandate calls ``[(openai tool name, arguments), ...]``, for the oracle backend only.
+    plan: tuple[tuple[str, dict[str, Any]], ...] | None = None
+
+    @property
+    def visible_mandate(self) -> dict[str, Any]:
+        return self.instruction if self.instruction is not None else self.mandate
 
 
 @dataclass(frozen=True)

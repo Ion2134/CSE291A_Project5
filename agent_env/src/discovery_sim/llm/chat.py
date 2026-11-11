@@ -204,6 +204,15 @@ class OracleChat(ChatClient):
         self._plan: list[ToolCallRequest] | None = None
         self._index = 0
 
+    def use_plan(self, plan) -> None:
+        """Make exactly these calls (a task's resolved plan) instead of reading the mandate from the prompt.
+
+        Hard tasks only show the agent what the user said, so the oracle gets the answer here.
+        """
+        self._plan = [ToolCallRequest(f"c{index + 1}", name, dict(arguments))
+                      for index, (name, arguments) in enumerate(plan)]
+        self._index = 0
+
     async def complete(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> ChatTurn:
         if self._plan is None:
             self._plan = _oracle_plan_from_messages(messages)

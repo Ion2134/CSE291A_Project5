@@ -199,9 +199,10 @@ def main() -> None:
     )
     run.add_argument(
         "--task-sample",
-        choices=["fixed", "parameterized"],
+        choices=["fixed", "parameterized", "hard", "mixed"],
         default="fixed",
-        help="Agent-mode task selection: fixed list from --task-set, or parameterized paraphrases",
+        help=("Agent-mode task selection: fixed list from --task-set, parameterized paraphrases, hard tasks "
+              "whose answer isn't spelled out, or mixed (parameterized or hard)"),
     )
     run.add_argument(
         "--operators",

@@ -20,6 +20,7 @@ from discovery_sim.sim.episode import run_episodes
 from discovery_sim.sim.run_config import RunConfig
 from discovery_sim.sim.run_output import RUN_MARKER
 from discovery_sim.sim.task_defs import task_sets
+from discovery_sim.sim.task_sample import TASK_SAMPLE_MODES
 
 AGENT_ENV = Path(__file__).resolve().parents[3]   # agent_env/ (batch.py -> sim -> discovery_sim -> src)
 KNOBS = ("model", "temperature", "task_set")
@@ -49,6 +50,7 @@ class BatchConfig:
     models: tuple[str, ...]
     temperatures: tuple[float, ...]
     task_sets: tuple[str, ...] = ("core",)
+    task_sample: str = "fixed"         # For every run: fixed, parameterized, hard or mixed.
     episodes: int = 50
     max_episodes: int | None = None    # Episode budget; None runs the whole grid.
     sample_seed: int = 0               # Which cells the budget picks.
@@ -81,6 +83,8 @@ class BatchConfig:
         unknown_sets = set(self.task_sets) - set(task_sets())
         if unknown_sets:
             raise ValueError(f"Unknown task sets {sorted(unknown_sets)}; expected some of {sorted(task_sets())}")
+        if self.task_sample not in TASK_SAMPLE_MODES:
+            raise ValueError(f"task_sample must be one of {TASK_SAMPLE_MODES}")
         if self.episodes < 1:
             raise ValueError("episodes must be at least 1")
         if self.max_episodes is not None and self.max_episodes < self.episodes:
@@ -187,7 +191,7 @@ def _run_config(config: BatchConfig, run: PlannedRun) -> RunConfig:
     return RunConfig(episodes=config.episodes, seed=run.seed, mode="agent", max_agent_steps=config.max_agent_steps,
                      llm_backend=config.backend, llm_base_url=config.base_url, llm_model=run.cell.model,
                      concurrency=max(1, config.concurrency), temperature=run.cell.temperature,
-                     task_set=run.cell.task_set)
+                     task_set=run.cell.task_set, task_sample=config.task_sample)
 
 
 def _write_batch_file(config: BatchConfig, planned: list[PlannedRun]) -> None:
@@ -199,6 +203,7 @@ def _write_batch_file(config: BatchConfig, planned: list[PlannedRun]) -> None:
         "runs": [run.name for run in planned],
         "cells": [run.to_json() for run in planned],
         "episodes_per_run": config.episodes,
+        "task_sample": config.task_sample,
         "max_episodes": config.max_episodes,
         "sample_seed": config.sample_seed,
         "grid_size": len(config.grid()),
