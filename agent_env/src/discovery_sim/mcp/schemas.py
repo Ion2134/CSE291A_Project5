@@ -50,6 +50,11 @@ BANK_TOOLS: list[dict[str, Any]] = [
             "additionalProperties": False,
         },
     ),
+    _tool(
+        "list_payees",
+        "List the tenant's registered payees (payee id and name).",
+        {"type": "object", "properties": {}, "additionalProperties": False},
+    ),
 ]
 
 PAYMENT_TOOLS: list[dict[str, Any]] = [

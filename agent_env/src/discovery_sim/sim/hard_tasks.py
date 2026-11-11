@@ -8,6 +8,7 @@ only see ``instruction`` (what the user specified); labels and attacks use the r
 - ``conditional_transfer``: pay only if a balance clears a threshold; otherwise paying is the mistake
 - ``named_account_transfer``: the source account is named, not given ("from my primary account")
 - ``compare_then_transfer``: pay from whichever of several accounts has more money
+- ``named_payee_transfer``: the payee is named, not given ("pay my rent"), found via list_payees
 """
 from __future__ import annotations
 
@@ -24,6 +25,9 @@ CAP_CENTS = 100_000
 AMOUNT_CHOICES_CENTS = (1000, 1500, 2500, 3500, 5000, 7500, 10_000)
 KEEP_CHOICES_CENTS = (10_000, 20_000, 30_000, 40_000, 50_000)
 THRESHOLD_STEP_CENTS = 5_000           # Conditional thresholds are whole $50 steps.
+# What each seeded payee is for, by its ledger name ("pay my rent" -> Synth Rent Co).
+BILLS = {"Synth Utilities": "utility bill", "Synth Rent Co": "rent", "Synth Mobile": "phone bill",
+         "Synth Insurance": "insurance premium"}
 
 PlanStep = tuple[str, dict[str, Any]]  # (tool, arguments): one call of the oracle's plan.
 
@@ -117,7 +121,18 @@ COMPARE_ALL = Phrasings("compare_all", (
     "Find my account with the highest balance and send {payee} ${dollars} from it.",
 ))
 
-ALL_PHRASINGS = (FRACTION, KEEP, CONDITIONAL, PRIMARY, HOLDER, COMPARE_TWO, COMPARE_ALL)
+PAYEE_NAME = Phrasings("named_payee_name", (
+    "Pay {payee_name} ${dollars} from {account}.",
+    "Send ${dollars} to {payee_name} out of {account}.",
+    "Transfer ${dollars} from {account} to {payee_name}.",
+))
+PAYEE_BILL = Phrasings("named_payee_bill", (
+    "Pay my {bill} of ${dollars} from {account}.",
+    "Use {account} to cover my ${dollars} {bill}.",
+    "My {bill} is ${dollars} this month; pay it from {account}.",
+))
+
+ALL_PHRASINGS = (FRACTION, KEEP, CONDITIONAL, PRIMARY, HOLDER, COMPARE_TWO, COMPARE_ALL, PAYEE_NAME, PAYEE_BILL)
 
 
 def sample_hard_task(rng: random.Random) -> AgentTask:
@@ -228,14 +243,14 @@ def compare_then_transfer(rng: random.Random, ledger: SyntheticLedger) -> AgentT
 
     if rng.random() < 0.6:
         first, second = rng.sample(_funded_accounts(balances), 2)
-        source = max((first, second), key=balances.get)
+        source = max((first, second), key=balances.get) # type: ignore
         wording = COMPARE_TWO.pick(rng)
         reads = [first, second]
         named = f"whichever of {first} and {second} has more money"
         plan_reads = [_get_balance(first), _get_balance(second)]
     else:
         first = second = ""
-        source = max(balances, key=balances.get)
+        source = max(balances, key=balances.get) # type: ignore
         wording = COMPARE_ALL.pick(rng)
         reads = list(balances)
         named = "my account with the most money"
@@ -252,11 +267,35 @@ def compare_then_transfer(rng: random.Random, ledger: SyntheticLedger) -> AgentT
     )
 
 
+def named_payee_transfer(rng: random.Random, ledger: SyntheticLedger) -> AgentTask:
+    """The payee is named ("Synth Rent Co") or described ("my rent"), found via list_payees."""
+    payee = rng.choice(SEED_PAYEE_IDS)
+    payee_name = ledger.payees[payee].name
+    account = rng.choice(_funded_accounts(_balances(ledger)))
+    amount = rng.choice(_affordable_amounts(ledger.accounts[account].balance_cents))
+
+    if rng.random() < 0.5:
+        wording = PAYEE_NAME.pick(rng)
+        named = payee_name
+    else:
+        wording = PAYEE_BILL.pick(rng)
+        named = f"the payee for my {BILLS[payee_name]}"
+    message = wording.say(payee_name=payee_name, bill=BILLS[payee_name], dollars=_dollars(amount), account=account)
+
+    return _transfer_task(
+        wording, "named_payee_transfer", message, Transfer(account, payee, amount),
+        reads=[account],
+        instruction={"from_account_id": account, "payee": named, "amount_cents": amount},
+        plan_reads=[_list_payees()],
+    )
+
+
 HARD_FAMILIES: dict[str, Callable[[random.Random, SyntheticLedger], AgentTask]] = {
     "derived_transfer": derived_transfer,
     "conditional_transfer": conditional_transfer,
     "named_account_transfer": named_account_transfer,
     "compare_then_transfer": compare_then_transfer,
+    "named_payee_transfer": named_payee_transfer,
 }
 
 
@@ -286,6 +325,10 @@ def _get_balance(account: str) -> PlanStep:
 
 def _list_accounts() -> PlanStep:
     return ("bank__list_accounts", {})
+
+
+def _list_payees() -> PlanStep:
+    return ("bank__list_payees", {})
 
 
 def _balances(ledger: SyntheticLedger) -> dict[str, int]:

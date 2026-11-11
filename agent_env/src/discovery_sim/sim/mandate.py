@@ -16,7 +16,7 @@ READ_TOOLS = ("get_balance", "get_transactions", "get_account_holder")
 
 # Templates whose mandate ends in a payment (the original two plus the "hard" families).
 TRANSFER_TEMPLATES = ("transfer_under_cap", "balance_then_transfer", "derived_transfer", "conditional_transfer",
-                      "named_account_transfer", "compare_then_transfer")
+                      "named_account_transfer", "compare_then_transfer", "named_payee_transfer")
 
 
 def read_account_for_call(mandate: dict[str, Any], call_args: dict[str, Any] | None) -> str | None:
@@ -43,7 +43,7 @@ def expected_arguments_for_tool(tool_name: str, mandate: dict[str, Any],
         return {"account_id": account}
     if tool_name == "get_balance":
         return {"account_id": mandate_account_id(mandate)}
-    if tool_name == "list_accounts":
+    if tool_name in ("list_accounts", "list_payees"):
         return {}
     if tool_name == "get_transactions":
         return {"account_id": mandate_account_id(mandate) or "", "limit": 10}

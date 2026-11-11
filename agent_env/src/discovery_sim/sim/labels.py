@@ -36,6 +36,11 @@ def _output_matches_mandate(
         )
     if task.tool_name == "list_accounts":
         return isinstance(output.get("accounts"), list) and len(output["accounts"]) > 0
+    if task.tool_name == "list_payees":
+        payees = output.get("payees")
+        if not isinstance(payees, list) or not payees:
+            return False
+        return ledger is None or payees == ledger.list_payees()
     if task.tool_name == "get_transactions":
         expected = _read_account(task)
         return expected is not None and output.get("account_id") == expected and isinstance(output.get("transactions"), list)

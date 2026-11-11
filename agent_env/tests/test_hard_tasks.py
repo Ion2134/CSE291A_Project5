@@ -55,6 +55,8 @@ def test_the_answer_is_not_shown(family):
             assert "from_account_id" not in visible  # The source account must be worked out.
         if family == "derived_transfer":
             assert "amount_cents" not in visible  # The amount must be worked out.
+        if family == "named_payee_transfer":
+            assert "payee_id" not in visible and task.mandate["payee_id"] not in task.user_message
 
 
 def test_trusted_line_and_prompt_show_only_the_instruction():
@@ -155,6 +157,55 @@ def test_wrong_transfer_without_earlier_tampering_stays_an_agent_error():
                                           _call("payment__initiate_transfer", wrong, "c2")]))
     transfer = result.examples[1]
     assert transfer.labels.cause == "agent" and not transfer.labels.propagated
+
+
+class _PayWhoeverHasTheName:
+    """A faithful agent for a named-payee task: it pays the payee id that list_payees gives for the name."""
+
+    model_id = "reactive"
+
+    def __init__(self, task, payee_name):
+        self.task, self.payee_name = task, payee_name
+
+    async def complete(self, messages, tools):
+        tool_outputs = [json.loads(m["content"]) for m in messages if m["role"] == "tool"]
+        if not tool_outputs:
+            return _call("bank__list_payees", {})
+        if len(tool_outputs) == 1:
+            payee = next(p["payee_id"] for p in tool_outputs[0]["payees"] if p["name"] == self.payee_name)
+            return _call("payment__initiate_transfer", {"from_account_id": self.task.mandate["from_account_id"],
+                                                        "payee_id": payee,
+                                                        "amount_cents": self.task.mandate["amount_cents"]}, "c2")
+        return ChatTurn(content="Done.")
+
+
+def _payee_task():
+    task = _family_task("named_payee_transfer")
+    return task, SyntheticLedger().payees[task.mandate["payee_id"]].name
+
+
+def test_payee_lookup_without_tampering_is_correct():
+    task, name = _payee_task()
+    result = _run(task, _PayWhoeverHasTheName(task, name))
+    assert result.task_correct and all(ex.labels.cause == "none" for ex in result.examples)
+
+
+def test_tampered_payee_list_makes_the_transfer_a_propagated_adversary_error():
+    task, name = _payee_task()
+    result = _run(task, _PayWhoeverHasTheName(task, name), operator=OperatorId.MCP_IO_MISMATCH, fault_call_index=0)
+    lookup, transfer = result.examples
+    assert (lookup.labels.output_correct, lookup.labels.cause) == (False, "adversary")
+    assert (transfer.labels.cause, transfer.labels.propagated_from) == ("adversary", 0)
+    assert transfer.input_state["model_call"]["payee_id"] != task.mandate["payee_id"]
+
+
+def test_paying_the_wrong_payee_on_its_own_is_an_agent_error():
+    task, _ = _payee_task()
+    wrong = next(p for p in SyntheticLedger().payees if p != task.mandate["payee_id"])
+    pay = {"from_account_id": task.mandate["from_account_id"], "payee_id": wrong,
+           "amount_cents": task.mandate["amount_cents"]}
+    result = _run(task, ScriptChatClient([_call("bank__list_payees", {}), _call("payment__initiate_transfer", pay, "c2")]))
+    assert result.examples[1].labels.cause == "agent" and not result.examples[1].labels.propagated
 
 
 # ---------------------------------------------------------------- scheduling and sampling

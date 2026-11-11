@@ -53,6 +53,7 @@ def bank_mcp_server(ledger: SyntheticLedger) -> McpToolServer:
             args["account_id"], int(args.get("limit") or 10)
         ),
         "get_account_holder": lambda args: ledger.get_account_holder(args["account_id"]),
+        "list_payees": lambda _: {"payees": ledger.list_payees()},
     }
     return McpToolServer(BANK_TOOLS, handlers)
 
