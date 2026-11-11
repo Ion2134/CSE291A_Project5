@@ -1,0 +1,3 @@
+# Editor setup (local only for now)
+.vscode/
+*.code-workspace
