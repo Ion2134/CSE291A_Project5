@@ -19,12 +19,16 @@ from mlp_baseline.common import (LABELS, cause_of, check_monitor_row, input_id, 
                                  require_empty_dir, write_json, write_jsonl)
 from mlp_baseline.metrics import evaluate
 
+from injection import DETECTORS, output_text, was_injected
+
 MODELS = ("logreg_checks", "logreg_memory")
 MEMORY_FEATURES = ("balance_unseen", "empty_transfer_output")
+INJECTION_COLUMN = FEATURE_NAMES.index("output_injection_text")
 
 
 def fit_predict(train: Path, test: Path, out: Path, *, model: str = "logreg_checks", view: str = "full",
-                seed: int = 42, c: float = 1.0, validation: Path | None = None) -> dict:
+                seed: int = 42, c: float = 1.0, validation: Path | None = None,
+                injection_detector: str = "keyword") -> dict:
     """Fit on ``train`` (+ ``validation``) and write predictions for ``test`` in the tester's format."""
     if model not in MODELS:
         raise ValueError(f"model must be one of {MODELS}")
@@ -38,7 +42,8 @@ def fit_predict(train: Path, test: Path, out: Path, *, model: str = "logreg_chec
     test_ids = [input_id(row) for row in test_rows]  # Ids stay those of the files the tester wrote.
     train_rows, test_rows = apply_view(train_rows, view), apply_view(test_rows, view)
 
-    cause, details = logreg_probabilities(train_rows, test_rows, memory=model == "logreg_memory", seed=seed, c=c)
+    cause, details = logreg_probabilities(train_rows, test_rows, memory=model == "logreg_memory", seed=seed, c=c,
+                                          injection_detector=injection_detector)
 
     out.mkdir(parents=True, exist_ok=True)
     write_jsonl(out / "test_predictions.jsonl", [
@@ -53,13 +58,17 @@ def fit_predict(train: Path, test: Path, out: Path, *, model: str = "logreg_chec
     return result
 
 
-def logreg_probabilities(train_rows, test_rows, *, memory: bool = False, seed: int = 42, c: float = 1.0):
+def logreg_probabilities(train_rows, test_rows, *, memory: bool = False, seed: int = 42, c: float = 1.0,
+                         injection_detector: str = "keyword"):
     """Cause probabilities in ``LABELS`` order, plus the learned weights.
 
     With ``memory``, two extra features are added, both built from the training rows only.
+    ``injection_detector`` (a ``DETECTORS`` name) fills the ``output_injection_text`` column.
     """
     x_train = check_matrix([row["state"] for row in train_rows])
     x_test = check_matrix([row["state"] for row in test_rows])
+    x_train[:, INJECTION_COLUMN], x_test[:, INJECTION_COLUMN] = injection_scores(
+        train_rows, test_rows, injection_detector)
     names = list(FEATURE_NAMES)
     if memory:
         x_train = np.hstack([x_train, _out_of_group_memory_columns(train_rows)])
@@ -74,7 +83,17 @@ def logreg_probabilities(train_rows, test_rows, *, memory: bool = False, seed: i
 
     weights = {LABELS[label]: {name: round(float(w), 3) for name, w in zip(names, row)}
                for label, row in zip(model.classes_, model.coef_)} if len(model.classes_) > 2 else {}
-    return probabilities, {"features": names, "C": c, "weights": weights}
+    return probabilities, {"features": names, "C": c, "injection_detector": injection_detector, "weights": weights}
+
+
+def injection_scores(train_rows, test_rows, name: str) -> tuple[np.ndarray, np.ndarray]:
+    """P(injection) for the training and test rows, from a detector fit on the training rows only."""
+    if name not in DETECTORS:
+        raise ValueError(f"injection_detector must be one of {sorted(DETECTORS)}")
+    detector = DETECTORS[name]()
+    train_texts = [output_text(row["state"]) for row in train_rows]
+    detector.fit(train_texts, [was_injected(row) for row in train_rows])
+    return detector.score(train_texts), detector.score([output_text(row["state"]) for row in test_rows])
 
 
 def _memory_columns(states, memory: dict) -> np.ndarray:

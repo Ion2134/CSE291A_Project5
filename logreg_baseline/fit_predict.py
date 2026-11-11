@@ -15,6 +15,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent / "mlp_baseline" / "src"))  # checks, common, metrics
 sys.path.insert(0, str(HERE))
 
+from injection import DETECTORS  # noqa: E402
 from logreg import MODELS, fit_predict  # noqa: E402
 
 
@@ -29,10 +30,13 @@ def main(argv=None) -> int:
                         help="middleware hides ledger_snapshot and received_args, which a real middleware cannot see")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--c", type=float, default=1.0, help="Inverse L2 regularisation strength")
+    parser.add_argument("--injection-detector", choices=sorted(DETECTORS), default="keyword",
+                        help="What fills the output_injection_text feature (see injection.py)")
     args = parser.parse_args(argv)
 
     result = fit_predict(args.train, args.test, args.out, model=args.model, view=args.view, seed=args.seed,
-                         c=args.c, validation=args.validation)
+                         c=args.c, validation=args.validation,
+                         injection_detector=args.injection_detector)
     print(json.dumps({"model": result["model"], "test_rows": result["test_rows"],
                       "predictions": str(args.out / "test_predictions.jsonl")}, indent=2))
     return 0

@@ -21,6 +21,22 @@ for each cause are saved in `results.json` under `details.weights`.
 themselves, each row's memory leaves out its own request group, so a row is never looked up in its
 own memory.
 
+## Injection detector
+
+`--injection-detector` chooses what fills the `output_injection_text` feature: a score from 0 to 1
+computed from the tool output's text alone.
+
+| Detector | What it is |
+| --- | --- |
+| `keyword` (default) | The original regex from `mlp_baseline/checks.py` (0 or 1). Same results as before. |
+| `char_ngram` | Character 2–5-gram TF-IDF + logistic regression, fit on the training rows only. |
+
+Training label: a row counts as injected if it is labelled `adversary` and its output has a private
+`_` key, which is how every simulator injection looks today. Every injection is currently the same
+sentence, so both detectors score perfectly; telling them apart needs reworded injections in the data.
+To add a detector (e.g. sentence embeddings), write a class with `fit(texts, labels)` and
+`score(texts)` in `injection.py` and add it to `DETECTORS`.
+
 ## Views
 
 `--view middleware` removes `ledger_snapshot` and `received_args` before the features are computed
@@ -46,4 +62,5 @@ so one training seed per fold is enough.
 | --- | --- |
 | `fit_predict.py` | Command line for one fold |
 | `logreg.py` | The model, the memory features and the fold's input checks |
+| `injection.py` | The swappable injection detectors (`keyword`, `char_ngram`) |
 | `tests/` | Tests (`python -m pytest -q logreg_baseline/tests`) |
