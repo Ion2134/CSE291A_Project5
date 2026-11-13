@@ -1,11 +1,11 @@
 {
-  "name": "hard2",
+  "name": "hard3",
   "models": ["api-glm-5.3-flash", "api-muse-glimmer-30b", "api-deepseek-4.1-flash"],
   "temperatures": [0.2, 0.7, 1.0],
   "task_sets": ["hard"],
   "task_sample": "parameterized",
   "episodes": 50,
-  "max_episodes": 300,
+  "max_episodes": 600,
   "sample_seed": 0,
   "base_seed": 200,
   "backend": "triton",
