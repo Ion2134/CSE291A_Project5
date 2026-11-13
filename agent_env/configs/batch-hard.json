@@ -5,7 +5,7 @@
   "task_sets": ["hard"],
   "task_sample": "parameterized",
   "episodes": 50,
-  "max_episodes": 600,
+  "max_episodes": 300,
   "sample_seed": 0,
   "base_seed": 200,
   "backend": "triton",
