@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import os
+import sys
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
 import httpx
+from tqdm import tqdm
 
 @dataclass
 class ToolCallRequest:
@@ -33,6 +36,9 @@ DEFAULT_ENV_PATH = Path(__file__).resolve().parents[3] / ".env"
 # Default sampling temperature for every chat backend (and the scripted-mode LM planner).
 # Agent-mode runs can override it with ``--temperature``.
 DEFAULT_TEMPERATURE = 0.2
+
+# Longest we wait between retries of a failed API call (TritonAI asks for 60s after a rate limit).
+MAX_WAIT_SECONDS = 60.0
 
 ChatBackend = Literal["lmstudio", "triton", "oracle"]
 CHAT_BACKENDS: tuple[str, ...] = ("lmstudio", "triton", "oracle")
@@ -106,6 +112,9 @@ class OpenAICompatibleChat(ChatClient):
     """POSTs to an OpenAI-style ``/chat/completions`` endpoint; subclasses set the URL, model and auth."""
 
     temperature: float = DEFAULT_TEMPERATURE
+    # Rate limits (TritonAI: 100 requests/minute per key) and flaky servers are retried this many times.
+    max_retries: int = 5
+    _sleep = staticmethod(asyncio.sleep)  # tests replace this so they don't wait
 
     def _headers(self) -> dict[str, str]:
         return {}
@@ -123,16 +132,46 @@ class OpenAICompatibleChat(ChatClient):
             payload["tools"] = tools
             payload["tool_choice"] = "auto"
         url = f"{self.base_url}/chat/completions"
-        try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.post(url, json=payload, headers=self._headers())
-                response.raise_for_status()
-                body = response.json()
-        except httpx.HTTPStatusError as exc:
-            return ChatTurn(content=None, error=self._describe_http_error(exc))
-        except Exception as exc:
-            return ChatTurn(content=None, error=str(exc))
-        return _parse_chat_completion(body)
+        for attempt in range(self.max_retries + 1):
+            try:
+                async with httpx.AsyncClient(timeout=self.timeout) as client:
+                    response = await client.post(url, json=payload, headers=self._headers())
+                    response.raise_for_status()
+                    body = response.json()
+                return _parse_chat_completion(body)
+            except httpx.HTTPStatusError as exc:
+                error = self._describe_http_error(exc)
+                status = exc.response.status_code
+                # Rate limits (429) and server errors (5xx) pass; other 4xx (expired key, bad request) won't.
+                if status != 429 and status < 500:
+                    return self._give_up(error)
+                wait = _retry_after(exc.response) or _backoff(attempt)
+            except httpx.TransportError as exc:  # connection dropped, timeout
+                error, wait = f"{type(exc).__name__}: {exc}", _backoff(attempt)
+            except Exception as exc:
+                return self._give_up(str(exc))
+            if attempt == self.max_retries:
+                return self._give_up(error)
+            tqdm.write(f"[{self.model}] {error[:120]} - waiting {wait:g}s and retrying "
+                       f"({attempt + 1}/{self.max_retries})", file=sys.stderr)
+            await self._sleep(wait)
+        raise AssertionError("unreachable")
+
+    def _give_up(self, error: str) -> ChatTurn:
+        tqdm.write(f"[{self.model}] API call failed: {error[:300]}", file=sys.stderr)
+        return ChatTurn(content=None, error=error)
+
+
+def _retry_after(response: httpx.Response) -> float | None:
+    """The server's ``Retry-After`` in seconds, capped at MAX_WAIT_SECONDS (None if missing or a date)."""
+    try:
+        return min(float(response.headers["retry-after"]), MAX_WAIT_SECONDS)
+    except (KeyError, ValueError):
+        return None
+
+
+def _backoff(attempt: int) -> float:
+    return min(2.0 ** (attempt + 1), MAX_WAIT_SECONDS)
 
 
 class LmStudioChat(OpenAICompatibleChat):
