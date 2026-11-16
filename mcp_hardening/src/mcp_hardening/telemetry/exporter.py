@@ -141,28 +141,30 @@ class ParquetSpanExporter(SpanExporter):
         rows = [span_to_row(s) for s in spans]
         with self._lock:
             self._buffer.extend(rows)
-            if len(self._buffer) >= self.flush_rows:
-                self._write_locked()
+            # Full part files of exactly flush_rows rows; any remainder waits for the next flush.
+            while len(self._buffer) >= self.flush_rows:
+                self._write_locked(self.flush_rows)
         return SpanExportResult.SUCCESS
 
     def force_flush(self, timeout_millis: int = 30_000) -> bool:
         with self._lock:
-            self._write_locked()
+            self._write_locked(len(self._buffer))
         return True
 
     def shutdown(self) -> None:
         with self._lock:
-            self._write_locked()
+            self._write_locked(len(self._buffer))
             self._shutdown = True
 
-    def _write_locked(self) -> None:
-        if not self._buffer:
+    def _write_locked(self, n: int) -> None:
+        if n <= 0 or not self._buffer:
             return
-        table = pa.Table.from_pylist(self._buffer, schema=SCHEMA)
+        chunk = self._buffer[:n]
+        table = pa.Table.from_pylist(chunk, schema=SCHEMA)
         path = self.out_dir / f"part-{self._seq:05d}-{uuid.uuid4().hex[:8]}.parquet"
         # "xb": create-only. An existing file is never opened for writing.
         with path.open("xb") as fh:
             pq.write_table(table, fh)
         self._seq += 1
-        self._buffer.clear()
+        del self._buffer[:n]
         self.files_written.append(path)

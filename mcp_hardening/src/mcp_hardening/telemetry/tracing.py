@@ -21,7 +21,7 @@ from typing import Any, Iterator
 from opentelemetry import trace
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.trace import Span, SpanKind, Status, StatusCode
 
 from mcp_hardening.config import TelemetryConfig
@@ -57,7 +57,11 @@ class GenAITelemetry:
         if config.enabled and out_dir is not None:
             self.exporter = ParquetSpanExporter(Path(out_dir) / config.dir, flush_rows=config.flush_rows)
             self._provider = TracerProvider(resource=Resource.create({"service.name": service_name}))
-            self._provider.add_span_processor(BatchSpanProcessor(self.exporter))
+            # Synchronous: every finished span goes straight into the exporter's buffer. The
+            # BatchSpanProcessor's bounded queue (2048) silently drops spans when a fast run outpaces
+            # its background thread, which is unacceptable for an audit log. Batching into part files
+            # is done by the exporter itself (flush_rows), so this costs only a list append per span.
+            self._provider.add_span_processor(SimpleSpanProcessor(self.exporter))
             self.tracer: trace.Tracer = self._provider.get_tracer("mcp_hardening.telemetry")
         else:
             self.tracer = trace.NoOpTracer()

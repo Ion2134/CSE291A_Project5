@@ -95,3 +95,21 @@ def test_middleware_records_on_active_span(tmp_path):
     assert rows["c1"][semconv.HARDENING_RESPONSE_VERIFIED] is True
     assert rows["c2"][semconv.HARDENING_REQUEST_VERIFIED] is False
     assert rows["c2"][semconv.HARDENING_FAILURE_REASON] == "missing_envelope"
+
+
+def test_no_spans_dropped_under_burst_and_exact_part_sizes(tmp_path):
+    """Regression: BatchSpanProcessor's 2048-span queue silently dropped spans on fast runs."""
+    tel = GenAITelemetry(TelemetryConfig(flush_rows=100), tmp_path)
+    n_eps, tools_per_ep = 2500, 3
+    for i in range(n_eps):
+        with tel.agent_span("a", f"ep_{i}"):
+            for j in range(tools_per_ep):
+                with tel.tool_span("t", f"c{i}_{j}") as s:
+                    tel.end_tool(s)
+    tel.shutdown()
+    total = n_eps * (1 + tools_per_ep)
+    assert read_telemetry(tmp_path / "telemetry").num_rows == total
+    import pyarrow.parquet as pq
+
+    sizes = [pq.read_metadata(p).num_rows for p in sorted(tmp_path.joinpath("telemetry").glob("part-*.parquet"))]
+    assert sizes == [100] * (total // 100)
