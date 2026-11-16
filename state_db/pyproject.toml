@@ -1,0 +1,20 @@
+[project]
+name = "state-db"
+version = "0.1.0"
+description = "SQLite record of internal and external agent state, step by step"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["state_db"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
