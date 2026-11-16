@@ -96,6 +96,7 @@ class EpisodeRunner:
         self.config = config or RunConfig(seed=seed)
         self._chat_client = chat_client
         self.store = None  # a state_db.StateStore when the run records state (``RunConfig.state_db``)
+        self.panel = None  # a recovery_classifiers.Panel when the run lists classifiers (``RunConfig.recovery_classifiers``)
 
     @staticmethod
     def _parallel_episode_rng(base_seed: int, episode_index: int) -> random.Random:
@@ -185,7 +186,7 @@ class EpisodeRunner:
 
         pool = AgentPool(SyntheticLedger())
         orchestrator = AgentOrchestrator(self._chat_for_episode(), max_steps=self.config.max_agent_steps,
-                                         store=self.store)
+                                         store=self.store, panel=self.panel)
         try:
             run = await orchestrator.run_episode(
                 task, pool, attack, fault_call_index, self.seed, rng=rng
@@ -421,6 +422,16 @@ def _open_state_db(out_dir: Path):
     return StateStore(out_dir / "state.db")
 
 
+def _build_classifiers(specs):
+    """Build and fit the run's classifiers once; imported here so the package stays optional."""
+    try:
+        from recovery_classifiers import Panel
+    except ImportError as exc:
+        raise SystemExit("classifiers need the recovery_classifiers package: "
+                         "agent_env/.venv/bin/pip install -e ../mlp_baseline -e ../recovery_classifiers") from exc
+    return Panel(specs)
+
+
 async def _run_all_episodes(
     config: RunConfig, workers: int, store=None
 ) -> tuple[list[EpisodeOutcome], list[dict[str, Any]], int]:
@@ -431,6 +442,7 @@ async def _run_all_episodes(
     """
     runner = EpisodeRunner(seed=config.seed, config=config)
     runner.store = store
+    runner.panel = _build_classifiers(config.recovery_classifiers) if config.recovery_classifiers else None
     errors: list[dict[str, Any]] = []
 
     async def _run_episode_index(i: int) -> tuple[int, EpisodeOutcome | None]:
@@ -529,6 +541,7 @@ def _run_manifest(config: RunConfig, workers: int, planners: list[str], out_dir:
         "out_dir": str(out_dir),
         # Only present when on, so manifests of ordinary runs are unchanged.
         **({"state_db": "state.db"} if config.state_db else {}),
+        **({"recovery_classifiers": list(config.recovery_classifiers)} if config.recovery_classifiers else {}),
     }
 
 

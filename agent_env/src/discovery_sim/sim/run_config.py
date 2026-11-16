@@ -29,3 +29,6 @@ class RunConfig:
     operator_weights: dict[str, float] = field(default_factory=dict)
     # Agent mode: record every step's internal and external state to <out>/state.db (needs ../state_db).
     state_db: bool = False
+    # Agent mode: classifiers to ask about every tool call (specs for ../recovery_classifiers: a name, or a dict
+    # with "name" and its inputs). Empty = none are called. Outputs and the recovery decision are recorded.
+    recovery_classifiers: tuple = ()

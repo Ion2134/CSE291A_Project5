@@ -104,6 +104,7 @@ def _cmd_run(args: argparse.Namespace) -> None:
         operators=operators,
         operator_weights=weights,
         state_db=args.state_db,
+        recovery_classifiers=_classifier_specs(args.recovery_classifiers),
     )
     summary = asyncio.run(run_episodes(config, Path(args.out)))
     print(summary)
@@ -129,6 +130,17 @@ def _cmd_prompts(args: argparse.Namespace) -> None:
     )
     summary = asyncio.run(generate_prompt_data(config, Path(args.out)))
     print(summary)
+
+
+def _classifier_specs(value: str | None) -> tuple:
+    """``--recovery-classifiers``: inline JSON or a path to a .json file holding the list."""
+    if not value:
+        return ()
+    text = Path(value).read_text() if value.strip().endswith(".json") and Path(value).is_file() else value
+    specs = json.loads(text)
+    if not isinstance(specs, list):
+        raise SystemExit("--recovery-classifiers must be a JSON list")
+    return tuple(specs)
 
 
 def main() -> None:
@@ -206,6 +218,13 @@ def main() -> None:
         choices=list(TASK_SAMPLE_MODES),
         default="fixed",
         help="How core tasks are worded: the fixed list, or parameterized paraphrases (hard ignores this)",
+    )
+    run.add_argument(
+        "--recovery-classifiers",
+        default=None,
+        metavar="JSON",
+        help="Agent mode: classifiers to ask about every tool call: a JSON list (or a .json file holding one) "
+             "of names or {\"name\", ...} specs, e.g. '[\"oracle\", \"rules\"]'; needs ../recovery_classifiers",
     )
     run.add_argument(
         "--state-db",

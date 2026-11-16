@@ -50,6 +50,8 @@ class _StateRecorder:
             "call_index": record.call_index, "tool": record.llm_call.tool_name,
             "model_call": record.llm_call.arguments, "received_args": record.mcp_arguments,
             "output": record.output, "cause": example.labels.cause, "output_correct": example.labels.output_correct,
+            "classifier_outputs": example.meta.get("classifier_outputs"),
+            "recover": example.meta.get("recovery", {}).get("recover"),
         }, pool.ledger.snapshot())
 
 
@@ -88,10 +90,12 @@ class AgentRunResult:
 
 
 class AgentOrchestrator:
-    def __init__(self, chat: ChatClient, max_steps: int = 8, store: Any | None = None) -> None:
+    def __init__(self, chat: ChatClient, max_steps: int = 8, store: Any | None = None,
+                 panel: Any | None = None) -> None:
         self.chat = chat
         self.max_steps = max_steps
         self.store = store  # optional state_db.StateStore
+        self.panel = panel  # optional recovery_classifiers.Panel: asked about every tool call
         self.tools = all_openai_tools()
 
     async def run_episode(
@@ -279,7 +283,19 @@ class AgentOrchestrator:
                 "task_id": task.task_id,
             },
         )
+        if self.panel is not None:
+            self._classify(example)
         return record, example
+
+    def _classify(self, example: LabeledExample) -> None:
+        """Ask every configured classifier about this call and record their outputs and the recovery decision."""
+        from recovery_classifiers import decide
+
+        row = {"state": example.input_state["state_text"], "questions": [],
+               "expected": {"output_correct": example.labels.output_correct, "cause": example.labels.cause}}
+        outputs = self.panel.classify(row)
+        example.meta["classifier_outputs"] = outputs
+        example.meta["recovery"] = decide(outputs)
 
 
 def _conversation_snapshot(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
