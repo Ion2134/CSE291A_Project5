@@ -32,14 +32,10 @@
   "models": {
     "mlp": {
       "args": [
-        "--epochs",
-        "40",
-        "--batch-size",
-        "16",
-        "--max-features",
-        "4096",
-        "--k",
-        "5",
+        "--epochs", "40",
+        "--batch-size", "16",
+        "--max-features", "4096",
+        "--k", "5",
         "--use-checks",
         "--view",
         "middleware"
@@ -56,12 +52,9 @@
     },
     "mlp_embed": {
       "args": [
-        "--epochs",
-        "40",
-        "--batch-size",
-        "16",
-        "--k",
-        "5",
+        "--epochs", "40",
+        "--batch-size", "16",
+        "--k", "5",
         "--use-checks",
         "--view",
         "middleware"
@@ -81,11 +74,9 @@
         42
       ],
       "args": [
-        "--max-features",
-        "4096",
+        "--max-features", "4096",
         "--use-checks",
-        "--neighbors",
-        "5",
+        "--neighbors", "5",
         "--view",
         "middleware"
       ]
@@ -96,8 +87,7 @@
       ],
       "args": [
         "--use-checks",
-        "--neighbors",
-        "5",
+        "--neighbors", "5",
         "--view",
         "middleware"
       ]
@@ -122,10 +112,8 @@
     },
     "stacking": {
       "args": [
-        "--max-features",
-        "4096",
-        "--k",
-        "5",
+        "--max-features", "4096",
+        "--k", "5",
         "--injection-checkpoint",
         "mlp_baseline/experiments/injection/seed42/model",
         "--use-checks",

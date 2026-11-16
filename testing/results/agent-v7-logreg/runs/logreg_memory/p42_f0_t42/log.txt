@@ -1,0 +1,25 @@
+/Users/nishanth/Code/ucsd/cse291a/CSE291A_Project5/mlp_baseline/.venv/lib/python3.12/site-packages/sklearn/linear_model/_logistic.py:455: OptimizeWarning: Unknown solver options: iprint
+  opt_res = optimize.minimize(
+/Users/nishanth/Code/ucsd/cse291a/CSE291A_Project5/mlp_baseline/.venv/lib/python3.12/site-packages/sklearn/linear_model/_linear_loss.py:168: RuntimeWarning: divide by zero encountered in matmul
+  raw_prediction = X @ weights.T + intercept  # ndarray, likely C-contiguous
+/Users/nishanth/Code/ucsd/cse291a/CSE291A_Project5/mlp_baseline/.venv/lib/python3.12/site-packages/sklearn/linear_model/_linear_loss.py:168: RuntimeWarning: overflow encountered in matmul
+  raw_prediction = X @ weights.T + intercept  # ndarray, likely C-contiguous
+/Users/nishanth/Code/ucsd/cse291a/CSE291A_Project5/mlp_baseline/.venv/lib/python3.12/site-packages/sklearn/linear_model/_linear_loss.py:168: RuntimeWarning: invalid value encountered in matmul
+  raw_prediction = X @ weights.T + intercept  # ndarray, likely C-contiguous
+/Users/nishanth/Code/ucsd/cse291a/CSE291A_Project5/mlp_baseline/.venv/lib/python3.12/site-packages/sklearn/linear_model/_linear_loss.py:301: RuntimeWarning: divide by zero encountered in matmul
+  grad[:, :n_features] = grad_pointwise.T @ X + l2_reg_strength * weights
+/Users/nishanth/Code/ucsd/cse291a/CSE291A_Project5/mlp_baseline/.venv/lib/python3.12/site-packages/sklearn/linear_model/_linear_loss.py:301: RuntimeWarning: overflow encountered in matmul
+  grad[:, :n_features] = grad_pointwise.T @ X + l2_reg_strength * weights
+/Users/nishanth/Code/ucsd/cse291a/CSE291A_Project5/mlp_baseline/.venv/lib/python3.12/site-packages/sklearn/linear_model/_linear_loss.py:301: RuntimeWarning: invalid value encountered in matmul
+  grad[:, :n_features] = grad_pointwise.T @ X + l2_reg_strength * weights
+/Users/nishanth/Code/ucsd/cse291a/CSE291A_Project5/mlp_baseline/.venv/lib/python3.12/site-packages/sklearn/utils/extmath.py:208: RuntimeWarning: divide by zero encountered in matmul
+  ret = a @ b
+/Users/nishanth/Code/ucsd/cse291a/CSE291A_Project5/mlp_baseline/.venv/lib/python3.12/site-packages/sklearn/utils/extmath.py:208: RuntimeWarning: overflow encountered in matmul
+  ret = a @ b
+/Users/nishanth/Code/ucsd/cse291a/CSE291A_Project5/mlp_baseline/.venv/lib/python3.12/site-packages/sklearn/utils/extmath.py:208: RuntimeWarning: invalid value encountered in matmul
+  ret = a @ b
+{
+  "model": "logreg_memory",
+  "test_rows": 915,
+  "predictions": "/Users/nishanth/Code/ucsd/cse291a/CSE291A_Project5/testing/results/agent-v7-logreg/runs/logreg_memory/p42_f0_t42/native/test_predictions.jsonl"
+}
