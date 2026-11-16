@@ -1,0 +1,146 @@
+{
+  "model": "logreg_checks",
+  "view": "middleware",
+  "seed": 42,
+  "train_rows": 1259,
+  "test_rows": 915,
+  "details": {
+    "kind": "logreg_checks",
+    "features": [
+      "parse_ok",
+      "call_account_mismatch",
+      "call_payee_mismatch",
+      "call_amount_mismatch",
+      "call_any_mismatch",
+      "args_differ_from_call",
+      "output_differs_from_args",
+      "output_has_private_key",
+      "output_injection_text",
+      "balance_differs_from_ledger",
+      "tool_is_transfer",
+      "tool_is_read",
+      "account_described",
+      "payee_described",
+      "amount_described",
+      "call_id_unseen"
+    ],
+    "C": 1.0,
+    "injection_detector": "keyword",
+    "weights": {
+      "none": {
+        "parse_ok": 0.016,
+        "call_account_mismatch": -0.75,
+        "call_payee_mismatch": 0.197,
+        "call_amount_mismatch": -1.784,
+        "call_any_mismatch": -1.539,
+        "args_differ_from_call": 0.0,
+        "output_differs_from_args": -2.104,
+        "output_has_private_key": -1.259,
+        "output_injection_text": -1.259,
+        "balance_differs_from_ledger": 0.0,
+        "tool_is_transfer": -0.094,
+        "tool_is_read": 0.109,
+        "account_described": 0.813,
+        "payee_described": 0.197,
+        "amount_described": 1.079,
+        "call_id_unseen": -1.517
+      },
+      "agent": {
+        "parse_ok": -0.031,
+        "call_account_mismatch": 1.488,
+        "call_payee_mismatch": -0.606,
+        "call_amount_mismatch": 3.009,
+        "call_any_mismatch": 2.113,
+        "args_differ_from_call": 0.0,
+        "output_differs_from_args": -0.849,
+        "output_has_private_key": -0.443,
+        "output_injection_text": -0.443,
+        "balance_differs_from_ledger": 0.0,
+        "tool_is_transfer": 0.377,
+        "tool_is_read": -0.408,
+        "account_described": -1.408,
+        "payee_described": -0.606,
+        "amount_described": -2.659,
+        "call_id_unseen": 2.822
+      },
+      "adversary": {
+        "parse_ok": 0.015,
+        "call_account_mismatch": -0.738,
+        "call_payee_mismatch": 0.409,
+        "call_amount_mismatch": -1.225,
+        "call_any_mismatch": -0.574,
+        "args_differ_from_call": 0.0,
+        "output_differs_from_args": 2.952,
+        "output_has_private_key": 1.702,
+        "output_injection_text": 1.702,
+        "balance_differs_from_ledger": 0.0,
+        "tool_is_transfer": -0.283,
+        "tool_is_read": 0.299,
+        "account_described": 0.596,
+        "payee_described": 0.409,
+        "amount_described": 1.579,
+        "call_id_unseen": -1.305
+      }
+    }
+  },
+  "test": {
+    "samples": 915,
+    "cause_labels": [
+      "none",
+      "agent",
+      "adversary"
+    ],
+    "cause_accuracy": 0.9344262295081968,
+    "cause_macro_f1": 0.8349785206208645,
+    "cause_per_class": {
+      "none": {
+        "precision": 0.9627659574468085,
+        "recall": 0.9692101740294511,
+        "f1": 0.9659773182121414,
+        "support": 747
+      },
+      "agent": {
+        "precision": 0.7480314960629921,
+        "recall": 0.9223300970873787,
+        "f1": 0.8260869565217391,
+        "support": 103
+      },
+      "adversary": {
+        "precision": 1.0,
+        "recall": 0.5538461538461539,
+        "f1": 0.7128712871287128,
+        "support": 65
+      }
+    },
+    "cause_confusion_matrix": [
+      [
+        724,
+        23,
+        0
+      ],
+      [
+        8,
+        95,
+        0
+      ],
+      [
+        20,
+        9,
+        36
+      ]
+    ],
+    "error_type_accuracy": 0.7797619047619048,
+    "error_type_support": 168,
+    "error_type_accuracy_when_detected": 0.9357142857142857,
+    "error_type_detected_support": 140,
+    "correctness_accuracy": 0.9442622950819672,
+    "error_detection_f1": 0.8459214501510574,
+    "error_auroc": 0.9351772168037228,
+    "false_alarm_rate": 0.030789825970548863,
+    "missed_error_rate": 0.16666666666666666,
+    "correctness_brier": 0.10934511204195499,
+    "correctness_ece": 0.19905590520426725,
+    "inconsistent_answers": 0
+  },
+  "elapsed_seconds": 0.5358209998812526
+}

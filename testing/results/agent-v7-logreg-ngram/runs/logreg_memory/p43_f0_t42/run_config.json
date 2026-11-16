@@ -1,0 +1,32 @@
+{
+  "unit": "logreg_memory p43 f0 t42",
+  "command": [
+    "/Users/nishanth/Code/ucsd/cse291a/CSE291A_Project5/mlp_baseline/.venv/bin/python",
+    "logreg_baseline/fit_predict.py",
+    "--model",
+    "logreg_memory",
+    "--train",
+    "/Users/nishanth/Code/ucsd/cse291a/CSE291A_Project5/testing/results/agent-v7-logreg-ngram/data/p43/f0/train.jsonl",
+    "--validation",
+    "/Users/nishanth/Code/ucsd/cse291a/CSE291A_Project5/testing/results/agent-v7-logreg-ngram/data/p43/f0/val.jsonl",
+    "--test",
+    "/Users/nishanth/Code/ucsd/cse291a/CSE291A_Project5/testing/results/agent-v7-logreg-ngram/data/p43/f0/test.jsonl",
+    "--seed",
+    "42",
+    "--out",
+    "/Users/nishanth/Code/ucsd/cse291a/CSE291A_Project5/testing/results/agent-v7-logreg-ngram/runs/logreg_memory/p43_f0_t42/native",
+    "--view",
+    "middleware",
+    "--injection-detector",
+    "char_ngram"
+  ],
+  "settings": {
+    "args": [
+      "--view",
+      "middleware",
+      "--injection-detector",
+      "char_ngram"
+    ]
+  },
+  "elapsed_seconds": 4.619640750112012
+}

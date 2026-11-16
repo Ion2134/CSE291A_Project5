@@ -1,0 +1,8 @@
+{
+  "args": [
+    "--view",
+    "middleware",
+    "--injection-detector",
+    "char_ngram"
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "name": "hard2",
+  "runs": [
+    "hard2-api-deepseek-4.1-flash-t0.2-hard",
+    "hard2-api-muse-glimmer-30b-t1-hard",
+    "hard2-api-glm-5.3-flash-t0.7-hard",
+    "hard2-api-muse-glimmer-30b-t0.2-hard",
+    "hard2-api-deepseek-4.1-flash-t0.7-hard",
+    "hard2-api-glm-5.3-flash-t1-hard"
+  ],
+  "cells": [
+    {
+      "run": "hard2-api-deepseek-4.1-flash-t0.2-hard",
+      "model": "api-deepseek-4.1-flash",
+      "temperature": 0.2,
+      "task_set": "hard",
+      "seed": 206
+    },
+    {
+      "run": "hard2-api-muse-glimmer-30b-t1-hard",
+      "model": "api-muse-glimmer-30b",
+      "temperature": 1.0,
+      "task_set": "hard",
+      "seed": 205
+    },
+    {
+      "run": "hard2-api-glm-5.3-flash-t0.7-hard",
+      "model": "api-glm-5.3-flash",
+      "temperature": 0.7,
+      "task_set": "hard",
+      "seed": 201
+    },
+    {
+      "run": "hard2-api-muse-glimmer-30b-t0.2-hard",
+      "model": "api-muse-glimmer-30b",
+      "temperature": 0.2,
+      "task_set": "hard",
+      "seed": 203
+    },
+    {
+      "run": "hard2-api-deepseek-4.1-flash-t0.7-hard",
+      "model": "api-deepseek-4.1-flash",
+      "temperature": 0.7,
+      "task_set": "hard",
+      "seed": 207
+    },
+    {
+      "run": "hard2-api-glm-5.3-flash-t1-hard",
+      "model": "api-glm-5.3-flash",
+      "temperature": 1.0,
+      "task_set": "hard",
+      "seed": 202
+    }
+  ],
+  "episodes_per_run": 50,
+  "task_sample": "parameterized",
+  "max_episodes": 300,
+  "sample_seed": 0,
+  "grid_size": 9
+}

@@ -103,14 +103,16 @@ def _verify(args, parser):
 def _train_settings(args):
     from .mlp import TrainSettings
     # Not every command has these flags; the TrainSettings defaults apply when it doesn't.
-    optional = {name: getattr(args, name) for name in ("max_features", "patience", "verbose") if hasattr(args, name)}
+    optional = {name: getattr(args, name)
+                for name in ("max_features", "patience", "verbose", "use_checks", "embedding") if hasattr(args, name)}
     return TrainSettings(seed=args.seed, epochs=args.epochs, batch_size=args.batch_size, threads=args.threads,
                          **optional)
 
 
 def _monitor_settings(args):
     from .monitor_training import MonitorSettings
-    return MonitorSettings(_train_settings(args), k=args.k, injection_checkpoint=args.injection_checkpoint)
+    return MonitorSettings(_train_settings(args), k=args.k, injection_checkpoint=args.injection_checkpoint,
+                           view=getattr(args, "view", "full"))
 
 
 def _split_sizes(manifest: dict) -> dict:
@@ -173,13 +175,17 @@ def _build_parser() -> argparse.ArgumentParser:
     _add_monitor_arguments(sub)
 
     sub = command("fit-predict", _fit_predict, "Train one scenario on a train file and predict a test file")
-    sub.add_argument("--model", choices=["mlp", "stacking"], required=True)
+    sub.add_argument("--model", choices=["mlp", "mlp_embed", "stacking", "rules", "rules_plus"],
+                     required=True)
     sub.add_argument("--train", type=Path, required=True)
     sub.add_argument("--validation", type=Path, help="Optional; these rows are added to training")
     sub.add_argument("--test", type=Path, required=True)
     sub.add_argument("--out", type=Path, required=True)
     _add_monitor_arguments(sub)
     sub.add_argument("--keep-models", action="store_true")
+    sub.add_argument("--embedding", help="Hugging Face model id; embed states with it instead of TF-IDF")
+    sub.add_argument("--view", choices=["full", "middleware"], default="full",
+                     help="middleware hides ledger_snapshot and received_args, which a real middleware cannot see")
 
     sub = command("predict", _predict, "Load an exported checkpoint and predict JSONL examples")
     sub.add_argument("--checkpoint", type=Path, required=True)
@@ -205,6 +211,8 @@ def _add_monitor_arguments(sub) -> None:
     sub.add_argument("--max-features", type=int, default=4096)
     sub.add_argument("--injection-checkpoint", type=Path, default=DEFAULT_INJECTION_CHECKPOINT)
     sub.add_argument("--verbose", action="store_true")
+    sub.add_argument("--use-checks", action="store_true",
+                     help="Add explicit comparison features (call vs mandate, args vs call, output vs ledger)")
 
 
 if __name__ == "__main__":

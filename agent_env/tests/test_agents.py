@@ -36,7 +36,7 @@ def test_agent_card_lists_skills():
     card = client.get("/.well-known/agent-card.json").json()
     assert card["name"] == "Synth Bank"
     skill_ids = {s["id"] for s in card["skills"]}
-    assert skill_ids == {"get_balance", "list_accounts", "get_transactions", "get_account_holder"}
+    assert skill_ids == {"get_balance", "list_accounts", "get_transactions", "get_account_holder", "list_payees"}
 
 
 def test_bank_get_balance():

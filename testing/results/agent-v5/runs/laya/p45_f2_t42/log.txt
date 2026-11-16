@@ -1,62 +1,13 @@
-Fetching 5 files:   0%|          | 0/5 [00:00<?, ?it/s]Fetching 5 files: 100%|██████████| 5/5 [00:00<00:00, 2595.81it/s]
-W1103 18:09:46.465000 65959 torch/distributed/elastic/multiprocessing/redirects.py:29] NOTE: Redirects are currently not supported in Windows or MacOs.
-{
-  "task": "banking",
-  "parameters": 421293827,
-  "device": "mps",
-  "training_items": 768,
-  "config": {
-    "epochs": 2,
-    "micro_batch": 1,
-    "grad_accum": 16,
-    "encoder_lr": 2.5e-05,
-    "head_lr": 0.0001,
-    "min_lr": 1e-06,
-    "weight_decay": 0.01,
-    "grad_clip": 1.0,
-    "loss": "soft-ce",
-    "rl_samples": 4,
-    "sigma_start": 0.4,
-    "sigma_end": 0.1,
-    "w_sph": 0.75,
-    "w_rps": 1.0,
-    "shuffle_options": [],
-    "option_layout": null,
-    "freeze_encoder": false,
-    "calib_max": 0,
-    "calib_frac": 0,
-    "calib_seed": 20260922,
-    "seed": 42,
-    "max_len": 1024,
-    "head_max_len": 256,
-    "amp": false,
-    "gradient_checkpointing": true,
-    "log_every": 100,
-    "label_smoothing": 0.0,
-    "text_column": "text",
-    "label_column": "label",
-    "question_id": "label",
-    "instructions": null,
-    "eval_data": null,
-    "target_error": 0.1,
-    "min_abstain_n": 10
-  }
-}
-epoch 1/2 step 100 loss 1.0106
-epoch 1/2 step 200 loss 0.1936
-epoch 1/2 step 300 loss 0.6326
-epoch 1/2 step 400 loss 0.1132
-epoch 1/2 step 500 loss 0.0763
-epoch 1/2 step 600 loss 0.5487
-epoch 1/2 step 700 loss 0.0740
-epoch 1/2 mean loss 0.5202
-epoch 1: validation CE=0.696048
-epoch 2/2 step 100 loss 1.6192
-epoch 2/2 step 200 loss 0.0450
-epoch 2/2 step 300 loss 0.0552
-epoch 2/2 step 400 loss 0.3844
-epoch 2/2 step 500 loss 0.3624
-epoch 2/2 step 600 loss 0.2132
-epoch 2/2 step 700 loss 0.1303
-epoch 2/2 mean loss 0.3744
-epoch 2: validation CE=0.659007
+Fetching 5 files:   0%|          | 0/5 [00:00<?, ?it/s]Fetching 5 files: 100%|██████████| 5/5 [00:00<00:00, 2438.83it/s]
+Traceback (most recent call last):
+  File "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/laya_finetuning/train_laya.py", line 60, in <module>
+    main()
+  File "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/laya_finetuning/train_laya.py", line 56, in main
+    return run_training(parser().parse_args(argv))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/laya_finetuning/laya_helpers/training.py", line 47, in run_training
+    device = _device(args.device)
+             ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/laya_finetuning/laya_helpers/training.py", line 134, in _device
+    raise ValueError("MPS unavailable on this PyTorch build/macOS. Use --device cpu or --dry-run.")
+ValueError: MPS unavailable on this PyTorch build/macOS. Use --device cpu or --dry-run.

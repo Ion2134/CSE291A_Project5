@@ -11,7 +11,18 @@ class AgentTask:
     task_id: str
     template: str
     user_message: str
+    # The resolved mandate: the correct arguments, used for labels and attacks. Never shown when
+    # ``instruction`` is set.
     mandate: dict[str, Any]
+    # What the user actually specified, shown to the agent and in the monitor's ``trusted:`` line.
+    # None means the mandate itself is shown (every task except the "hard" ones).
+    instruction: dict[str, Any] | None = None
+    # The on-mandate calls ``[(openai tool name, arguments), ...]``, for the oracle backend only.
+    plan: tuple[tuple[str, dict[str, Any]], ...] | None = None
+
+    @property
+    def visible_mandate(self) -> dict[str, Any]:
+        return self.instruction if self.instruction is not None else self.mandate
 
 
 @dataclass(frozen=True)
@@ -158,19 +169,29 @@ def all_task_defs() -> list[TaskDef]:
     ]
 
 
+# A task set that is generated fresh each episode (sim/hard_tasks.py) instead of being a fixed list.
+HARD_TASK_SET = "hard"
+
+
 def task_sets() -> dict[str, list[TaskDef]]:
-    """Named groups of tasks an agent-mode run can draw from (``--task-set``).
+    """The fixed task lists an agent-mode run can draw from (``--task-set``).
 
     ``core`` is the original ten tasks; add a set here to make new tasks selectable without
-    changing what existing runs (and seeds) produce.
+    changing what existing runs (and seeds) produce. ``hard`` is also a task set, but it is
+    generated per episode, so it is not listed here (see ``task_set_names``).
     """
     return {"core": all_task_defs()}
+
+
+def task_set_names() -> list[str]:
+    """Every valid ``--task-set`` value."""
+    return sorted([*task_sets(), HARD_TASK_SET])
 
 
 def agent_tasks(task_set: str = "core") -> list[AgentTask]:
     sets = task_sets()
     if task_set not in sets:
-        raise ValueError(f"unknown task set {task_set!r}; expected one of {sorted(sets)}")
+        raise ValueError(f"unknown task set {task_set!r}; expected one of {sorted(sets)} (fixed lists)")
     return [
         AgentTask(
             task_id=t.task_id,

@@ -1,0 +1,12 @@
+{
+  "training_seeds": [
+    42
+  ],
+  "args": [
+    "--use-checks",
+    "--neighbors",
+    "5",
+    "--view",
+    "middleware"
+  ]
+}

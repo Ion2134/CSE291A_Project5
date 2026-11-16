@@ -1,0 +1,13 @@
+{
+  "name": "hard2",
+  "models": ["qwen/qwen3.6-35b-a3b", "gemma-4-e4b-it-mlx"],
+  "temperatures": [0.2, 0.7, 1.0],
+  "task_sets": ["hard"],
+  "task_sample": "parameterized",
+  "episodes": 50,
+  "max_episodes": 300,
+  "sample_seed": 0,
+  "base_seed": 200,
+  "backend": "lmstudio",
+  "concurrency": 2
+}

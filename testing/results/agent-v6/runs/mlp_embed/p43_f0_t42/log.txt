@@ -1,0 +1,5 @@
+{
+  "model": "mlp_embed",
+  "test_rows": 313,
+  "predictions": "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/testing/results/agent-v6/runs/mlp_embed/p43_f0_t42/native/test_predictions.jsonl"
+}

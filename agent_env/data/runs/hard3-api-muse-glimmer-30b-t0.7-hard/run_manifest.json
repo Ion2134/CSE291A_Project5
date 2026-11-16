@@ -1,0 +1,20 @@
+{
+  "seed": 204,
+  "episodes": 50,
+  "mode": "agent",
+  "model": "api-muse-glimmer-30b",
+  "models": [
+    "api-muse-glimmer-30b"
+  ],
+  "max_agent_steps": 8,
+  "multi_step": true,
+  "llm_samples": 0,
+  "concurrency": 2,
+  "temperature": 0.7,
+  "task_set": "hard",
+  "task_sample": "parameterized",
+  "task_count": null,
+  "operators": null,
+  "operator_weights": null,
+  "out_dir": "/home/samar/school/CSE-291A/CSE291A_Project5/agent_env/data/runs/hard3-api-muse-glimmer-30b-t0.7-hard"
+}

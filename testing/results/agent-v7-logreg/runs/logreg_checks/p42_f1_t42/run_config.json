@@ -1,0 +1,28 @@
+{
+  "unit": "logreg_checks p42 f1 t42",
+  "command": [
+    "/Users/nishanth/Code/ucsd/cse291a/CSE291A_Project5/mlp_baseline/.venv/bin/python",
+    "logreg_baseline/fit_predict.py",
+    "--model",
+    "logreg_checks",
+    "--train",
+    "/Users/nishanth/Code/ucsd/cse291a/CSE291A_Project5/testing/results/agent-v7-logreg/data/p42/f1/train.jsonl",
+    "--validation",
+    "/Users/nishanth/Code/ucsd/cse291a/CSE291A_Project5/testing/results/agent-v7-logreg/data/p42/f1/val.jsonl",
+    "--test",
+    "/Users/nishanth/Code/ucsd/cse291a/CSE291A_Project5/testing/results/agent-v7-logreg/data/p42/f1/test.jsonl",
+    "--seed",
+    "42",
+    "--out",
+    "/Users/nishanth/Code/ucsd/cse291a/CSE291A_Project5/testing/results/agent-v7-logreg/runs/logreg_checks/p42_f1_t42/native",
+    "--view",
+    "middleware"
+  ],
+  "settings": {
+    "args": [
+      "--view",
+      "middleware"
+    ]
+  },
+  "elapsed_seconds": 1.261887000175193
+}

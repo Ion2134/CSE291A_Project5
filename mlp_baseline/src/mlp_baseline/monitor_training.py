@@ -18,15 +18,18 @@ from pathlib import Path
 import numpy as np
 import torch
 
+from .checks import apply_view, fit_balance_memory, rule_cause
 from .common import (DEFAULT_INJECTION_CHECKPOINT, LABELS, check_monitor_row, input_id, read_jsonl, request_group,
                      require_empty_dir, write_json, write_jsonl)
 from .injection_model import InjectionMLPPredictor, load_injection_mlp
 from .metrics import apply_calibration, evaluate, fit_calibration
 from .mlp import MONITOR_FILE, TrainSettings, load_mlp, train_mlp
+from .embeddings import DEFAULT_EMBEDDING
 from .splits import group_kfold
+from .variants import rule_cause_plus, rule_probabilities
 from .stacking import StackedMonitor, fit_stacker, save_stacker
 
-MODELS = ("mlp", "stacking")
+MODELS = ("mlp", "mlp_embed", "stacking", "rules", "rules_plus")
 OUT_OF_FOLD = "out-of-fold train-pool predictions only"
 # Fold metrics summarized in each scenario's ``cv_metrics``.
 CV_METRICS = ("cause_macro_f1", "error_auroc", "error_type_accuracy", "error_detection_f1",
@@ -41,6 +44,7 @@ class MonitorSettings:
     train: TrainSettings = field(default_factory=TrainSettings)
     k: int = 5                                                # Inner cross-validation folds.
     injection_checkpoint: Path = DEFAULT_INJECTION_CHECKPOINT  # The stacking monitor's frozen base.
+    view: str = "full"                                        # "middleware" hides ledger_snapshot and received_args.
 
 
 @dataclass
@@ -62,7 +66,7 @@ def fit_predict(train: Path, test: Path, out: Path, settings: MonitorSettings = 
     data out. Fold models are deleted afterwards unless ``keep_models``.
     """
     if model not in MODELS:
-        raise ValueError("model must be 'mlp' or 'stacking'")
+        raise ValueError(f"model must be one of {MODELS}")
     out = Path(out)
     require_empty_dir(out, "Use a new or empty output directory")
     torch.set_num_threads(settings.train.threads)
@@ -71,32 +75,58 @@ def fit_predict(train: Path, test: Path, out: Path, settings: MonitorSettings = 
     train_rows = read_jsonl(Path(train)) + (read_jsonl(Path(validation)) if validation is not None else [])
     test_rows = read_jsonl(Path(test))
     _check_fold(train_rows, test_rows)
+    test_ids = [input_id(row) for row in test_rows]  # Ids stay those of the files the tester wrote.
+    train_rows, test_rows = apply_view(train_rows, settings.view), apply_view(test_rows, settings.view)
 
     out.mkdir(parents=True, exist_ok=True)
     folds_result = group_kfold(train_rows, k=settings.k, seed=settings.train.seed)
     models_dir = out / "models"
-    if model == "mlp":
-        output = train_first_party_mlp(folds_result["folds"], train_rows, test_rows, models_dir, settings.train)
+    train_settings = settings.train
+    if model.endswith("_embed") and not train_settings.embedding:
+        train_settings = replace(train_settings, embedding=DEFAULT_EMBEDDING)
+    if model == "rules":
+        output = rule_reference(test_rows)
+    elif model == "rules_plus":
+        output = rule_plus_reference(train_rows, test_rows)
+    elif model.startswith("mlp"):
+        output = train_first_party_mlp(folds_result["folds"], train_rows, test_rows, models_dir, train_settings)
     else:
         frozen = load_injection_mlp(Path(settings.injection_checkpoint))
         output = train_stacking(folds_result["folds"], train_rows, test_rows, models_dir, settings, frozen)
     if not keep_models:
-        shutil.rmtree(models_dir)
+        shutil.rmtree(models_dir, ignore_errors=True)
 
     write_jsonl(out / "test_predictions.jsonl", [
-        {"input_id": input_id(row), "expected": row["expected"],
+        {"input_id": row_id, "expected": row["expected"],
          "cause_probabilities": dict(zip(LABELS, map(float, probs))), "correct_probability": float(ok)}
-        for row, probs, ok in zip(test_rows, output.cause, output.correct)])
+        for row_id, row, probs, ok in zip(test_ids, test_rows, output.cause, output.correct)])
 
     output.details.pop("training", None)  # Per-epoch history is large and not needed per fold.
     result = {
-        "model": model, "seed": settings.train.seed, "train_rows": len(train_rows), "test_rows": len(test_rows),
+        "model": model, "view": settings.view, "seed": settings.train.seed, "train_rows": len(train_rows), "test_rows": len(test_rows),
         "inner_cv": {key: folds_result[key] for key in ("requested_k", "k", "degraded")},
         "details": output.details, "test": evaluate(test_rows, output.cause, output.correct),
         "elapsed_seconds": time.perf_counter() - started,
     }
     write_json(out / "results.json", result)
     return result
+
+
+def rule_reference(test_rows) -> ScenarioOutput:
+    """No training: the deterministic rule over the comparison features (the ceiling the learned models chase)."""
+    confidence = 0.97
+    cause = np.full((len(test_rows), len(LABELS)), (1 - confidence) / (len(LABELS) - 1))
+    for index, row in enumerate(test_rows):
+        cause[index, LABELS.index(rule_cause(row["state"]))] = confidence
+    return ScenarioOutput(cause, cause[:, 0], {"kind": "rules", "data": "none; hand-written rule on comparison features"})
+
+
+def rule_plus_reference(train_rows, test_rows) -> ScenarioOutput:
+    """The rules plus checks that remember the training rows (balances seen per account, empty transfer output)."""
+    memory = fit_balance_memory(train_rows)
+    cause = rule_probabilities(test_rows, lambda state: rule_cause_plus(state, memory))
+    return ScenarioOutput(cause, cause[:, 0], {"kind": "rules_plus", "accounts_remembered": len(memory),
+                                               "data": "training rows only: per-account balances"})
 
 
 def _check_fold(train_rows, test_rows) -> None:
@@ -146,23 +176,26 @@ def train_first_party_mlp(folds, train_rows, test_rows, models_dir: Path, settin
 def train_stacking(folds, train_rows, test_rows, models_dir: Path, settings: MonitorSettings,
                    frozen: InjectionMLPPredictor) -> ScenarioOutput:
     """Scenario B: fixed hyperparameters; cross-validation only fits the calibration."""
-    seed, max_features = settings.train.seed, settings.train.max_features
+    seed, max_features, use_checks = settings.train.seed, settings.train.max_features, settings.train.use_checks
     uncalibrated = {"cause": {"temperature": 1.0}, "correctness": {"temperature": 1.0}}
 
     def fit_fold(fold):
-        vectorizer, stacker = fit_stacker(fold["train"], frozen, seed=seed, max_features=max_features)
-        return StackedMonitor(frozen, vectorizer, stacker, uncalibrated).cause_proba(fold["val"])
+        vectorizer, stacker = fit_stacker(fold["train"], frozen, seed=seed, max_features=max_features,
+                                            use_checks=use_checks)
+        return StackedMonitor(frozen, vectorizer, stacker, uncalibrated, use_checks).cause_proba(fold["val"])
 
     fold_metrics, oof_cause = _cross_validate(folds, train_rows, fit_fold)
     calibration = fit_calibration(oof_cause, train_rows, OUT_OF_FOLD)
 
-    vectorizer, stacker = fit_stacker(train_rows, frozen, seed=seed, max_features=max_features)
-    monitor = StackedMonitor(frozen, vectorizer, stacker, calibration)
+    vectorizer, stacker = fit_stacker(train_rows, frozen, seed=seed, max_features=max_features,
+                                        use_checks=use_checks)
+    monitor = StackedMonitor(frozen, vectorizer, stacker, calibration, use_checks)
     base_checkpoint = str(settings.injection_checkpoint)
     save_stacker(models_dir / "final", vectorizer, stacker, calibration, base_checkpoint=base_checkpoint,
                  training={**STACKER_TRAINING, "seed": seed, "max_features": max_features,
                            "features": "calibrated injection probability + TF-IDF",
-                           "selection": "fixed hyperparameters; CV used for calibration and fold metrics"})
+                           "selection": "fixed hyperparameters; CV used for calibration and fold metrics"},
+                 use_checks=use_checks)
     cause, correct = monitor.predict(test_rows)
 
     details = {

@@ -1,0 +1,20 @@
+{
+  "seed": 201,
+  "episodes": 50,
+  "mode": "agent",
+  "model": "api-glm-5.3-flash",
+  "models": [
+    "api-glm-5.3-flash"
+  ],
+  "max_agent_steps": 8,
+  "multi_step": true,
+  "llm_samples": 0,
+  "concurrency": 2,
+  "temperature": 0.7,
+  "task_set": "hard",
+  "task_sample": "parameterized",
+  "task_count": null,
+  "operators": null,
+  "operator_weights": null,
+  "out_dir": "/Users/nishanth/Code/ucsd/cse291a/CSE291A_Project5/agent_env/data/runs/hard2-api-glm-5.3-flash-t0.7-hard"
+}

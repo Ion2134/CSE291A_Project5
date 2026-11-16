@@ -106,6 +106,9 @@ class SyntheticLedger:
             )
         )
 
+    def list_payees(self) -> list[dict[str, Any]]:
+        return [{"payee_id": p.payee_id, "name": p.name} for p in self.payees.values()]
+
     def list_accounts(self) -> list[dict[str, Any]]:
         return [
             {

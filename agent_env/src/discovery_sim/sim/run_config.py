@@ -21,8 +21,8 @@ class RunConfig:
     concurrency: int = 1
     # Agent-mode knobs (recorded in run_manifest.json). The defaults reproduce earlier runs.
     temperature: float = DEFAULT_TEMPERATURE
-    task_set: str = "core"  # A key of task_defs.TASK_SETS.
-    # fixed = original static list; parameterized = paraphrase/entity sampler (agent mode).
+    task_set: str = "core"  # One of task_defs.task_set_names(): core (fixed list) or hard (sampled).
+    # fixed = original static list; parameterized = paraphrase/entity sampler (agent mode, not for hard).
     task_sample: Literal["fixed", "parameterized"] = "fixed"
     # Restrict / reweight operator sampling. None keeps the full catalog, uniform.
     operators: tuple[str, ...] | None = None

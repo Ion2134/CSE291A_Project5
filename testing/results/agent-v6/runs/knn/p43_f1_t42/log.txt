@@ -1,0 +1,11 @@
+/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/agent_env/.venv/lib/python3.11/site-packages/sklearn/utils/extmath.py:208: RuntimeWarning: divide by zero encountered in matmul
+  ret = a @ b
+/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/agent_env/.venv/lib/python3.11/site-packages/sklearn/utils/extmath.py:208: RuntimeWarning: overflow encountered in matmul
+  ret = a @ b
+/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/agent_env/.venv/lib/python3.11/site-packages/sklearn/utils/extmath.py:208: RuntimeWarning: invalid value encountered in matmul
+  ret = a @ b
+{
+  "model": "knn",
+  "test_rows": 267,
+  "predictions": "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/testing/results/agent-v6/runs/knn/p43_f1_t42/native/test_predictions.jsonl"
+}

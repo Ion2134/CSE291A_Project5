@@ -1,0 +1,20 @@
+{
+  "seed": 208,
+  "episodes": 50,
+  "mode": "agent",
+  "model": "api-deepseek-4.1-flash",
+  "models": [
+    "api-deepseek-4.1-flash"
+  ],
+  "max_agent_steps": 8,
+  "multi_step": true,
+  "llm_samples": 0,
+  "concurrency": 2,
+  "temperature": 1.0,
+  "task_set": "hard",
+  "task_sample": "parameterized",
+  "task_count": null,
+  "operators": null,
+  "operator_weights": null,
+  "out_dir": "/home/samar/school/CSE-291A/CSE291A_Project5/agent_env/data/runs/hard3-api-deepseek-4.1-flash-t1-hard"
+}

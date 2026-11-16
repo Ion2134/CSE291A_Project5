@@ -10,7 +10,9 @@ import torch
 from sklearn.feature_extraction.text import TfidfVectorizer
 from torch import nn
 
+from .checks import check_matrix
 from .common import LABELS, read_json, write_json
+from .embeddings import embed_texts
 
 # Files in a checkpoint directory.
 WEIGHTS_FILE = "model.pt"
@@ -22,6 +24,7 @@ NGRAM_RANGE = (1, 2)
 SECOND_LAYER = 64
 DROPOUT = 0.1
 WEIGHT_DECAY = 0.01
+CHECK_SCALE = 2.0  # Comparison features are 0/1; scaled so the L2-normalised TF-IDF block does not drown them.
 
 
 @dataclass(frozen=True)
@@ -35,6 +38,8 @@ class TrainSettings:
     patience: int | None = None    # Early-stopping patience in epochs (needs validation rows).
     threads: int = 4
     verbose: bool = False          # Print one line per epoch.
+    use_checks: bool = False       # Append explicit comparison features (see checks.py) to the TF-IDF input.
+    embedding: str | None = None   # Hugging Face model id: use its sentence embedding instead of TF-IDF.
 
 
 class MLP(nn.Module):
@@ -50,14 +55,16 @@ class MLP(nn.Module):
 class MLPPredictor:
     """A loaded checkpoint: vectorizer + network, in eval mode."""
 
-    def __init__(self, model, vectorizer, device="cpu"):
+    def __init__(self, model, vectorizer, device="cpu", use_checks=False, embedding=None):
         self.device = torch.device(device)
         self.model = model.to(self.device).eval()
         self.vectorizer = vectorizer
+        self.use_checks = use_checks
+        self.embedding = embedding
 
     @torch.no_grad()
     def predict_proba(self, rows):
-        values = self.vectorizer.transform([row["state"] for row in rows]).toarray()
+        values = _dense(self.vectorizer, rows, self.use_checks, fit=False, embedding=self.embedding)
         return self.model(torch.from_numpy(values).to(self.device)).softmax(-1).cpu().numpy()
 
     def predict(self, rows):
@@ -82,10 +89,13 @@ def train_mlp(train, val, out: Path, settings: TrainSettings = TrainSettings(), 
         raise ValueError("Early stopping requires validation rows")
 
     torch.manual_seed(settings.seed)
-    vectorizer = TfidfVectorizer(max_features=settings.max_features, ngram_range=NGRAM_RANGE, dtype=np.float32)
+    vectorizer = None if settings.embedding else TfidfVectorizer(
+        max_features=settings.max_features, ngram_range=NGRAM_RANGE, dtype=np.float32)
     # Vocabulary and IDF come from training rows only, never from a holdout.
-    x_train = _features(vectorizer.fit_transform(_texts(train)), device)
-    x_val = None if val is None else _features(vectorizer.transform(_texts(val)), device)
+    x_train = torch.from_numpy(_dense(vectorizer, train, settings.use_checks, fit=True,
+                                      embedding=settings.embedding)).to(device)
+    x_val = None if val is None else torch.from_numpy(
+        _dense(vectorizer, val, settings.use_checks, fit=False, embedding=settings.embedding)).to(device)
     y_train = _targets(train, labels, target, device)
     y_val = None if val is None else _targets(val, labels, target, device)
 
@@ -94,14 +104,16 @@ def train_mlp(train, val, out: Path, settings: TrainSettings = TrainSettings(), 
 
     out.mkdir(parents=True, exist_ok=True)
     torch.save(best_state, out / WEIGHTS_FILE)
-    vocabulary = {key: int(value) for key, value in vectorizer.vocabulary_.items()}
-    write_json(out / VECTORIZER_FILE, {"vocabulary": vocabulary, "idf": vectorizer.idf_.tolist(),
-                                       "ngram_range": list(NGRAM_RANGE)})
+    if vectorizer is not None:
+        vocabulary = {key: int(value) for key, value in vectorizer.vocabulary_.items()}
+        write_json(out / VECTORIZER_FILE, {"vocabulary": vocabulary, "idf": vectorizer.idf_.tolist(),
+                                           "ngram_range": list(NGRAM_RANGE)})
 
-    report = {"architecture": f"TF-IDF -> {hidden} ReLU -> {SECOND_LAYER} ReLU -> {len(labels)} {target} logits",
+    report = {"architecture": f"{settings.embedding or 'TF-IDF'} -> {hidden} ReLU -> {SECOND_LAYER} ReLU -> {len(labels)} {target} logits",
               "input_features": x_train.shape[1], "hidden": hidden,
               "parameters": sum(p.numel() for p in model.parameters()), "labels": list(labels), "target": target,
-              "seed": settings.seed, "epochs": settings.epochs, "batch_size": settings.batch_size, "lr": lr,
+              "use_checks": settings.use_checks, "embedding": settings.embedding, "seed": settings.seed, "epochs": settings.epochs,
+              "batch_size": settings.batch_size, "lr": lr,
               "best_epoch": best_epoch, "epochs_completed": len(history), "patience": settings.patience,
               "selection": ("minimum validation cross entropy" if val is not None
                             else "fixed epoch count selected by cross-validation"),
@@ -161,8 +173,16 @@ def _texts(rows) -> list[str]:
     return [row["state"] for row in rows]
 
 
-def _features(matrix, device):
-    return torch.from_numpy(matrix.toarray()).to(device)
+def _dense(vectorizer, rows, use_checks: bool, *, fit: bool, embedding: str | None = None) -> np.ndarray:
+    """TF-IDF (or sentence-embedding) matrix, plus scaled comparison features when ``use_checks``, as dense float32."""
+    texts = _texts(rows)
+    if embedding:
+        tfidf = embed_texts(texts, embedding)
+    else:
+        tfidf = (vectorizer.fit_transform(texts) if fit else vectorizer.transform(texts)).toarray().astype(np.float32)
+    if not use_checks:
+        return tfidf
+    return np.hstack([tfidf, CHECK_SCALE * check_matrix(texts)])
 
 
 def _targets(rows, labels, target, device):
@@ -177,12 +197,14 @@ def _snapshot(model) -> dict:
 
 def load_mlp(path: Path, device="cpu") -> MLPPredictor:
     config = read_json(path / CONFIG_FILE)
-    features = read_json(path / VECTORIZER_FILE)
-
-    vectorizer = TfidfVectorizer(vocabulary=features["vocabulary"], ngram_range=tuple(features["ngram_range"]),
-                                 dtype=np.float32)
-    vectorizer.idf_ = np.asarray(features["idf"], dtype=np.float32)
+    embedding = config.get("embedding")
+    vectorizer = None
+    if not embedding:
+        features = read_json(path / VECTORIZER_FILE)
+        vectorizer = TfidfVectorizer(vocabulary=features["vocabulary"], ngram_range=tuple(features["ngram_range"]),
+                                     dtype=np.float32)
+        vectorizer.idf_ = np.asarray(features["idf"], dtype=np.float32)
 
     model = MLP(config["input_features"], config["hidden"], len(config["labels"]))
     model.load_state_dict(torch.load(path / WEIGHTS_FILE, map_location="cpu", weights_only=True))
-    return MLPPredictor(model, vectorizer, device)
+    return MLPPredictor(model, vectorizer, device, use_checks=config.get("use_checks", False), embedding=embedding)

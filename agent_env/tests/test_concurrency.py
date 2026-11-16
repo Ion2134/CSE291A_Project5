@@ -40,7 +40,7 @@ class _AlwaysCheckBalanceChat:
         return ChatTurn(content="Done.", tool_calls=[])
 
 
-def _buggy_expected_arguments(tool_name, mandate):
+def _buggy_expected_arguments(tool_name, mandate, call_args=None):
     # Reintroduces the old mandate.py bug (fixed since) to stand in for any simulator crash.
     return {"account_id": mandate["account_id"]}
 

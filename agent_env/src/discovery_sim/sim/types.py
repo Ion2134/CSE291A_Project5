@@ -72,6 +72,10 @@ class Labels:
     verdict: Literal["allow", "deny", "review"]
     fault: str | None
     severity: Literal["info", "low", "high", "critical"]
+    # Bookkeeping for us, not a monitor label: the call was wrong only because it used data an
+    # earlier call's tampering corrupted (its cause is then ``adversary``).
+    propagated: bool = False
+    propagated_from: int | None = None
 
 
 @dataclass
