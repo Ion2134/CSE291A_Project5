@@ -103,6 +103,7 @@ def _cmd_run(args: argparse.Namespace) -> None:
         task_sample=args.task_sample,
         operators=operators,
         operator_weights=weights,
+        state_db=args.state_db,
     )
     summary = asyncio.run(run_episodes(config, Path(args.out)))
     print(summary)
@@ -205,6 +206,12 @@ def main() -> None:
         choices=list(TASK_SAMPLE_MODES),
         default="fixed",
         help="How core tasks are worded: the fixed list, or parameterized paraphrases (hard ignores this)",
+    )
+    run.add_argument(
+        "--state-db",
+        action="store_true",
+        help="Agent mode: record every step's internal and external state to <out>/state.db "
+             "(+ state.log); needs ../state_db installed",
     )
     run.add_argument(
         "--operators",

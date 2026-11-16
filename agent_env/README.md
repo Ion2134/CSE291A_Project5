@@ -87,6 +87,7 @@ discovery-sim run --mode scripted --episodes 100 --seed 42 --out data/runs/scrip
 | `--temperature T` | 0.2 | Agent mode: the model's sampling temperature |
 | `--task-set core\|hard` | `core` | Agent mode: which task set episodes draw from: `core` (the ten tasks below) or `hard` ([hard tasks](#hard-tasks), whose answer isn't spelled out) |
 | `--task-sample fixed\|parameterized` | `fixed` | Agent mode: how `core` tasks are worded: the static list, or paraphrased with sampled accounts/payees/amounts (more `request_group`s after merge). `hard` tasks are always sampled and ignore it |
+| `--state-db` | off | Agent mode: record every step's internal and external state (conversation, calls, full ledger) to `state.db` + `state.log` in the run folder. Needs [`../state_db`](../state_db/README.md) installed: `.venv/bin/pip install -e ../state_db`. Batch configs: `"state_db": true` |
 | `--operators LIST` | all | Comma-separated allow-list of operators (e.g. `llm_wrong_account,llm_wrong_amount,benign`) |
 | `--operator-weights MAP` | uniform | Comma-separated `name=weight` sampling weights among the allowed operators |
 

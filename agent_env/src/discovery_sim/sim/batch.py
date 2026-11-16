@@ -59,6 +59,7 @@ class BatchConfig:
     base_url: str | None = None
     concurrency: int = 1
     max_agent_steps: int = 8
+    state_db: bool = False  # record each run's steps to <run>/state.db (needs ../state_db)
     runs_dir: str = "data/runs"
     batches_dir: str = "data/batches"
     extra: dict = field(default_factory=dict, compare=False)
@@ -191,7 +192,7 @@ def _run_config(config: BatchConfig, run: PlannedRun) -> RunConfig:
     return RunConfig(episodes=config.episodes, seed=run.seed, mode="agent", max_agent_steps=config.max_agent_steps,
                      llm_backend=config.backend, llm_base_url=config.base_url, llm_model=run.cell.model,
                      concurrency=max(1, config.concurrency), temperature=run.cell.temperature,
-                     task_set=run.cell.task_set, task_sample=config.task_sample)
+                     task_set=run.cell.task_set, task_sample=config.task_sample, state_db=config.state_db)
 
 
 def _write_batch_file(config: BatchConfig, planned: list[PlannedRun]) -> None:

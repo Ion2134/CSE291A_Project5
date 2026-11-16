@@ -27,3 +27,5 @@ class RunConfig:
     # Restrict / reweight operator sampling. None keeps the full catalog, uniform.
     operators: tuple[str, ...] | None = None
     operator_weights: dict[str, float] = field(default_factory=dict)
+    # Agent mode: record every step's internal and external state to <out>/state.db (needs ../state_db).
+    state_db: bool = False
