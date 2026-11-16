@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Literal
+
+from mcp_hardening import HardeningConfig
 
 from discovery_sim.llm.chat import ChatBackend
 
@@ -19,3 +21,5 @@ class RunConfig:
     multi_step: bool = True
     overwrite_output: bool = False
     concurrency: int = 1
+    # MCP hardening + telemetry toggles (JSON config; default: security off, telemetry on).
+    hardening: HardeningConfig = field(default_factory=HardeningConfig)

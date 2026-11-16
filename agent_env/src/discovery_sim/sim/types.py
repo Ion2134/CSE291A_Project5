@@ -63,6 +63,8 @@ class CallRecord:
     hidden_adversary: bool = False
     effect_manifest: dict[str, Any] = field(default_factory=dict)
     error: str | None = None
+    # MCP hardening outcome for this call (empty when every mechanism is off).
+    hardening: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass

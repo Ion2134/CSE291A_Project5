@@ -3,6 +3,8 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
+from mcp_hardening import ENVELOPE_KEY, HardeningError, HardeningRuntime
+
 from discovery_sim.a2a.types import Message, SendMessageRequest, data_part
 from discovery_sim.agents.bank import BankAgent
 from discovery_sim.agents.base import McpBackedAgent
@@ -22,21 +24,32 @@ from discovery_sim.sim.types import AttackSpec, BaseTask, CallRecord, OperatorId
 
 
 class AgentPool:
-    def __init__(self, ledger: SyntheticLedger | None = None) -> None:
+    def __init__(
+        self,
+        ledger: SyntheticLedger | None = None,
+        runtime: HardeningRuntime | None = None,
+    ) -> None:
         self.ledger = ledger or SyntheticLedger()
+        # Shared MCP hardening middleware (None or all-off = no hardening).
+        self.runtime = runtime
         self._bank: BankAgent | None = None
         self._payment: PaymentAgent | None = None
 
-    def bank(self, mcp_mode: str | None = None) -> BankAgent:
-        mcp = bank_mcp_server(self.ledger)
+    def _server(self, mcp: Any, mcp_mode: str | None) -> Any:
+        # Hardening wraps the *real* server first; an attack wraps on top of that. The genuine server
+        # signs its output, so anything the hacked layer changes breaks the response signature.
+        if self.runtime is not None:
+            mcp = self.runtime.wrap(mcp)
         if mcp_mode:
             mcp = HackedMcpToolServer(mcp, mcp_mode, ledger_getter=lambda: self.ledger)
+        return mcp
+
+    def bank(self, mcp_mode: str | None = None) -> BankAgent:
+        mcp = self._server(bank_mcp_server(self.ledger), mcp_mode)
         return BankAgent("http://127.0.0.1:8002", ledger=self.ledger, mcp=mcp)
 
     def payment(self, mcp_mode: str | None = None) -> PaymentAgent:
-        mcp = payment_mcp_server(self.ledger)
-        if mcp_mode:
-            mcp = HackedMcpToolServer(mcp, mcp_mode, ledger_getter=lambda: self.ledger)
+        mcp = self._server(payment_mcp_server(self.ledger), mcp_mode)
         return PaymentAgent("http://127.0.0.1:8003", ledger=self.ledger, mcp=mcp)
 
 
@@ -97,25 +110,52 @@ async def execute_tool_call(
     if attack.operator == OperatorId.HARD_NEGATIVE_REENCODE:
         agent = upstream
 
+    # Client-side middleware signs what the agent intends to call: after its own (llm-hop) mistakes,
+    # before anything on the wire can touch it.
+    runtime = pool.runtime if pool.runtime is not None and pool.runtime.enabled else None
+    envelope = runtime.client.sign(llm_effective.tool_name, llm_effective.arguments) if runtime else None
+    metadata: dict[str, Any] = {"skillId": a2a_tool}
+    if envelope is not None:
+        metadata[ENVELOPE_KEY] = envelope
+    hardening = _hardening_record(runtime, envelope)
+
     request = SendMessageRequest(
         message=Message(
             role="user",
             parts=[data_part(a2a_args)],
-            metadata={"skillId": a2a_tool},
+            metadata=metadata,
         )
     )
 
     error = None
     output: dict[str, Any] = {}
+    artifact: dict[str, Any] | None = None
     try:
         response = await agent.send_message(request)
         if response.task and response.task.artifacts:
-            part = response.task.artifacts[0]["parts"][0]
-            output = dict(part.get("data") or {})
+            artifact = response.task.artifacts[0]
+            output = dict(artifact["parts"][0].get("data") or {})
         elif response.task and response.task.status.get("state") == "failed":
             error = str(response.task.status.get("message", "failed"))
+    except HardeningError as exc:
+        # Server-side middleware refused the call before the handler ran: the call fails.
+        error = _hardening_failed(hardening, exc, "request")
     except Exception as exc:
         error = str(exc)
+
+    if runtime is not None and artifact is not None:
+        try:
+            runtime.client.verify_response(
+                llm_effective.tool_name,
+                envelope,
+                {"structuredContent": output, "isError": False, "_meta": artifact.get("metadata")},
+            )
+            if runtime.config.response_auth.enabled:
+                hardening["response_verified"] = True
+        except HardeningError as exc:
+            # The result can't be trusted, so the agent never sees it: the call fails.
+            error = _hardening_failed(hardening, exc, "response")
+            output = {}
 
     if attack.hop == "mcp" and attack.operator == OperatorId.MCP_IO_MISMATCH:
         hidden_adversary = True
@@ -131,7 +171,32 @@ async def execute_tool_call(
         attack=attack,
         hidden_adversary=hidden_adversary,
         error=error,
+        hardening=hardening,
     )
+
+
+def _hardening_failed(hardening: dict[str, Any], exc: HardeningError, stage: str) -> str:
+    hardening["failure_reason"] = exc.reason
+    hardening["failure_stage"] = stage
+    hardening[f"{stage}_verified"] = False
+    return str(exc)
+
+
+def _hardening_record(runtime: HardeningRuntime | None, envelope: dict[str, Any] | None) -> dict[str, Any]:
+    """Per-call hardening outcome. ``*_verified`` is None when that check is off (or never ran)."""
+    if runtime is None:
+        return {}
+    cfg = runtime.config
+    request_checks = cfg.request_auth.enabled or cfg.freshness_check.enabled or cfg.replay_protection.enabled
+    return {
+        "kid": envelope.get("kid") if envelope else None,
+        "request_signed": bool(envelope and "sig" in envelope),
+        # Optimistic: flipped to False if the server rejects the call.
+        "request_verified": True if request_checks else None,
+        "response_verified": None,
+        "failure_reason": None,
+        "failure_stage": None,
+    }
 
 
 def _llm_matches_task(task: BaseTask, args: dict[str, Any]) -> bool:

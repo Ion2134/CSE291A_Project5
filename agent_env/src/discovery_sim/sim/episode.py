@@ -8,11 +8,13 @@ import uuid
 from pathlib import Path
 from typing import Any
 
+from mcp_hardening import GenAITelemetry, HardeningRuntime, semconv
+from mcp_hardening.config import TelemetryConfig
 from tqdm import tqdm
 from tqdm.asyncio import tqdm_asyncio
 
 from discovery_sim.llm.base import LlmPlanner
-from discovery_sim.llm.chat import ChatClient, make_chat_client
+from discovery_sim.llm.chat import ChatClient, load_dotenv, make_chat_client
 from discovery_sim.llm.lmstudio import LmStudioPlanner
 from discovery_sim.llm.template import TemplatePlanner
 from discovery_sim.ledger.store import SyntheticLedger
@@ -22,7 +24,12 @@ from discovery_sim.sim.harness import AgentPool, execute_tool_call
 from discovery_sim.sim.labels import label_call, laya_state
 from discovery_sim.sim.operators import operator_catalog, pick_operator
 from discovery_sim.sim.fault_schedule import pick_agent_fault_call_index
-from discovery_sim.sim.orchestrator import AgentOrchestrator, ToolCallError, agent_episode_outcome
+from discovery_sim.sim.orchestrator import (
+    AgentOrchestrator,
+    ToolCallError,
+    agent_episode_outcome,
+    tool_error_type,
+)
 from discovery_sim.sim.run_config import RunConfig
 from discovery_sim.sim.run_output import resolve_run_dir, write_run_manifest
 from discovery_sim.sim.scenarios import EpisodeScenario, all_scenarios, tool_call_from_planned
@@ -82,11 +89,16 @@ class EpisodeRunner:
         seed: int = 0,
         config: RunConfig | None = None,
         chat_client: ChatClient | None = None,
+        runtime: HardeningRuntime | None = None,
+        telemetry: GenAITelemetry | None = None,
     ) -> None:
         self.rng = random.Random(seed)
         self.seed = seed
         self.config = config or RunConfig(seed=seed)
         self._chat_client = chat_client
+        # MCP hardening middleware shared by every episode (one nonce cache, one key).
+        self.runtime = runtime or HardeningRuntime.build(self.config.hardening)
+        self.telemetry = telemetry or GenAITelemetry(TelemetryConfig(enabled=False))
 
     @staticmethod
     def _parallel_episode_rng(base_seed: int, episode_index: int) -> random.Random:
@@ -113,6 +125,7 @@ class EpisodeRunner:
         fault_call_index_override: int | None = None,
         episode_rng: random.Random | None = None,
     ) -> EpisodeOutcome | None:
+        episode_id = f"ep_{uuid.uuid4().hex[:8]}"
         if self.config.mode == "agent":
             return await self._run_one_agent(
                 operator_override,
@@ -120,10 +133,26 @@ class EpisodeRunner:
                 episode_index,
                 fault_call_index_override,
                 episode_rng,
+                episode_id=episode_id,
             )
-        return await self._run_one_scripted(
-            operator_override, scenario_index, episode_index, episode_rng
-        )
+        with self.telemetry.agent_span(
+            "scripted-agent", episode_id, {semconv.SIM_EPISODE_INDEX: episode_index}
+        ) as span:
+            ep = await self._run_one_scripted(
+                operator_override, scenario_index, episode_index, episode_rng, episode_id=episode_id
+            )
+            if ep is not None:
+                self.telemetry.end_agent(
+                    span,
+                    completed=ep.task_completed,
+                    error=next((r.error for r in reversed(ep.records) if r.error), None),
+                    attributes={
+                        semconv.SIM_OPERATOR: ep.operator.value,
+                        semconv.SIM_TASK_COMPLETED: ep.task_completed,
+                        semconv.SIM_TASK_CORRECT: ep.task_correct,
+                    },
+                )
+            return ep
 
     async def _run_one_agent(
         self,
@@ -132,6 +161,7 @@ class EpisodeRunner:
         episode_index: int = 0,
         fault_call_index_override: int | None = None,
         episode_rng: random.Random | None = None,
+        episode_id: str | None = None,
     ) -> EpisodeOutcome | None:
         rng = self._roll_rng(episode_rng)
         tasks = agent_tasks()
@@ -148,10 +178,16 @@ class EpisodeRunner:
                 task, attack, rng, self.config.max_agent_steps
             )
 
-        pool = AgentPool(SyntheticLedger())
-        orchestrator = AgentOrchestrator(self._chat_for_episode(), max_steps=self.config.max_agent_steps)
+        pool = AgentPool(SyntheticLedger(), runtime=self.runtime)
+        orchestrator = AgentOrchestrator(
+            self._chat_for_episode(),
+            max_steps=self.config.max_agent_steps,
+            telemetry=self.telemetry,
+        )
         try:
-            run = await orchestrator.run_episode(task, pool, attack, fault_call_index, self.seed)
+            run = await orchestrator.run_episode(
+                task, pool, attack, fault_call_index, self.seed, episode_id=episode_id
+            )
         except Exception as exc:
             details: dict[str, Any] = {
                 "task_id": task.task_id,
@@ -179,6 +215,7 @@ class EpisodeRunner:
         scenario_index: int | None = None,
         episode_index: int = 0,
         episode_rng: random.Random | None = None,
+        episode_id: str | None = None,
     ) -> EpisodeOutcome | None:
         rng = self._roll_rng(episode_rng)
         scenarios = all_scenarios(include_multi=self.config.multi_step)
@@ -197,7 +234,7 @@ class EpisodeRunner:
 
         fault_call_index = rng.randrange(len(scenario.steps)) if attack.operator != OperatorId.BENIGN else 0
 
-        pool = AgentPool(SyntheticLedger())
+        pool = AgentPool(SyntheticLedger(), runtime=self.runtime)
         context = scenario.context or AgentContext.from_mandate(scenario.user_message, scenario.mandate)
         planner = self._planner_for_episode(episode_index)
         use_live_llm = episode_index < self.config.llm_samples
@@ -221,15 +258,36 @@ class EpisodeRunner:
             if llm_call is None:
                 return None
 
-            record = await execute_tool_call(
-                pool,
-                task,
-                llm_call,
-                step_attack,
-                call_index=step_index,
-                context=context,
-            )
-            labels = label_call(task, record, pool.ledger)
+            with self.telemetry.tool_span(
+                llm_call.tool_name,
+                f"{task.task_id}_call",
+                arguments=llm_call.arguments,
+                attributes={
+                    semconv.SIM_CALL_INDEX: step_index,
+                    semconv.SIM_MALFORMED: False,
+                    semconv.SIM_OPERATOR: step_attack.operator.value,
+                    semconv.SIM_HOP: step_attack.hop,
+                },
+            ) as tool_span:
+                record = await execute_tool_call(
+                    pool,
+                    task,
+                    llm_call,
+                    step_attack,
+                    call_index=step_index,
+                    context=context,
+                )
+                labels = label_call(task, record, pool.ledger)
+                self.telemetry.end_tool(
+                    tool_span,
+                    result=record.output,
+                    error_type=tool_error_type(record),
+                    error=record.error,
+                    attributes={
+                        semconv.SIM_OUTPUT_CORRECT: labels.output_correct,
+                        semconv.SIM_CAUSE: labels.cause,
+                    },
+                )
             context.record_call(step_index, record, labels.output_correct)
 
             examples.append(
@@ -266,6 +324,7 @@ class EpisodeRunner:
                         "hidden_adversary": record.hidden_adversary,
                         "fault": step_attack.fault,
                         "taint_map": dict(context.taint_map),
+                        "hardening": dict(record.hardening),
                     },
                 )
             )
@@ -289,7 +348,7 @@ class EpisodeRunner:
             r.attack.operator != OperatorId.BENIGN for r in records
         )
         return EpisodeOutcome(
-            episode_id=f"ep_{uuid.uuid4().hex[:8]}",
+            episode_id=episode_id or f"ep_{uuid.uuid4().hex[:8]}",
             seed=self.seed,
             operator=attack.operator,
             task_completed=task_completed,
@@ -361,7 +420,23 @@ def _clone_scenario(scenario: EpisodeScenario) -> EpisodeScenario:
 async def run_episodes(config: RunConfig, out_dir: Path) -> dict[str, Any]:
     out_dir = resolve_run_dir(out_dir, config.seed, overwrite=config.overwrite_output)
     out_dir.mkdir(parents=True, exist_ok=True)
-    runner = EpisodeRunner(seed=config.seed, config=config)
+    load_dotenv()  # encrypted MCP hardening key lives in agent_env/.env
+    runtime = HardeningRuntime.build(config.hardening)
+    telemetry = GenAITelemetry(config.hardening.telemetry, out_dir)
+    try:
+        return await _run_episodes(config, out_dir, runtime, telemetry)
+    finally:
+        # Flush the last telemetry part file even if the run crashes.
+        telemetry.shutdown()
+
+
+async def _run_episodes(
+    config: RunConfig,
+    out_dir: Path,
+    runtime: HardeningRuntime,
+    telemetry: GenAITelemetry,
+) -> dict[str, Any]:
+    runner = EpisodeRunner(seed=config.seed, config=config, runtime=runtime, telemetry=telemetry)
     episodes: list[EpisodeOutcome] = []
     errors: list[dict[str, Any]] = []
     dropped_llm = 0
@@ -460,6 +535,8 @@ async def run_episodes(config: RunConfig, out_dir: Path) -> dict[str, Any]:
     baseline["llm_samples_requested"] = config.llm_samples
     baseline["max_agent_steps"] = config.max_agent_steps
     baseline["concurrency"] = workers
+    baseline["hardening"] = config.hardening.to_dict()
+    baseline["hardening_blocked_calls"] = _hardening_blocked(episodes)
     (out_dir / "baseline.json").write_text(json.dumps(baseline, indent=2))
     write_run_manifest(
         out_dir,
@@ -473,6 +550,13 @@ async def run_episodes(config: RunConfig, out_dir: Path) -> dict[str, Any]:
             "concurrency": workers,
             "task_count": len(agent_tasks()),
             "out_dir": str(out_dir),
+            "hardening": config.hardening.to_dict(),
+            "hardening_key": (
+                {"kid": runtime.keyring.kid, "ephemeral": runtime.keyring.ephemeral}
+                if runtime.keyring is not None
+                else None
+            ),
+            "telemetry_dir": str(telemetry.out_dir) if telemetry.out_dir else None,
         },
     )
     return {
@@ -546,6 +630,20 @@ def _baseline_from_episodes(episodes: list[EpisodeOutcome], seed: int, count: in
         "by_operator": _group_rates(attacked, lambda e: e.operator.value),
         "by_hop": _group_rates(attacked, lambda e: e.fault_hop or "none"),
     }
+
+
+def _hardening_blocked(episodes: list[EpisodeOutcome]) -> dict[str, Any]:
+    """Tool calls the hardening middleware failed, by reason and by attack operator."""
+    by_reason: dict[str, int] = {}
+    by_operator: dict[str, int] = {}
+    for ep in episodes:
+        for rec in ep.records:
+            reason = rec.hardening.get("failure_reason")
+            if reason:
+                by_reason[reason] = by_reason.get(reason, 0) + 1
+                op = rec.attack.operator.value
+                by_operator[op] = by_operator.get(op, 0) + 1
+    return {"total": sum(by_reason.values()), "by_reason": by_reason, "by_operator": by_operator}
 
 
 def _group_rates(episodes: list[EpisodeOutcome], key_fn) -> dict[str, Any]:

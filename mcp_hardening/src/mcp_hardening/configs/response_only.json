@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "request_auth": {
+    "enabled": false
+  },
+  "response_auth": {
+    "enabled": true
+  },
+  "replay_protection": {
+    "enabled": false,
+    "nonce_ttl_s": 300.0,
+    "max_nonces": 100000
+  },
+  "freshness_check": {
+    "enabled": false,
+    "window_s": 120.0
+  },
+  "telemetry": {
+    "enabled": true,
+    "capture_content": true,
+    "flush_rows": 500,
+    "dir": "telemetry"
+  }
+}

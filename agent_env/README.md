@@ -28,7 +28,7 @@ The bank, payment, and chatbot agents speak A2A 1.0 over JSON-RPC, and bank and 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -e ".[dev]"
+pip install -e ../mcp_hardening -e ".[dev]"   # mcp_hardening lives at the repo root
 ```
 
 ## Model backends
@@ -84,10 +84,67 @@ discovery-sim run --mode scripted --episodes 100 --seed 42 --out data/runs/scrip
 | `--llm-samples N` | 0 | Scripted mode only: plan the first N benign episodes with LM Studio (always LM Studio, regardless of `--llm-backend`) |
 | `--llm-backend lmstudio\|triton` | `lmstudio` | Chat client for agent mode (see [Model backends](#model-backends)) |
 | `--llm-base-url`, `--llm-model` | env | Override the backend's base URL and model env vars |
+| `--hardening-config PATH` | `$MCP_HARDENING_CONFIG`, else defaults | JSON toggle config for MCP hardening + telemetry, or a preset name (`default`, `all_on`, `all_off`, `request_only`, `response_only`). See [MCP hardening](#mcp-hardening) |
 
 ### Tasks
 
 There are 10 banking tasks: balance lookup on two accounts, list accounts, transaction history, account holder lookup, three transfer variants, and two "check balance, then pay" flows. They are defined in `src/discovery_sim/sim/task_defs.py`.
+
+## MCP hardening
+
+All hardening code lives in the repo-root package [`mcp_hardening`](../mcp_hardening/README.md); this simulator only imports it. There are five mechanisms, toggled independently in one JSON config:
+- `request_auth`
+- `response_auth`
+- `replay_protection`
+- `freshness_check`
+- `telemetry`
+
+**Defaults:**
+- All four security mechanisms are off, so the Phase 1 baseline is unchanged.
+- Telemetry is on.
+
+```bash
+mcp-hardening keygen >> .env      # encrypted API key (optional for in-process runs: an ephemeral key is used)
+discovery-sim run --mode scripted --episodes 200 --seed 42 --hardening-config all_on --out data/runs/hardened42
+```
+
+**Where the middleware sits on a tool call:**
+1. **Client side (the agent).** The harness signs what the agent intends to call. That's after its own `llm`-hop mistakes and before anything on the wire.
+2. **Server side.** A wrapper around the **real** MCP server verifies the call before the handler runs, then signs the result. Attack layers (`MitmAgent`, `HackedMcpToolServer`) sit outside this wrapper.
+3. **Back on the client.** The harness checks the result signature before the output reaches the model.
+
+A failed check **fails the tool call**:
+- `record.error` becomes `mcp_hardening:<reason>` and the output is empty.
+- The episode ends as `hard_fail` instead of `silent_wrong`.
+- Labels still say `cause=adversary`.
+
+| Attack | Caught by | Reason |
+|---|---|---|
+| `a2a_call_intercepted` (on `get_balance` / `initiate_transfer`) | `request_auth` (and the ledger is untouched) | `bad_request_sig` |
+| `mcp_output_injection` | `response_auth` | `bad_response_sig` |
+| `mcp_io_mismatch` (on `get_balance`) | `response_auth` | `bad_response_sig` |
+| `llm_wrong_*`, `taint_prior_output` | not caught: the agent signs its own wrong intent honestly (Laya's job) | — |
+| `a2a_toolset_mismatch`, `hard_negative_reencode` | not caught: the call that reaches the server is the one that was signed | — |
+
+`mcp_io_mismatch` only changes `get_balance` output. On other tools the output is genuine, so hardening correctly lets it through. The labeler still marks those calls wrong, so they still count as `silent_wrong`.
+
+**What the run writes:**
+- Each tool call's outcome goes in `examples.jsonl` → `meta.hardening`: `request_verified`, `response_verified`, `failure_reason`, `failure_stage`, `kid`. It's kept out of `laya_train.jsonl` so the training format doesn't change.
+- Run-level information:
+  - `run_manifest.json` records the resolved config and the key id.
+  - `baseline.json` adds `hardening` and `hardening_blocked_calls` (by reason and by operator).
+
+### Telemetry (`telemetry/part-*.parquet`)
+
+Telemetry is turn-level OpenTelemetry GenAI spans, written as append-only Parquet (one new part file per flush; no file is ever rewritten). Each episode is one trace:
+- **`invoke_agent`**: the episode. `gen_ai.conversation.id` is the `episode_id`. Status is `OK` if the agent completed, `ERROR` otherwise.
+- **`chat {model}`**: one per LM turn. Records the model, provider, temperature, token usage and finish reasons. Input and output messages are included when `capture_content` is on.
+- **`execute_tool {tool}`**: one per tool call, including malformed (`error.type=malformed_tool_call`) and hardening-rejected (`error.type=mcp_hardening`) calls. Records the arguments, result, `mcp_hardening.*` verification results and `discovery_sim.*` labels.
+
+```python
+from mcp_hardening import read_telemetry
+df = read_telemetry("data/runs/hardened42/telemetry").to_pandas()
+```
 
 ## Generate prompt-gate data
 
@@ -221,7 +278,10 @@ To run the A2A agents as standalone servers (not needed for data generation):
 
 ```bash
 discovery-sim agents
+discovery-sim agents --hardening-config all_on   # requires the encrypted key in .env (see MCP hardening)
 ```
+
+With hardening on, both `SendMessage` and the MCP `/mcp` `tools/call` endpoint reject unsigned or tampered calls with a JSON-RPC error. To call them, use `A2AClient(url, runtime=HardeningRuntime.build(load_config("all_on")))`. Its `send_message` and `call_tool` sign each request and verify each response.
 
 Default ports: chatbot `8001`, bank `8002`, payment `8003`. Each serves its agent card at `/.well-known/agent-card.json` and JSON-RPC at `/rpc`.
 

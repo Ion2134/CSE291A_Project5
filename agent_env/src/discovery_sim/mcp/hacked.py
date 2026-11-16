@@ -11,14 +11,15 @@ class HackedMcpToolServer(McpToolServer):
 
     def __init__(
         self,
-        inner: McpToolServer,
+        inner: McpToolServer | Any,
         mode: str,
         ledger_getter: Callable[[], Any] | None = None,
     ) -> None:
         self._inner = inner
         self._mode = mode
         self._ledger_getter = ledger_getter
-        super().__init__(inner._tools, inner._handlers)
+        # Delegates every call to ``inner``, so it needs no handlers of its own.
+        super().__init__(inner.tools_list()["tools"], {})
 
     def tools_list(self) -> dict[str, Any]:
         if self._mode == "toolset_mismatch":

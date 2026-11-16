@@ -89,6 +89,9 @@ def load_dotenv(path: Path = DEFAULT_ENV_PATH) -> None:
 
 class ChatClient(ABC):
     model_id: str = "unknown"
+    # Reported as gen_ai.provider.name / gen_ai.request.temperature in telemetry.
+    provider_name: str = "unknown"
+    temperature: float | None = None
 
     @abstractmethod
     async def complete(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> ChatTurn:
@@ -96,6 +99,9 @@ class ChatClient(ABC):
 
 
 class LmStudioChat(ChatClient):
+    provider_name = "lmstudio"
+    temperature = 0.2
+
     def __init__(
         self,
         base_url: str | None = None,
@@ -111,7 +117,7 @@ class LmStudioChat(ChatClient):
         payload: dict[str, Any] = {
             "model": self.model,
             "messages": messages,
-            "temperature": 0.2,
+            "temperature": self.temperature,
         }
         if tools:
             payload["tools"] = tools
@@ -130,6 +136,9 @@ class LmStudioChat(ChatClient):
 class TritonAPIChat(ChatClient):
     """OpenAI-compatible TritonAI endpoint. Reads OPENAI_API_KEY / OPENAI_BASE_URL / OPENAI_MODEL,
     falling back to agent_env/.env (gitignored) for any that aren't already set."""
+
+    provider_name = "tritonai"
+    temperature = 0.2
 
     def __init__(
         self,
@@ -151,7 +160,7 @@ class TritonAPIChat(ChatClient):
         payload: dict[str, Any] = {
             "model": self.model,
             "messages": messages,
-            "temperature": 0.2,
+            "temperature": self.temperature,
         }
         if tools:
             payload["tools"] = tools
@@ -173,6 +182,7 @@ class ScriptChatClient(ChatClient):
     """Canned tool-call sequence for tests (no network)."""
 
     model_id = "script"
+    provider_name = "script"
 
     def __init__(self, turns: list[ChatTurn]) -> None:
         self._turns = list(turns)
