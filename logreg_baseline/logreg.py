@@ -2,11 +2,13 @@
 
 The features come from ``mlp_baseline.checks`` (call vs mandate, args vs call, output vs args and
 ledger, ...). The model learns a weight per feature per cause, so it is a learned version of the
-hand-written ``rules`` cascade and returns real probabilities. ``logreg_memory`` adds two features
+hand-written ``rules`` cascade and returns real probabilities. Both models also get four
+``HARD_FEATURES`` for mandates that describe a field instead of giving it. ``logreg_memory`` adds two features
 that remember the training rows (see ``mlp_baseline/README.md``); read it as an upper bound.
 """
 from __future__ import annotations
 
+import re
 import time
 from pathlib import Path
 
@@ -23,7 +25,14 @@ from injection import DETECTORS, output_text, was_injected
 
 MODELS = ("logreg_checks", "logreg_memory")
 MEMORY_FEATURES = ("balance_unseen", "empty_transfer_output")
+
+# Hard tasks describe a field instead of giving it ("the account held by Gray Synth"), so the
+# call-vs-mandate flags fire on correct calls. These say which fields were described, and whether
+# the call's ids came from somewhere the agent could have seen them.
+HARD_FEATURES = ("account_described", "payee_described", "amount_described", "call_id_unseen")
 INJECTION_COLUMN = FEATURE_NAMES.index("output_injection_text")
+_ID = re.compile(r"\b(?:acct|payee)_synth_\d+\b")
+_ACCOUNT_KEYS = ("account_id", "from_account_id")
 
 
 def fit_predict(train: Path, test: Path, out: Path, *, model: str = "logreg_checks", view: str = "full",
@@ -69,7 +78,9 @@ def logreg_probabilities(train_rows, test_rows, *, memory: bool = False, seed: i
     x_test = check_matrix([row["state"] for row in test_rows])
     x_train[:, INJECTION_COLUMN], x_test[:, INJECTION_COLUMN] = injection_scores(
         train_rows, test_rows, injection_detector)
-    names = list(FEATURE_NAMES)
+    x_train = np.hstack([x_train, hard_matrix([row["state"] for row in train_rows])])
+    x_test = np.hstack([x_test, hard_matrix([row["state"] for row in test_rows])])
+    names = [*FEATURE_NAMES, *HARD_FEATURES]
     if memory:
         x_train = np.hstack([x_train, _out_of_group_memory_columns(train_rows)])
         x_test = np.hstack([x_test, _memory_columns([row["state"] for row in test_rows],
@@ -84,6 +95,35 @@ def logreg_probabilities(train_rows, test_rows, *, memory: bool = False, seed: i
     weights = {LABELS[label]: {name: round(float(w), 3) for name, w in zip(names, row)}
                for label, row in zip(model.classes_, model.coef_)} if len(model.classes_) > 2 else {}
     return probabilities, {"features": names, "C": c, "injection_detector": injection_detector, "weights": weights}
+
+
+def hard_features(state: str) -> np.ndarray:
+    """``HARD_FEATURES``-ordered 0/1 vector for one state string (all zeros if it cannot be parsed).
+
+    A field is *described* when the call sets it but the mandate has no literal value for it.
+    ``call_id_unseen`` fires when an account or payee id in the call appears neither in the user
+    message, the mandate, nor any earlier tool output, i.e. the agent could not have looked it up.
+    """
+    parsed = parse_state(state)
+    if parsed is None:
+        return np.zeros(len(HARD_FEATURES), dtype=np.float32)
+    trusted, call = parsed["trusted"], parsed["model_call"]
+    account_given = any(trusted.get(key) is not None for key in _ACCOUNT_KEYS)
+    seen = set()
+    for line in state.splitlines():
+        if line.startswith(("user_message: ", "trusted: ")):
+            seen.update(_ID.findall(line))
+        elif line.lstrip().startswith("- [") and " output=" in line:
+            seen.update(_ID.findall(line.split(" output=", 1)[1]))
+    call_ids = set(_ID.findall(" ".join(str(value) for value in call.values())))
+    return np.array([any(key in call for key in _ACCOUNT_KEYS) and not account_given,
+                     "payee_id" in call and trusted.get("payee_id") is None,
+                     "amount_cents" in call and trusted.get("amount_cents") is None,
+                     bool(call_ids - seen)], dtype=np.float32)
+
+
+def hard_matrix(states) -> np.ndarray:
+    return np.array([hard_features(state) for state in states], dtype=np.float32).reshape(-1, len(HARD_FEATURES))
 
 
 def injection_scores(train_rows, test_rows, name: str) -> tuple[np.ndarray, np.ndarray]:

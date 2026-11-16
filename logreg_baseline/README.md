@@ -10,10 +10,26 @@ and reuses the features and metrics from [`../mlp_baseline/`](../mlp_baseline/) 
 
 | Model | Features | Notes |
 | --- | --- | --- |
-| `logreg_checks` | The 12 comparison flags (call vs mandate, args vs call, output vs args and ledger, tool kind) | The one to headline. No dependence on simulator constants. |
-| `logreg_memory` | The 12 flags plus `balance_unseen` and `empty_transfer_output` | Read as an upper bound: the extra checks were found by inspecting the folds, and the balance check relies on the simulator reusing the same seeded balances. |
+| `logreg_checks` | The 12 comparison flags (call vs mandate, args vs call, output vs args and ledger, tool kind) plus the 4 hard-task flags below | The one to headline. No dependence on simulator constants. |
+| `logreg_memory` | The same 16 flags plus `balance_unseen` and `empty_transfer_output` | Read as an upper bound: the extra checks were found by inspecting the folds, and the balance check relies on the simulator reusing the same seeded balances. |
 
-The feature definitions are in [`mlp_baseline/README.md`](../mlp_baseline/README.md#comparison-features-checkspy).
+The 12 comparison flags are defined in [`mlp_baseline/README.md`](../mlp_baseline/README.md#comparison-features-checkspy).
+
+### Hard-task flags
+
+Hard tasks describe a field instead of giving it (`'from_account': 'the account held by Gray Synth'`),
+so the call-vs-mandate flags fire on correct calls too. Four logreg-only flags (in `logreg.py`, not the
+shared `checks.py`) let the model tell those apart. They read only the user message, the mandate and
+earlier calls, so they work in the middleware view.
+
+| Flag | Fires when |
+| --- | --- |
+| `account_described`, `payee_described`, `amount_described` | The call sets that field but the mandate has no literal value for it |
+| `call_id_unseen` | An account or payee id in the call appears in neither the user message, the mandate, nor any earlier tool output: the agent could not have looked it up |
+
+They do not check that a described field was resolved correctly. For "pay from whichever account has
+more money", a pick of the smaller account still uses an id the agent saw. Fraction amounts are also
+only marked as described, not recomputed.
 Classes are weighted equally in the loss (`class_weight="balanced"`), `C=1`, and the weights learned
 for each cause are saved in `results.json` under `details.weights`.
 
