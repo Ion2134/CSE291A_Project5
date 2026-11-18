@@ -36,7 +36,7 @@ share the file and are told apart by `episode_id`.
 | --- | --- | --- |
 | `steps` | `seq`, `episode_id`, `wall_time`, `kind` (`start` / `message` / `tool_call`) | the timeline |
 | `messages` | `seq`, `episode_id`, `position`, `role`, `content` (JSON) | internal: the conversation |
-| `tool_calls` | `seq`, `episode_id`, `call_index`, `tool`, `model_call`, `received_args`, `output`, `cause`, `output_correct` | internal: `model_call`, `output`; external: `received_args` |
+| `tool_calls` | `seq`, `episode_id`, `call_index`, `tool`, `model_call`, `received_args`, `output`, `cause`, `output_correct`, `classifier_outputs`, `recover` | internal: `model_call`, `output`; external: `received_args`; the run's classifier outputs and recovery decision (empty without classifiers) |
 | `accounts`, `payees`, `payments`, `transactions` | `seq`, `episode_id` + the ledger's fields | external: the full ledger after that step |
 
 The ledger is snapshotted at the episode's `start` and after every tool call, so the ledger as of any

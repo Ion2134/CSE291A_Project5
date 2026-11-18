@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import re
 import time
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
@@ -74,27 +75,60 @@ def logreg_probabilities(train_rows, test_rows, *, memory: bool = False, seed: i
     With ``memory``, two extra features are added, both built from the training rows only.
     ``injection_detector`` (a ``DETECTORS`` name) fills the ``output_injection_text`` column.
     """
-    x_train = check_matrix([row["state"] for row in train_rows])
-    x_test = check_matrix([row["state"] for row in test_rows])
-    x_train[:, INJECTION_COLUMN], x_test[:, INJECTION_COLUMN] = injection_scores(
-        train_rows, test_rows, injection_detector)
-    x_train = np.hstack([x_train, hard_matrix([row["state"] for row in train_rows])])
-    x_test = np.hstack([x_test, hard_matrix([row["state"] for row in test_rows])])
+    fitted = fit_logreg(train_rows, memory=memory, seed=seed, c=c, injection_detector=injection_detector)
+    return fitted.predict(test_rows), fitted.details()
+
+
+@dataclass
+class LogregModel:
+    """A fitted logreg monitor: score any rows with ``predict`` (what ``classifiers`` calls per tool call)."""
+
+    model: LogisticRegression
+    detector: object
+    memory: dict | None
+    names: list[str]
+    c: float
+    injection_detector: str
+
+    def predict(self, rows) -> np.ndarray:
+        """Cause probabilities in ``LABELS`` order."""
+        states = [row["state"] for row in rows]
+        x = _base_features(states, self.detector)
+        if self.memory is not None:
+            x = np.hstack([x, _memory_columns(states, self.memory)])
+        probabilities = np.zeros((len(rows), len(LABELS)))
+        probabilities[:, self.model.classes_] = self.model.predict_proba(x)
+        return probabilities
+
+    def details(self) -> dict:
+        weights = ({LABELS[label]: {name: round(float(w), 3) for name, w in zip(self.names, row)}
+                    for label, row in zip(self.model.classes_, self.model.coef_)}
+                   if len(self.model.classes_) > 2 else {})
+        return {"features": self.names, "C": self.c, "injection_detector": self.injection_detector,
+                "weights": weights}
+
+
+def fit_logreg(train_rows, *, memory: bool = False, seed: int = 42, c: float = 1.0,
+               injection_detector: str = "keyword") -> LogregModel:
+    """Fit on ``train_rows``. Memory and the injection detector are built from the training rows only."""
+    states = [row["state"] for row in train_rows]
+    detector = fit_detector(train_rows, injection_detector)
+    x_train = _base_features(states, detector)
     names = [*FEATURE_NAMES, *HARD_FEATURES]
     if memory:
         x_train = np.hstack([x_train, _out_of_group_memory_columns(train_rows)])
-        x_test = np.hstack([x_test, _memory_columns([row["state"] for row in test_rows],
-                                                    fit_balance_memory(train_rows))])
         names += list(MEMORY_FEATURES)
-
     y_train = np.array([LABELS.index(cause_of(row)) for row in train_rows])
     model = LogisticRegression(C=c, class_weight="balanced", max_iter=2000, random_state=seed).fit(x_train, y_train)
-    probabilities = np.zeros((len(test_rows), len(LABELS)))
-    probabilities[:, model.classes_] = model.predict_proba(x_test)
+    return LogregModel(model, detector, fit_balance_memory(train_rows) if memory else None, names, c,
+                       injection_detector)
 
-    weights = {LABELS[label]: {name: round(float(w), 3) for name, w in zip(names, row)}
-               for label, row in zip(model.classes_, model.coef_)} if len(model.classes_) > 2 else {}
-    return probabilities, {"features": names, "C": c, "injection_detector": injection_detector, "weights": weights}
+
+def _base_features(states, detector) -> np.ndarray:
+    """The comparison flags (injection column from ``detector``) plus the hard-task flags."""
+    x = check_matrix(states)
+    x[:, INJECTION_COLUMN] = detector.score([output_text(state) for state in states])
+    return np.hstack([x, hard_matrix(states)])
 
 
 def hard_features(state: str) -> np.ndarray:
@@ -128,12 +162,18 @@ def hard_matrix(states) -> np.ndarray:
 
 def injection_scores(train_rows, test_rows, name: str) -> tuple[np.ndarray, np.ndarray]:
     """P(injection) for the training and test rows, from a detector fit on the training rows only."""
+    detector = fit_detector(train_rows, name)
+    return (detector.score([output_text(row["state"]) for row in train_rows]),
+            detector.score([output_text(row["state"]) for row in test_rows]))
+
+
+def fit_detector(train_rows, name: str):
+    """The ``name`` injection detector, fit on the training rows only."""
     if name not in DETECTORS:
         raise ValueError(f"injection_detector must be one of {sorted(DETECTORS)}")
     detector = DETECTORS[name]()
-    train_texts = [output_text(row["state"]) for row in train_rows]
-    detector.fit(train_texts, [was_injected(row) for row in train_rows])
-    return detector.score(train_texts), detector.score([output_text(row["state"]) for row in test_rows])
+    detector.fit([output_text(row["state"]) for row in train_rows], [was_injected(row) for row in train_rows])
+    return detector
 
 
 def _memory_columns(states, memory: dict) -> np.ndarray:

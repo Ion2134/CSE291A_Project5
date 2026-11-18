@@ -26,9 +26,12 @@ LEDGER_TABLES: dict[str, tuple[str, ...]] = {
     "payments": ("payment_id", "from_account_id", "payee_id", "amount_cents", "status", "created_at"),
     "transactions": ("transaction_id", "account_id", "amount_cents", "description", "posted_at"),
 }
-TOOL_CALL_COLUMNS = ("call_index", "tool", "model_call", "received_args", "output", "cause", "output_correct")
+# classifier_outputs / recover: what the run's classifiers said about the call and the recovery decision
+# (None when the run lists no classifiers).
+TOOL_CALL_COLUMNS = ("call_index", "tool", "model_call", "received_args", "output", "cause", "output_correct",
+                     "classifier_outputs", "recover")
 # Columns stored as JSON text.
-_JSON_COLUMNS = {"content", "model_call", "received_args", "output"}
+_JSON_COLUMNS = {"content", "model_call", "received_args", "output", "classifier_outputs"}
 
 SCHEMA = f"""
 CREATE TABLE IF NOT EXISTS steps (
