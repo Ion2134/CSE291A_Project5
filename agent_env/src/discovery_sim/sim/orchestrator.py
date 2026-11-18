@@ -6,7 +6,10 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
-from discovery_sim.llm.chat import ChatClient, ToolCallRequest
+from mcp_hardening import GenAITelemetry, semconv
+from mcp_hardening.config import TelemetryConfig
+
+from discovery_sim.llm.chat import ChatClient, ChatTurn, ToolCallRequest
 from discovery_sim.mcp.openai_tools import all_openai_tools, parse_tool_name, validate_tool_call
 from discovery_sim.sim.context import AgentContext
 from discovery_sim.sim.harness import AgentPool, execute_tool_call
@@ -90,13 +93,21 @@ class AgentRunResult:
 
 
 class AgentOrchestrator:
-    def __init__(self, chat: ChatClient, max_steps: int = 8, store: Any | None = None,
-                 panel: Any | None = None) -> None:
+    def __init__(
+        self,
+        chat: ChatClient,
+        max_steps: int = 8,
+        store: Any | None = None,
+        panel: Any | None = None,
+        telemetry: GenAITelemetry | None = None,
+    ) -> None:
         self.chat = chat
         self.max_steps = max_steps
         self.store = store  # optional state_db.StateStore
         self.panel = panel  # optional recovery_classifiers.Panel: asked about every tool call
         self.tools = all_openai_tools()
+        # Turn-level OTel GenAI spans; a disabled instance records nothing.
+        self.telemetry = telemetry or GenAITelemetry(TelemetryConfig(enabled=False))
 
     async def run_episode(
         self,
@@ -106,7 +117,43 @@ class AgentOrchestrator:
         fault_call_index: int,
         seed: int,
         rng: random.Random | None = None,
+        episode_id: str | None = None,
     ) -> AgentRunResult:
+        episode_id = episode_id or f"ep_{uuid.uuid4().hex[:8]}"
+        with self.telemetry.agent_span(
+            "banking-agent",
+            episode_id,
+            {
+                semconv.SIM_TASK_ID: task.task_id,
+                semconv.SIM_OPERATOR: attack.operator.value,
+                semconv.SIM_HOP: attack.hop,
+                semconv.GEN_AI_REQUEST_MODEL: getattr(self.chat, "model_id", "unknown"),
+            },
+        ) as span:
+            result = await self._run_loop(task, pool, attack, fault_call_index, seed, rng=rng)
+            result.episode_id = episode_id
+            last_error = next((r.error for r in reversed(result.records) if r.error), None)
+            self.telemetry.end_agent(
+                span,
+                completed=result.task_completed,
+                error=last_error,
+                attributes={
+                    semconv.SIM_TASK_COMPLETED: result.task_completed,
+                    semconv.SIM_TASK_CORRECT: result.task_correct,
+                },
+            )
+        return result
+
+    async def _run_loop(
+        self,
+        task: AgentTask,
+        pool: AgentPool,
+        attack: AttackSpec,
+        fault_call_index: int,
+        seed: int,
+        rng: random.Random | None = None,
+    ) -> AgentRunResult:
+        tel = self.telemetry
         catalog = operator_catalog()
         attack_rng = rng if rng is not None else random.Random(seed)
         # The agent and the monitor see what the user specified; labels use the resolved mandate.
@@ -133,7 +180,15 @@ class AgentOrchestrator:
 
         for step in range(self.max_steps):
             recorder.messages(messages)
-            turn = await self.chat.complete(messages, self.tools)
+            with tel.chat_span(
+                getattr(self.chat, "model_id", "unknown"),
+                getattr(self.chat, "provider_name", "unknown"),
+                temperature=getattr(self.chat, "temperature", None),
+                input_messages=messages if tel.capture_content else None,
+                attributes={semconv.SIM_STEP: step},
+            ) as chat_span:
+                turn = await self.chat.complete(messages, self.tools)
+                tel.end_chat(chat_span, response=turn.raw, output_message=_assistant_output(turn), error=turn.error)
             if turn.error:
                 result.failure_call_index = tool_round
                 break
@@ -157,6 +212,17 @@ class AgentOrchestrator:
                 )
                 problem = tc.parse_error or validate_tool_call(tc.name, tc.arguments)
                 if problem:
+                    with tel.tool_span(
+                        tc.name,
+                        tc.id,
+                        arguments=sent_args,
+                        attributes={
+                            semconv.SIM_STEP: step,
+                            semconv.SIM_CALL_INDEX: tool_round,
+                            semconv.SIM_MALFORMED: True,
+                        },
+                    ) as tool_span:
+                        tel.end_tool(tool_span, error_type="malformed_tool_call", error=problem)
                     # Model failure: report the error to the model and let it retry. Doesn't
                     # consume a tool round, so the attack schedule still targets real calls.
                     result.malformed_calls.append(
@@ -179,22 +245,45 @@ class AgentOrchestrator:
                     )
                     continue
                 step_attack = attack if tool_round == fault_call_index else catalog[OperatorId.BENIGN]
-                try:
-                    record, example = await self._execute_model_tool_call(
-                        task,
-                        pool,
-                        context,
-                        tc,
-                        step_attack,
-                        tool_round,
-                        seed,
-                        messages,
-                        attack_rng,
+                with tel.tool_span(
+                    tc.name,
+                    tc.id,
+                    arguments=tc.arguments,
+                    attributes={
+                        semconv.SIM_STEP: step,
+                        semconv.SIM_CALL_INDEX: tool_round,
+                        semconv.SIM_MALFORMED: False,
+                        semconv.SIM_OPERATOR: step_attack.operator.value,
+                        semconv.SIM_HOP: step_attack.hop,
+                    },
+                ) as tool_span:
+                    try:
+                        record, example = await self._execute_model_tool_call(
+                            task,
+                            pool,
+                            context,
+                            tc,
+                            step_attack,
+                            tool_round,
+                            seed,
+                            messages,
+                            attack_rng,
+                        )
+                    except Exception as exc:
+                        # The span records the exception and ERROR status on the way out.
+                        raise ToolCallError(
+                            tool_round, tc.name, tc.arguments, _conversation_snapshot(messages)
+                        ) from exc
+                    tel.end_tool(
+                        tool_span,
+                        result=record.output,
+                        error_type=tool_error_type(record),
+                        error=record.error,
+                        attributes={
+                            semconv.SIM_OUTPUT_CORRECT: example.labels.output_correct,
+                            semconv.SIM_CAUSE: example.labels.cause,
+                        },
                     )
-                except Exception as exc:
-                    raise ToolCallError(
-                        tool_round, tc.name, tc.arguments, _conversation_snapshot(messages)
-                    ) from exc
                 result.records.append(record)
                 result.examples.append(example)
                 recorder.messages(messages)  # the assistant message that made the call
@@ -281,6 +370,7 @@ class AgentOrchestrator:
                 "taint_map": dict(context.taint_map),
                 "template": task.template,
                 "task_id": task.task_id,
+                "hardening": dict(record.hardening),
             },
         )
         if self.panel is not None:
@@ -296,6 +386,25 @@ class AgentOrchestrator:
         outputs = self.panel.classify(row)
         example.meta["classifier_outputs"] = outputs
         example.meta["recovery"] = decide(outputs)
+
+
+def tool_error_type(record: CallRecord) -> str | None:
+    """``error.type`` for a tool span: hardening rejections are kept distinct from tool errors."""
+    if record.hardening.get("failure_reason"):
+        return "mcp_hardening"
+    if record.error:
+        return "tool_error"
+    return None
+
+
+def _assistant_output(turn: ChatTurn) -> dict[str, Any]:
+    out: dict[str, Any] = {"role": "assistant", "content": turn.content}
+    if turn.tool_calls:
+        out["tool_calls"] = [
+            {"id": tc.id, "name": tc.name, "arguments": tc.raw_arguments if tc.raw_arguments is not None else tc.arguments}
+            for tc in turn.tool_calls
+        ]
+    return out
 
 
 def _conversation_snapshot(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:

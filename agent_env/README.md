@@ -91,6 +91,7 @@ discovery-sim run --mode scripted --episodes 100 --seed 42 --out data/runs/scrip
 | `--state-db` | off | Agent mode: record every step's internal and external state (conversation, calls, full ledger) to `state.db` + `state.log` in the run folder. Needs [`../state_db`](../state_db/README.md) installed: `.venv/bin/pip install -e ../state_db`. Batch configs: `"state_db": true` |
 | `--operators LIST` | all | Comma-separated allow-list of operators (e.g. `llm_wrong_account,llm_wrong_amount,benign`) |
 | `--operator-weights MAP` | uniform | Comma-separated `name=weight` sampling weights among the allowed operators |
+| `--hardening-config PATH` | `$MCP_HARDENING_CONFIG`, else defaults | JSON toggle config for MCP hardening + telemetry, or a preset name (`default`, `all_on`, `all_off`, `request_only`, `response_only`). See [MCP hardening](#mcp-hardening) |
 
 Example agent-heavy run (biased toward emulated LLM mistakes, paraphrased tasks):
 
@@ -135,6 +136,62 @@ tampered `list_payees` gave for the name: `mcp_io_mismatch` rotates the ids), it
 `cause: adversary`. `examples.jsonl` additionally marks it `propagated: true` with `propagated_from`
 (the tampered call's index), so we can tell these apart; `laya_train.jsonl` keeps only the two monitor
 labels.
+
+## MCP hardening
+
+All hardening code lives in the repo-root package [`mcp_hardening`](../mcp_hardening/README.md); this simulator only imports it. There are five mechanisms, toggled independently in one JSON config:
+- `request_auth`
+- `response_auth`
+- `replay_protection`
+- `freshness_check`
+- `telemetry`
+
+**Defaults:**
+- All four security mechanisms are off, so the Phase 1 baseline is unchanged.
+- Telemetry is on.
+
+```bash
+mcp-hardening keygen >> .env      # encrypted API key (optional for in-process runs: an ephemeral key is used)
+discovery-sim run --mode scripted --episodes 200 --seed 42 --hardening-config all_on --out data/runs/hardened42
+```
+
+**Where the middleware sits on a tool call:**
+1. **Client side (the agent).** The harness signs what the agent intends to call. That's after its own `llm`-hop mistakes and before anything on the wire.
+2. **Server side.** A wrapper around the **real** MCP server verifies the call before the handler runs, then signs the result. Attack layers (`MitmAgent`, `HackedMcpToolServer`) sit outside this wrapper.
+3. **Back on the client.** The harness checks the result signature before the output reaches the model.
+
+A failed check **fails the tool call**:
+- `record.error` becomes `mcp_hardening:<reason>` and the output is empty.
+- The episode ends as `hard_fail` instead of `silent_wrong`.
+- Labels still say `cause=adversary`.
+
+| Attack | Caught by | Reason |
+|---|---|---|
+| `a2a_call_intercepted` (on `get_balance` / `initiate_transfer`) | `request_auth` (and the ledger is untouched) | `bad_request_sig` |
+| `mcp_output_injection` | `response_auth` | `bad_response_sig` |
+| `mcp_io_mismatch` (on `get_balance`) | `response_auth` | `bad_response_sig` |
+| `llm_wrong_*`, `taint_prior_output` | not caught: the agent signs its own wrong intent honestly (Laya's job) | — |
+| `a2a_toolset_mismatch`, `hard_negative_reencode` | not caught: the call that reaches the server is the one that was signed | — |
+
+`mcp_io_mismatch` only changes `get_balance` output. On other tools the output is genuine, so hardening correctly lets it through. The labeler still marks those calls wrong, so they still count as `silent_wrong`.
+
+**What the run writes:**
+- Each tool call's outcome goes in `examples.jsonl` → `meta.hardening`: `request_verified`, `response_verified`, `failure_reason`, `failure_stage`, `kid`. It's kept out of `laya_train.jsonl` so the training format doesn't change.
+- Run-level information:
+  - `run_manifest.json` records the resolved config and the key id.
+  - `baseline.json` adds `hardening` and `hardening_blocked_calls` (by reason and by operator).
+
+### Telemetry (`telemetry/part-*.parquet`)
+
+Telemetry is turn-level OpenTelemetry GenAI spans, written as append-only Parquet (one new part file per flush; no file is ever rewritten). Each episode is one trace:
+- **`invoke_agent`**: the episode. `gen_ai.conversation.id` is the `episode_id`. Status is `OK` if the agent completed, `ERROR` otherwise.
+- **`chat {model}`**: one per LM turn. Records the model, provider, temperature, token usage and finish reasons. Input and output messages are included when `capture_content` is on.
+- **`execute_tool {tool}`**: one per tool call, including malformed (`error.type=malformed_tool_call`) and hardening-rejected (`error.type=mcp_hardening`) calls. Records the arguments, result, `mcp_hardening.*` verification results and `discovery_sim.*` labels.
+
+```python
+from mcp_hardening import read_telemetry
+df = read_telemetry("data/runs/hardened42/telemetry").to_pandas()
+```
 
 ### Batches over knobs
 
@@ -209,7 +266,7 @@ One row per prompt:
 
 ## Output files
 
-Each run directory contains six files, plus `malformed_calls.jsonl` and `errors.jsonl` when [something fails that isn't an attack](#failures-that-arent-attacks). There is one row per **episode** in `episodes.jsonl`, and one row per **tool call** in `examples.jsonl` and `laya_train.jsonl`, so an episode with two tool calls produces two training rows.
+Each run directory contains six files, plus `malformed_calls.jsonl` and `errors.jsonl` when [something fails that isn't an attack](#failures-that-arent-attacks) and a `telemetry/` directory of Parquet spans (see [Telemetry](#telemetry-telemetrypart-parquet)). There is one row per **episode** in `episodes.jsonl`, and one row per **tool call** in `examples.jsonl` and `laya_train.jsonl`, so an episode with two tool calls produces two training rows.
 
 ### `laya_train.jsonl` (training data)
 
@@ -241,7 +298,7 @@ The same tool calls as `laya_train.jsonl`, with more detail:
 
 - **`input`**: structured versions of the state, including `conversation` (agent mode), `prior_calls`, `trusted`, `model_call`, `received_args`, `output`, and `ledger_snapshot`.
 - **`label`**: `output_correct` and `cause`, plus `verdict` (`allow` or `deny`), `fault` (for example `io_mismatch`), `severity`, and `propagated` / `propagated_from` (see [hard tasks](#hard-tasks)).
-- **`meta`**: the operator and hop applied to this call, call index, seed, planner model, whether the call came from a live LM, and (agent mode) the task's `template` and `task_id`.
+- **`meta`**: the operator and hop applied to this call, call index, seed, planner model, whether the call came from a live LM, (agent mode) the task's `template` and `task_id`, and the call's `hardening` outcome (see [MCP hardening](#mcp-hardening)).
 
 Use this file for debugging, filtering, and stratified splits. Do not train on `meta`, since the operator name gives away the answer.
 
@@ -276,6 +333,7 @@ Aggregate rates over attacked (non-benign) episodes, with no recovery or monitor
 - `malformed_call_count`, `model_failure_episodes`: model failures over **all** episodes, benign included.
 - `episode_errors`: episodes that crashed the simulator (see [`errors.jsonl`](#errorsjsonl-simulator-crashes)).
 - Run settings: `mode`, `concurrency`, `max_agent_steps`, and `dropped_llm_mismatch` (scripted mode episodes dropped because the LM's plan didn't match the template).
+- `hardening`, `hardening_blocked_calls`: the resolved hardening config and the calls it blocked, by reason and by operator (see [MCP hardening](#mcp-hardening)).
 
 ### Failures that aren't attacks
 
@@ -293,7 +351,7 @@ A well-formed call that still raises an exception is a simulator bug. The episod
 
 ### `run_manifest.json`
 
-The settings used for the run: seed, episode count, mode, concurrency, max agent steps, task count, and output directory. Use it to reproduce or compare runs.
+The settings used for the run: seed, episode count, mode, concurrency, max agent steps, task count, hardening config and key id, telemetry directory, and output directory. Use it to reproduce or compare runs.
 
 ## Run the agents over HTTP
 
@@ -301,7 +359,10 @@ To run the A2A agents as standalone servers (not needed for data generation):
 
 ```bash
 discovery-sim agents
+discovery-sim agents --hardening-config all_on   # requires the encrypted key in .env (see MCP hardening)
 ```
+
+With hardening on, both `SendMessage` and the MCP `/mcp` `tools/call` endpoint reject unsigned or tampered calls with a JSON-RPC error. To call them, use `A2AClient(url, runtime=HardeningRuntime.build(load_config("all_on")))`. Its `send_message` and `call_tool` sign each request and verify each response.
 
 Default ports: chatbot `8001`, bank `8002`, payment `8003`. Each serves its agent card at `/.well-known/agent-card.json` and JSON-RPC at `/rpc`.
 

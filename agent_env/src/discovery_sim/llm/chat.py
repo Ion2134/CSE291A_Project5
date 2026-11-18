@@ -102,6 +102,7 @@ def load_dotenv(path: Path = DEFAULT_ENV_PATH) -> None:
 
 class ChatClient(ABC):
     model_id: str = "unknown"
+    provider_name: str = "unknown"
 
     @abstractmethod
     async def complete(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> ChatTurn:
@@ -175,6 +176,8 @@ def _backoff(attempt: int) -> float:
 
 
 class LmStudioChat(OpenAICompatibleChat):
+    provider_name = "lmstudio"
+
     def __init__(
         self,
         base_url: str | None = None,
@@ -192,6 +195,8 @@ class LmStudioChat(OpenAICompatibleChat):
 class TritonAPIChat(OpenAICompatibleChat):
     """OpenAI-compatible TritonAI endpoint. Reads OPENAI_API_KEY / OPENAI_BASE_URL / OPENAI_MODEL,
     falling back to agent_env/.env (gitignored) for any that aren't already set."""
+
+    provider_name = "tritonai"
 
     def __init__(
         self,
@@ -222,6 +227,7 @@ class ScriptChatClient(ChatClient):
     """Canned tool-call sequence for tests (no network)."""
 
     model_id = "script"
+    provider_name = "script"
 
     def __init__(self, turns: list[ChatTurn]) -> None:
         self._turns = list(turns)
@@ -237,6 +243,8 @@ class ScriptChatClient(ChatClient):
 
 class OracleChat(ChatClient):
     """Always emits on-mandate tool calls. Used to generate emulated LLM-hop failures offline."""
+
+    provider_name = "oracle"
 
     def __init__(self, model: str | None = None) -> None:
         self.model_id = model or "oracle"

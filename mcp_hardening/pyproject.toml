@@ -1,0 +1,31 @@
+[project]
+name = "mcp-hardening"
+version = "0.1.0"
+description = "Per-call MCP request/response signing middleware and OpenTelemetry GenAI Parquet telemetry"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "cryptography>=42",
+    "opentelemetry-api>=1.25",
+    "opentelemetry-sdk>=1.25",
+    "pyarrow>=15",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+mcp-hardening = "mcp_hardening.cli:main"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+mcp_hardening = ["configs/*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

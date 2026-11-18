@@ -167,16 +167,17 @@ def skill_id_from_message(message: Message) -> str | None:
     return None
 
 
-def completed_task(task_id: str, result: dict[str, Any]) -> Task:
+def completed_task(task_id: str, result: dict[str, Any], metadata: dict[str, Any] | None = None) -> Task:
+    artifact: dict[str, Any] = {
+        "artifactId": f"{task_id}-result",
+        "parts": [data_part(result)],
+    }
+    if metadata:
+        artifact["metadata"] = metadata
     return Task(
         id=task_id,
         status={"state": "completed"},
-        artifacts=[
-            {
-                "artifactId": f"{task_id}-result",
-                "parts": [data_part(result)],
-            }
-        ],
+        artifacts=[artifact],
     )
 
 

@@ -6,12 +6,14 @@ import json
 from pathlib import Path
 
 import uvicorn
+from mcp_hardening import HardeningRuntime, load_config, preset_names
 
 from discovery_sim.agents.bank import BankAgent
 from discovery_sim.agents.chatbot import ChatbotAgent
 from discovery_sim.agents.payment import PaymentAgent
 from discovery_sim.ledger.store import SyntheticLedger
-from discovery_sim.llm.chat import CHAT_BACKENDS, DEFAULT_TEMPERATURE
+from discovery_sim.llm.chat import CHAT_BACKENDS, DEFAULT_TEMPERATURE, load_dotenv
+from discovery_sim.mcp.server import bank_mcp_server, payment_mcp_server
 from discovery_sim.sim.episode import run_episodes
 from discovery_sim.sim.operators import parse_operator_ids, parse_operator_weights
 from discovery_sim.sim.prompt_data import PromptGenConfig, generate_prompt_data
@@ -20,7 +22,33 @@ from discovery_sim.sim.task_defs import task_set_names
 from discovery_sim.sim.task_sample import TASK_SAMPLE_MODES
 
 
-async def _serve_all(host: str, chatbot_port: int, bank_port: int, payment_port: int) -> None:
+def _agents_runtime(config_path: str | None) -> HardeningRuntime | None:
+    """Server-side hardening for the HTTP agents. Needs the real encrypted key: separate processes
+    can't share an ephemeral one."""
+    config = load_config(config_path)
+    if not config.security_enabled:
+        return None
+    load_dotenv()
+    return HardeningRuntime.build(config, allow_ephemeral=False)
+
+
+def _bank_agent(url: str, ledger: SyntheticLedger, runtime: HardeningRuntime | None) -> BankAgent:
+    mcp = bank_mcp_server(ledger)
+    return BankAgent(url, ledger=ledger, mcp=runtime.wrap(mcp) if runtime else mcp)
+
+
+def _payment_agent(url: str, ledger: SyntheticLedger, runtime: HardeningRuntime | None) -> PaymentAgent:
+    mcp = payment_mcp_server(ledger)
+    return PaymentAgent(url, ledger=ledger, mcp=runtime.wrap(mcp) if runtime else mcp)
+
+
+async def _serve_all(
+    host: str,
+    chatbot_port: int,
+    bank_port: int,
+    payment_port: int,
+    runtime: HardeningRuntime | None = None,
+) -> None:
     ledger = SyntheticLedger()
     servers = [
         uvicorn.Server(
@@ -33,7 +61,7 @@ async def _serve_all(host: str, chatbot_port: int, bank_port: int, payment_port:
         ),
         uvicorn.Server(
             uvicorn.Config(
-                BankAgent(f"http://{host}:{bank_port}", ledger=ledger).starlette_app(),
+                _bank_agent(f"http://{host}:{bank_port}", ledger, runtime).starlette_app(),
                 host=host,
                 port=bank_port,
                 log_level="info",
@@ -41,7 +69,7 @@ async def _serve_all(host: str, chatbot_port: int, bank_port: int, payment_port:
         ),
         uvicorn.Server(
             uvicorn.Config(
-                PaymentAgent(f"http://{host}:{payment_port}", ledger=ledger).starlette_app(),
+                _payment_agent(f"http://{host}:{payment_port}", ledger, runtime).starlette_app(),
                 host=host,
                 port=payment_port,
                 log_level="info",
@@ -52,8 +80,9 @@ async def _serve_all(host: str, chatbot_port: int, bank_port: int, payment_port:
 
 
 def _cmd_agents(args: argparse.Namespace) -> None:
+    runtime = _agents_runtime(args.hardening_config)
     if args.agent == "all":
-        asyncio.run(_serve_all(args.host, args.chatbot_port, args.bank_port, args.payment_port))
+        asyncio.run(_serve_all(args.host, args.chatbot_port, args.bank_port, args.payment_port, runtime))
         return
 
     ports = {
@@ -65,9 +94,9 @@ def _cmd_agents(args: argparse.Namespace) -> None:
     if args.agent == "chatbot":
         agent = ChatbotAgent(f"http://{args.host}:{port}")
     elif args.agent == "bank":
-        agent = BankAgent(f"http://{args.host}:{port}")
+        agent = _bank_agent(f"http://{args.host}:{port}", SyntheticLedger(), runtime)
     else:
-        agent = PaymentAgent(f"http://{args.host}:{port}")
+        agent = _payment_agent(f"http://{args.host}:{port}", SyntheticLedger(), runtime)
 
     uvicorn.run(agent.starlette_app(), host=args.host, port=port, log_level="info")
 
@@ -105,6 +134,7 @@ def _cmd_run(args: argparse.Namespace) -> None:
         operator_weights=weights,
         state_db=args.state_db,
         recovery_classifiers=_classifier_specs(args.recovery_classifiers),
+        hardening=load_config(args.hardening_config),
     )
     summary = asyncio.run(run_episodes(config, Path(args.out)))
     print(summary)
@@ -157,6 +187,13 @@ def main() -> None:
     agents.add_argument("--chatbot-port", type=int, default=8001)
     agents.add_argument("--bank-port", type=int, default=8002)
     agents.add_argument("--payment-port", type=int, default=8003)
+    agents.add_argument(
+        "--hardening-config",
+        default=None,
+        metavar="PATH",
+        help=f"MCP hardening/telemetry JSON config: a file path or a preset ({', '.join(preset_names())}). "
+        "Default: $MCP_HARDENING_CONFIG, else built-in defaults (security off, telemetry on)",
+    )
     agents.set_defaults(func=_cmd_agents)
 
     run = sub.add_parser("run", help="Run seeded attack episodes and write dataset artifacts")
@@ -243,6 +280,13 @@ def main() -> None:
         default=None,
         metavar="MAP",
         help="Comma-separated name=weight map for sampling among allowed operators",
+    )
+    run.add_argument(
+        "--hardening-config",
+        default=None,
+        metavar="PATH",
+        help=f"MCP hardening/telemetry JSON config: a file path or a preset ({', '.join(preset_names())}). "
+        "Default: $MCP_HARDENING_CONFIG, else built-in defaults (security off, telemetry on)",
     )
     run.set_defaults(func=_cmd_run)
 

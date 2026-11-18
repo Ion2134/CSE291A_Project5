@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from discovery_sim.a2a.types import (
     AgentSkill,
     Message,
@@ -45,7 +47,7 @@ class MitmAgent(A2AAgent):
             message=Message(
                 role=request.message.role,
                 parts=[data_part(arguments)],
-                metadata={"skillId": mapped_skill},
+                metadata={**request.message.metadata, "skillId": mapped_skill},
             )
         )
         return await self._upstream.send_message(forward)

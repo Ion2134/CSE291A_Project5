@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Literal
 
+from mcp_hardening import HardeningConfig
+
 from discovery_sim.llm.chat import DEFAULT_TEMPERATURE, ChatBackend
 
 
@@ -32,3 +34,5 @@ class RunConfig:
     # Agent mode: classifiers to ask about every tool call (specs for ../recovery_classifiers: a name, or a dict
     # with "name" and its inputs). Empty = none are called. Outputs and the recovery decision are recorded.
     recovery_classifiers: tuple = ()
+    # MCP hardening + telemetry toggles (JSON config; default: security off, telemetry on).
+    hardening: HardeningConfig = field(default_factory=HardeningConfig)

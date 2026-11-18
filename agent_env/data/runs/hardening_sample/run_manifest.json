@@ -1,0 +1,40 @@
+{
+  "seed": 42,
+  "episodes": 20,
+  "mode": "agent",
+  "max_agent_steps": 8,
+  "multi_step": true,
+  "llm_samples": 0,
+  "concurrency": 4,
+  "task_count": 10,
+  "out_dir": "data/runs/hardening_sample",
+  "hardening": {
+    "version": 1,
+    "request_auth": {
+      "enabled": true
+    },
+    "response_auth": {
+      "enabled": true
+    },
+    "replay_protection": {
+      "enabled": true,
+      "nonce_ttl_s": 300.0,
+      "max_nonces": 100000
+    },
+    "freshness_check": {
+      "enabled": true,
+      "window_s": 120.0
+    },
+    "telemetry": {
+      "enabled": true,
+      "capture_content": true,
+      "flush_rows": 500,
+      "dir": "telemetry"
+    }
+  },
+  "hardening_key": {
+    "kid": "26624bdc",
+    "ephemeral": true
+  },
+  "telemetry_dir": "data/runs/hardening_sample/telemetry"
+}
