@@ -1,0 +1,2 @@
+[console_scripts]
+mcp-hardening = mcp_hardening.cli:main
