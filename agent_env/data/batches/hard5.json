@@ -1,0 +1,20 @@
+{
+  "name": "hard5",
+  "runs": [
+    "hard5-api-deepseek-4.1-flash-t0.2-hard"
+  ],
+  "cells": [
+    {
+      "run": "hard5-api-deepseek-4.1-flash-t0.2-hard",
+      "model": "api-deepseek-4.1-flash",
+      "temperature": 0.2,
+      "task_set": "hard",
+      "seed": 506
+    }
+  ],
+  "episodes_per_run": 50,
+  "task_sample": "parameterized",
+  "max_episodes": 50,
+  "sample_seed": 0,
+  "grid_size": 9
+}

@@ -1,0 +1,22 @@
+[project]
+name = "recovery-classifiers"
+version = "0.1.0"
+description = "The banking monitors as plug-in classifiers the simulator can call on each tool call"
+readme = "README.md"
+requires-python = ">=3.10"
+# Install ../mlp_baseline as well (pip install -e mlp_baseline); logreg_baseline and knn_baseline are
+# added to the import path from the repo checkout.
+dependencies = ["numpy", "scikit-learn"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["recovery_classifiers"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

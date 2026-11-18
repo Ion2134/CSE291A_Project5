@@ -95,6 +95,8 @@ class EpisodeRunner:
         self.seed = seed
         self.config = config or RunConfig(seed=seed)
         self._chat_client = chat_client
+        self.store = None  # a state_db.StateStore when the run records state (``RunConfig.state_db``)
+        self.panel = None  # a recovery_classifiers.Panel when the run lists classifiers (``RunConfig.recovery_classifiers``)
 
     @staticmethod
     def _parallel_episode_rng(base_seed: int, episode_index: int) -> random.Random:
@@ -183,7 +185,8 @@ class EpisodeRunner:
             )
 
         pool = AgentPool(SyntheticLedger())
-        orchestrator = AgentOrchestrator(self._chat_for_episode(), max_steps=self.config.max_agent_steps)
+        orchestrator = AgentOrchestrator(self._chat_for_episode(), max_steps=self.config.max_agent_steps,
+                                         store=self.store, panel=self.panel)
         try:
             run = await orchestrator.run_episode(
                 task, pool, attack, fault_call_index, self.seed, rng=rng
@@ -371,7 +374,12 @@ async def run_episodes(config: RunConfig, out_dir: Path) -> dict[str, Any]:
     out_dir.mkdir(parents=True, exist_ok=True)
     workers = max(1, config.concurrency)
 
-    episodes, errors, dropped_llm = await _run_all_episodes(config, workers)
+    store = _open_state_db(out_dir) if config.state_db else None
+    try:
+        episodes, errors, dropped_llm = await _run_all_episodes(config, workers, store)
+    finally:
+        if store is not None:
+            store.close()
 
     _write_failure_files(out_dir, episodes, errors)
     _write_episode_files(out_dir, episodes)
@@ -403,8 +411,29 @@ async def run_episodes(config: RunConfig, out_dir: Path) -> dict[str, Any]:
     }
 
 
+def _open_state_db(out_dir: Path):
+    """A fresh ``state.db`` (and ``state.log``) for this run; imported here so the package stays optional."""
+    try:
+        from state_db import StateStore
+    except ImportError as exc:
+        raise SystemExit("--state-db needs the state_db package: agent_env/.venv/bin/pip install -e ../state_db") from exc
+    for name in ("state.db", "state.log"):
+        (out_dir / name).unlink(missing_ok=True)  # a rerun into the same folder starts a new record
+    return StateStore(out_dir / "state.db")
+
+
+def _build_classifiers(specs):
+    """Build and fit the run's classifiers once; imported here so the package stays optional."""
+    try:
+        from recovery_classifiers import Panel
+    except ImportError as exc:
+        raise SystemExit("classifiers need the recovery_classifiers package: "
+                         "agent_env/.venv/bin/pip install -e ../mlp_baseline -e ../recovery_classifiers") from exc
+    return Panel(specs)
+
+
 async def _run_all_episodes(
-    config: RunConfig, workers: int
+    config: RunConfig, workers: int, store=None
 ) -> tuple[list[EpisodeOutcome], list[dict[str, Any]], int]:
     """Run every episode (in parallel when ``workers > 1``), in episode order.
 
@@ -412,6 +441,8 @@ async def _run_all_episodes(
     episodes were dropped for an LM plan mismatch.
     """
     runner = EpisodeRunner(seed=config.seed, config=config)
+    runner.store = store
+    runner.panel = _build_classifiers(config.recovery_classifiers) if config.recovery_classifiers else None
     errors: list[dict[str, Any]] = []
 
     async def _run_episode_index(i: int) -> tuple[int, EpisodeOutcome | None]:
@@ -508,6 +539,9 @@ def _run_manifest(config: RunConfig, workers: int, planners: list[str], out_dir:
         "operators": list(config.operators) if config.operators else None,
         "operator_weights": dict(config.operator_weights) if config.operator_weights else None,
         "out_dir": str(out_dir),
+        # Only present when on, so manifests of ordinary runs are unchanged.
+        **({"state_db": "state.db"} if config.state_db else {}),
+        **({"recovery_classifiers": list(config.recovery_classifiers)} if config.recovery_classifiers else {}),
     }
 
 

@@ -8,6 +8,7 @@ closeness and by 1 / class frequency so the rare causes are not outvoted.
 from __future__ import annotations
 
 import time
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
@@ -62,21 +63,43 @@ def fit_predict(train: Path, test: Path, out: Path, *, model: str = "knn", view:
 def knn_probabilities(train_rows, test_rows, *, neighbors: int = 5, use_checks: bool = False,
                       max_features: int = 4096, embedding: str | None = None) -> np.ndarray:
     """Cause probabilities in ``LABELS`` order; the index is built from ``train_rows`` only."""
+    return fit_knn(train_rows, neighbors=neighbors, use_checks=use_checks, max_features=max_features,
+                   embedding=embedding).predict(test_rows)
+
+
+@dataclass
+class KnnModel:
+    """A built index: score any rows with ``predict`` (what ``classifiers`` calls per tool call)."""
+
+    index: NearestNeighbors
+    vectorizer: TfidfVectorizer | None
+    y_train: np.ndarray
+    class_weight: np.ndarray
+    use_checks: bool
+    embedding: str | None
+
+    def predict(self, rows) -> np.ndarray:
+        """Cause probabilities in ``LABELS`` order."""
+        distance, neighbor = self.index.kneighbors(
+            _features(self.vectorizer, rows, self.use_checks, fit=False, embedding=self.embedding))
+        votes = np.zeros((len(rows), len(LABELS)))
+        for row in range(len(rows)):
+            for dist, other in zip(distance[row], neighbor[row]):
+                votes[row, self.y_train[other]] += self.class_weight[self.y_train[other]] / (dist + 1e-3)
+        votes += SMOOTHING * votes.sum(axis=1, keepdims=True)
+        return votes / votes.sum(axis=1, keepdims=True)
+
+
+def fit_knn(train_rows, *, neighbors: int = 5, use_checks: bool = False, max_features: int = 4096,
+            embedding: str | None = None) -> KnnModel:
+    """Build the index (and the TF-IDF vocabulary) from ``train_rows`` only."""
     vectorizer = None if embedding else TfidfVectorizer(max_features=max_features, ngram_range=NGRAM_RANGE,
                                                         dtype=np.float32)
     x_train = _features(vectorizer, train_rows, use_checks, fit=True, embedding=embedding)
-    x_test = _features(vectorizer, test_rows, use_checks, fit=False, embedding=embedding)
     y_train = np.array([LABELS.index(cause_of(row)) for row in train_rows])
     class_weight = len(y_train) / (len(LABELS) * np.maximum(np.bincount(y_train, minlength=len(LABELS)), 1))
-
     index = NearestNeighbors(n_neighbors=min(neighbors, len(train_rows)), metric="cosine").fit(x_train)
-    distance, neighbor = index.kneighbors(x_test)
-    votes = np.zeros((len(test_rows), len(LABELS)))
-    for row in range(len(test_rows)):
-        for dist, other in zip(distance[row], neighbor[row]):
-            votes[row, y_train[other]] += class_weight[y_train[other]] / (dist + 1e-3)
-    votes += SMOOTHING * votes.sum(axis=1, keepdims=True)
-    return votes / votes.sum(axis=1, keepdims=True)
+    return KnnModel(index, vectorizer, y_train, class_weight, use_checks, embedding)
 
 
 def _features(vectorizer, rows, use_checks: bool, *, fit: bool, embedding: str | None) -> np.ndarray:

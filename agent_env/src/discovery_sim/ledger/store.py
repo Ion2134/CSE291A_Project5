@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import Any
 
 
@@ -105,6 +105,15 @@ class SyntheticLedger:
                 posted_at="2026-10-01T12:00:00Z",
             )
         )
+
+    def snapshot(self) -> dict[str, list[dict[str, Any]]]:
+        """Every account, payee, payment and transaction as plain dicts (what the state DB stores)."""
+        return {
+            "accounts": [asdict(a) for a in self.accounts.values()],
+            "payees": [asdict(p) for p in self.payees.values()],
+            "payments": [asdict(p) for p in self.payments.values()],
+            "transactions": [asdict(t) for t in self.transactions],
+        }
 
     def list_payees(self) -> list[dict[str, Any]]:
         return [{"payee_id": p.payee_id, "name": p.name} for p in self.payees.values()]
