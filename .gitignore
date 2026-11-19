@@ -1,3 +1,7 @@
 # Editor setup (local only for now)
 .vscode/
 *.code-workspace
+
+# Python bytecode
+__pycache__/
+*.py[cod]
