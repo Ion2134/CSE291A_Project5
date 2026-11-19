@@ -130,8 +130,9 @@ class AgentOrchestrator:
                 semconv.GEN_AI_REQUEST_MODEL: getattr(self.chat, "model_id", "unknown"),
             },
         ) as span:
-            result = await self._run_loop(task, pool, attack, fault_call_index, seed, rng=rng)
-            result.episode_id = episode_id
+            result = await self._run_loop(
+                task, pool, attack, fault_call_index, seed, rng=rng, episode_id=episode_id
+            )
             last_error = next((r.error for r in reversed(result.records) if r.error), None)
             self.telemetry.end_agent(
                 span,
@@ -152,6 +153,7 @@ class AgentOrchestrator:
         fault_call_index: int,
         seed: int,
         rng: random.Random | None = None,
+        episode_id: str | None = None,
     ) -> AgentRunResult:
         tel = self.telemetry
         catalog = operator_catalog()
@@ -173,6 +175,9 @@ class AgentOrchestrator:
             },
         ]
         result = AgentRunResult(messages=messages, planner_id=getattr(self.chat, "model_id", "unknown"))
+        if episode_id is not None:
+            # Set before the state recorder starts so state.db, run files and telemetry share one id.
+            result.episode_id = episode_id
         recorder = _StateRecorder(self.store, result.episode_id)
         recorder.start(pool)
         recorder.messages(messages)

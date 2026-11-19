@@ -57,3 +57,64 @@ def test_runs_without_the_flag_write_no_state_files(tmp_path):
     asyncio.run(run_episodes(RunConfig(episodes=2, seed=3, mode="agent", llm_backend="oracle"), out))
     assert not (out / "state.db").exists() and not (out / "state.log").exists()
     assert "state_db" not in json.loads((out / "run_manifest.json").read_text())
+
+
+class _RecordingStore:
+    """Stand-in for state_db.StateStore that remembers which episode id every write used."""
+
+    def __init__(self):
+        self.ids = []
+
+    def start_episode(self, episode_id, ledger):
+        self.ids.append(episode_id)
+
+    def record_message(self, episode_id, position, message):
+        self.ids.append(episode_id)
+
+    def record_tool_call(self, episode_id, call, ledger):
+        self.ids.append(episode_id)
+
+
+def test_orchestrator_records_under_the_given_episode_id():
+    """run_episode(episode_id=...) must hand that id to the state recorder before the loop starts,
+    not stamp it on the result afterwards (the merge of the hardening and state DB branches did the latter)."""
+    from discovery_sim.llm.chat import ChatTurn, ScriptChatClient, ToolCallRequest
+    from discovery_sim.sim.agent_tasks import agent_task_index, agent_tasks
+    from discovery_sim.sim.harness import AgentPool
+    from discovery_sim.sim.operators import operator_catalog
+    from discovery_sim.sim.orchestrator import AgentOrchestrator
+    from discovery_sim.sim.types import OperatorId
+
+    chat = ScriptChatClient([
+        ChatTurn(content=None, tool_calls=[ToolCallRequest("c1", "bank__get_balance", {"account_id": "acct_synth_0031"})]),
+        ChatTurn(content="Done.", tool_calls=[]),
+    ])
+    store = _RecordingStore()
+    task = agent_tasks("core")[agent_task_index("agent_balance_then_pay")]
+    result = asyncio.run(AgentOrchestrator(chat, store=store).run_episode(
+        task, AgentPool(SyntheticLedger()), operator_catalog()[OperatorId.BENIGN], 0, seed=1, episode_id="ep_fixed01"))
+
+    assert result.episode_id == "ep_fixed01"
+    assert store.ids and set(store.ids) == {"ep_fixed01"}
+
+
+def test_state_db_and_hardening_share_episode_ids(tmp_path):
+    """With the state DB, all hardening checks and telemetry on together, every output keys episodes the same way."""
+    from mcp_hardening import load_config, read_telemetry, semconv
+
+    out = tmp_path / "run"
+    asyncio.run(run_episodes(RunConfig(episodes=20, seed=7, mode="agent", llm_backend="oracle", state_db=True,
+                                       hardening=load_config("all_on")), out))
+    episodes = {json.loads(line)["episode_id"] for line in (out / "episodes.jsonl").read_text().splitlines()}
+    db = sqlite3.connect(out / "state.db")
+
+    assert {r[0] for r in db.execute("SELECT episode_id FROM steps WHERE kind = 'start'")} == episodes
+    assert {r[0] for r in db.execute("SELECT DISTINCT episode_id FROM tool_calls")} <= episodes
+    rows = read_telemetry(out / "telemetry").to_pylist()
+    agent_ids = {r[semconv.GEN_AI_CONVERSATION_ID] for r in rows if r[semconv.GEN_AI_OPERATION_NAME] == "invoke_agent"}
+    assert agent_ids == episodes
+    # Blocked calls still reach the DB (as failed calls), so it has one row per labelled example.
+    baseline = json.loads((out / "baseline.json").read_text())
+    assert baseline["hardening_blocked_calls"]["total"] > 0
+    assert db.execute("SELECT COUNT(*) FROM tool_calls").fetchone()[0] == len(
+        (out / "examples.jsonl").read_text().splitlines())
