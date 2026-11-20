@@ -11,7 +11,7 @@ from discovery_sim.agents.base import McpBackedAgent
 from discovery_sim.agents.mitm import MitmAgent
 from discovery_sim.agents.payment import PaymentAgent
 from discovery_sim.ledger.store import SyntheticLedger
-from discovery_sim.mcp.hacked import HackedMcpToolServer
+from discovery_sim.mcp.hacked import IO_MISMATCH_TOOLS, HackedMcpToolServer
 from discovery_sim.mcp.server import bank_mcp_server, payment_mcp_server
 from discovery_sim.sim.operators import (
     a2a_rewrite_for_operator,
@@ -165,7 +165,8 @@ async def execute_tool_call(
             error = _hardening_failed(hardening, exc, "response")
             output = {}
 
-    if attack.hop == "mcp" and attack.operator == OperatorId.MCP_IO_MISMATCH:
+    if (attack.hop == "mcp" and attack.operator == OperatorId.MCP_IO_MISMATCH
+            and llm_effective.tool_name in IO_MISMATCH_TOOLS):
         hidden_adversary = True
 
     return CallRecord(

@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from discovery_sim.ledger.store import SyntheticLedger
+from discovery_sim.mcp.hacked import IO_MISMATCH_TOOLS
 from discovery_sim.sim.context import AgentContext
 from discovery_sim.sim.mandate import mandate_account_id
 from discovery_sim.sim.types import AttackSpec, BaseTask, CallRecord, Cause, Labels, OperatorId
@@ -116,7 +117,9 @@ def label_call(task: BaseTask, record: CallRecord, ledger: SyntheticLedger | Non
                 severity="high",
             )
 
-    if attack.operator == OperatorId.MCP_IO_MISMATCH and llm_ok:
+    # io_mismatch only alters some tools' output; on the others the output is genuine, so the call is
+    # labelled on what actually happened (below), not as an attack.
+    if attack.operator == OperatorId.MCP_IO_MISMATCH and llm_ok and record.llm_call.tool_name in IO_MISMATCH_TOOLS:
         return Labels(
             output_correct=False,
             cause="adversary",

@@ -1,0 +1,63 @@
+{
+  "seed": 0,
+  "episodes": 50,
+  "mode": "agent",
+  "model": "api-glm-5.3-flash",
+  "models": [
+    "api-glm-5.3-flash"
+  ],
+  "max_agent_steps": 8,
+  "multi_step": true,
+  "llm_samples": 0,
+  "concurrency": 2,
+  "temperature": 0.7,
+  "task_set": "hard",
+  "task_sample": "fixed",
+  "task_count": null,
+  "operators": null,
+  "operator_weights": null,
+  "hardening": {
+    "version": 1,
+    "request_auth": {
+      "enabled": true
+    },
+    "response_auth": {
+      "enabled": true
+    },
+    "replay_protection": {
+      "enabled": true,
+      "nonce_ttl_s": 300.0,
+      "max_nonces": 100000
+    },
+    "freshness_check": {
+      "enabled": true,
+      "window_s": 120.0
+    },
+    "telemetry": {
+      "enabled": true,
+      "capture_content": true,
+      "flush_rows": 500,
+      "dir": "telemetry"
+    }
+  },
+  "hardening_key": {
+    "kid": "63db1af8",
+    "ephemeral": true
+  },
+  "telemetry_dir": "data/runs/recovery-triton/telemetry",
+  "out_dir": "data/runs/recovery-triton",
+  "state_db": "state.db",
+  "recovery_classifiers": [
+    "rules",
+    {
+      "name": "logreg_checks",
+      "train": "testing/results/agent-v8-logreg/data/p42/f0/train.jsonl"
+    },
+    {
+      "name": "logreg_memory",
+      "train": "testing/results/agent-v8-logreg/data/p42/f0/train.jsonl"
+    }
+  ],
+  "recovery": true,
+  "max_recoveries": 2
+}
