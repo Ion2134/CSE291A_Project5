@@ -115,6 +115,13 @@ class SyntheticLedger:
             "transactions": [asdict(t) for t in self.transactions],
         }
 
+    def restore(self, snapshot: dict[str, list[dict[str, Any]]]) -> None:
+        """Refill this ledger from a ``snapshot()`` in place (the agents keep a reference to this object)."""
+        self.accounts = {row["account_id"]: Account(**row) for row in snapshot.get("accounts", [])}
+        self.payees = {row["payee_id"]: Payee(**row) for row in snapshot.get("payees", [])}
+        self.payments = {row["payment_id"]: Payment(**row) for row in snapshot.get("payments", [])}
+        self.transactions = [Transaction(**row) for row in snapshot.get("transactions", [])]
+
     def list_payees(self) -> list[dict[str, Any]]:
         return [{"payee_id": p.payee_id, "name": p.name} for p in self.payees.values()]
 

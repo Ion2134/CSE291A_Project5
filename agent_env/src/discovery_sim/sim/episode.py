@@ -221,6 +221,8 @@ class EpisodeRunner:
             store=self.store,
             panel=self.panel,
             telemetry=self.telemetry,
+            recovery=self.config.recovery,
+            max_recoveries=self.config.max_recoveries,
         )
         try:
             run = await orchestrator.run_episode(
@@ -447,6 +449,8 @@ async def _run_episodes(
     telemetry: GenAITelemetry,
 ) -> dict[str, Any]:
     workers = max(1, config.concurrency)
+    if config.recovery and not config.state_db:
+        raise ValueError("recovery rolls back to steps in the state DB: turn on state_db too")
 
     store = _open_state_db(out_dir) if config.state_db else None
     try:
@@ -469,6 +473,8 @@ async def _run_episodes(
     baseline["concurrency"] = workers
     baseline["hardening"] = config.hardening.to_dict()
     baseline["hardening_blocked_calls"] = _hardening_blocked(episodes)
+    if config.recovery:
+        baseline["recoveries"] = _recoveries(episodes)
     planners = sorted(
         {str(ex.meta["planner"]) for ep in episodes for ex in ep.examples if ex.meta.get("planner")}
     )
@@ -506,7 +512,7 @@ def _build_classifiers(specs):
         from recovery_classifiers import Panel
     except ImportError as exc:
         raise SystemExit("classifiers need the recovery_classifiers package: "
-                         "agent_env/.venv/bin/pip install -e ../mlp_baseline -e ../recovery_classifiers") from exc
+                         "agent_env/.venv/bin/pip install -e ../mlp_baseline -e ../recovery") from exc
     return Panel(specs)
 
 
@@ -638,6 +644,7 @@ def _run_manifest(
         # Only present when on, so manifests of ordinary runs are unchanged.
         **({"state_db": "state.db"} if config.state_db else {}),
         **({"recovery_classifiers": list(config.recovery_classifiers)} if config.recovery_classifiers else {}),
+        **({"recovery": True, "max_recoveries": config.max_recoveries} if config.recovery else {}),
     }
 
 
@@ -707,6 +714,20 @@ def _baseline_from_episodes(episodes: list[EpisodeOutcome], seed: int, count: in
         "by_operator": _group_rates(attacked, lambda e: e.operator.value),
         "by_hop": _group_rates(attacked, lambda e: e.fault_hop or "none"),
     }
+
+
+def _recoveries(episodes: list[EpisodeOutcome]) -> dict[str, Any]:
+    """Calls rolled back, by reason, and how many calls each other reason left alone."""
+    by_reason: dict[str, int] = {}
+    total = 0
+    for ep in episodes:
+        for ex in ep.examples:
+            recovery = ex.meta.get("recovery") or {}
+            if "reason" not in recovery:
+                continue
+            by_reason[recovery["reason"]] = by_reason.get(recovery["reason"], 0) + 1
+            total += bool(recovery.get("rolled_back"))
+    return {"total": total, "by_reason": by_reason}
 
 
 def _hardening_blocked(episodes: list[EpisodeOutcome]) -> dict[str, Any]:

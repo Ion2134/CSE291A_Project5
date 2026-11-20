@@ -9,7 +9,7 @@ import pytest
 from discovery_sim.sim.episode import run_episodes
 from discovery_sim.sim.run_config import RunConfig
 
-pytest.importorskip("recovery_classifiers")
+top_cause = pytest.importorskip("recovery_classifiers").top_cause
 
 
 def test_run_records_every_classifier_and_the_decision(tmp_path):
@@ -21,10 +21,10 @@ def test_run_records_every_classifier_and_the_decision(tmp_path):
     for row in rows:
         outputs, decision = row["meta"]["classifier_outputs"], row["meta"]["recovery"]
         assert set(outputs) == {"oracle", "rules"}
-        oracle_cause = max(outputs["oracle"], key=outputs["oracle"].get)
+        oracle_cause = top_cause(outputs["oracle"])
         assert oracle_cause == row["label"]["cause"]
         # Two classifiers: a strict majority means both must flag the call.
-        both_flag = all(max(p, key=p.get) != "none" for p in outputs.values())
+        both_flag = all(top_cause(p) != "none" for p in outputs.values())
         assert decision["recover"] is both_flag
     assert json.loads((out / "run_manifest.json").read_text())["recovery_classifiers"] == ["oracle", "rules"]
 

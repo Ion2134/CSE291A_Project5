@@ -33,24 +33,25 @@ class _StateRecorder:
 
     def __init__(self, store: Any | None, episode_id: str) -> None:
         self.store, self.episode_id, self.recorded = store, episode_id, 0
+        self.last_seq: int | None = None  # the latest step written: where a rollback goes back to
 
     def start(self, pool: AgentPool) -> None:
         if self.store is not None:
-            self.store.start_episode(self.episode_id, pool.ledger.snapshot())
+            self.last_seq = self.store.start_episode(self.episode_id, pool.ledger.snapshot())
 
     def messages(self, messages: list[dict[str, Any]]) -> None:
         """Record the messages appended since the last call."""
         if self.store is None:
             return
         for position in range(self.recorded, len(messages)):
-            self.store.record_message(self.episode_id, position, messages[position])
+            self.last_seq = self.store.record_message(self.episode_id, position, messages[position])
         self.recorded = len(messages)
 
-    def tool_call(self, record: CallRecord, example: LabeledExample, pool: AgentPool) -> None:
+    def tool_call(self, record: CallRecord, example: LabeledExample, pool: AgentPool, call_id: str) -> None:
         if self.store is None:
             return
-        self.store.record_tool_call(self.episode_id, {
-            "call_index": record.call_index, "tool": record.llm_call.tool_name,
+        self.last_seq = self.store.record_tool_call(self.episode_id, {
+            "call_id": call_id, "call_index": record.call_index, "tool": record.llm_call.tool_name,
             "model_call": record.llm_call.arguments, "received_args": record.mcp_arguments,
             "output": record.output, "cause": example.labels.cause, "output_correct": example.labels.output_correct,
             "classifier_outputs": example.meta.get("classifier_outputs"),
@@ -100,11 +101,18 @@ class AgentOrchestrator:
         store: Any | None = None,
         panel: Any | None = None,
         telemetry: GenAITelemetry | None = None,
+        recovery: bool = False,
+        max_recoveries: int = 2,
     ) -> None:
+        if recovery and store is None:
+            raise ValueError("recovery needs a state store (state_db) to roll back to")
         self.chat = chat
         self.max_steps = max_steps
         self.store = store  # optional state_db.StateStore
         self.panel = panel  # optional recovery_classifiers.Panel: asked about every tool call
+        # Roll a call back (../recovery) when hardening or the classifiers say so; needs ``store``.
+        self.recovery = recovery
+        self.max_recoveries = max_recoveries
         self.tools = all_openai_tools()
         # Turn-level OTel GenAI spans; a disabled instance records nothing.
         self.telemetry = telemetry or GenAITelemetry(TelemetryConfig(enabled=False))
@@ -181,6 +189,10 @@ class AgentOrchestrator:
         recorder = _StateRecorder(self.store, result.episode_id)
         recorder.start(pool)
         recorder.messages(messages)
+        policy = None
+        if self.recovery:
+            from recovery import RecoveryPolicy
+            policy = RecoveryPolicy(self.max_recoveries)
         tool_round = 0
 
         for step in range(self.max_steps):
@@ -279,6 +291,7 @@ class AgentOrchestrator:
                         raise ToolCallError(
                             tool_round, tc.name, tc.arguments, _conversation_snapshot(messages)
                         ) from exc
+                    decision = self._recovery_decision(policy, record, example)
                     tel.end_tool(
                         tool_span,
                         result=record.output,
@@ -287,12 +300,21 @@ class AgentOrchestrator:
                         attributes={
                             semconv.SIM_OUTPUT_CORRECT: example.labels.output_correct,
                             semconv.SIM_CAUSE: example.labels.cause,
+                            **({semconv.SIM_RECOVERY_ROLLED_BACK: decision.recover,
+                                semconv.SIM_RECOVERY_REASON: decision.reason} if decision else {}),
                         },
                     )
                 result.records.append(record)
                 result.examples.append(example)
                 recorder.messages(messages)  # the assistant message that made the call
-                recorder.tool_call(record, example, pool)
+                before_call = recorder.last_seq  # the step just before this call ran
+                recorder.tool_call(record, example, pool, tc.id)
+                tool_round += 1
+                if decision is not None and decision.recover:
+                    reply = self._roll_back(result.episode_id, before_call, pool, context, record)
+                    example.meta["recovery"]["to_seq"] = before_call
+                    messages.append({"role": "tool", "tool_call_id": tc.id, "content": json.dumps(reply)})
+                    continue  # the agent carries on from the restored state
                 messages.append(
                     {
                         "role": "tool",
@@ -300,7 +322,6 @@ class AgentOrchestrator:
                         "content": json.dumps(record.output),
                     }
                 )
-                tool_round += 1
                 if record.error or not record.output:
                     result.failure_call_index = record.call_index
                     break
@@ -314,7 +335,9 @@ class AgentOrchestrator:
         if not result.task_completed and result.failure_call_index is None and result.records:
             result.task_completed = bool(result.records[-1].output)
 
-        labels_ok = all(ex.labels.output_correct for ex in result.examples) if result.examples else False
+        # Rolled-back calls were undone, so the episode is judged on the calls that stand.
+        kept = [ex for ex in result.examples if not ex.meta.get("recovery", {}).get("rolled_back")]
+        labels_ok = all(ex.labels.output_correct for ex in kept) if kept else False
         ledger_ok = mandate_satisfied(pool.ledger, task.mandate, task.template)
         result.task_correct = result.task_completed and labels_ok and ledger_ok
         return result
@@ -379,8 +402,35 @@ class AgentOrchestrator:
             },
         )
         if self.panel is not None:
-            self._classify(example)
+            if record.hardening.get("failure_reason"):
+                # Hardening already rejected it: an error + empty output the classifiers never trained on.
+                example.meta["classifier_outputs"] = None
+                example.meta["recovery"] = {"recover": False, "flagged_by": []}
+            else:
+                self._classify(example)
         return record, example
+
+    def _recovery_decision(self, policy: Any, record: CallRecord, example: LabeledExample) -> Any:
+        """Apply the recovery rules (../recovery) to one call; records the outcome in its meta."""
+        if policy is None:
+            return None
+        stage = record.hardening.get("failure_stage") if record.hardening.get("failure_reason") else None
+        vote = example.meta.get("recovery") if example.meta.get("classifier_outputs") is not None else None
+        decision = policy.decide(stage, vote)
+        example.meta["recovery"] = {**decision.to_dict(), "rolled_back": decision.recover, "to_seq": None}
+        return decision
+
+    def _roll_back(self, episode_id: str, to_seq: int, pool: AgentPool, context: AgentContext,
+                   record: CallRecord) -> dict[str, Any]:
+        """Undo one call: cut the state DB back to ``to_seq`` and put that step's ledger back in place.
+        Returns the tool reply the agent gets instead of the call's output."""
+        from recovery import BLOCKED_REPLY, rollback
+
+        restored = rollback(self.store, episode_id, to_seq)
+        pool.ledger.restore(restored.ledger)
+        # Later calls' state strings must not show the undone call.
+        context.prior_calls = [p for p in context.prior_calls if p.call_index != record.call_index]
+        return BLOCKED_REPLY
 
     def _classify(self, example: LabeledExample) -> None:
         """Ask every configured classifier about this call and record their outputs and the recovery decision."""

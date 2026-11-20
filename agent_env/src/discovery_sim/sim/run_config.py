@@ -31,8 +31,12 @@ class RunConfig:
     operator_weights: dict[str, float] = field(default_factory=dict)
     # Agent mode: record every step's internal and external state to <out>/state.db (needs ../state_db).
     state_db: bool = False
-    # Agent mode: classifiers to ask about every tool call (specs for ../recovery_classifiers: a name, or a dict
+    # Agent mode: classifiers to ask about every tool call (specs for ../recovery's recovery_classifiers: a name, or a dict
     # with "name" and its inputs). Empty = none are called. Outputs and the recovery decision are recorded.
     recovery_classifiers: tuple = ()
+    # Agent mode: roll a call back (../recovery) when hardening rejects its response or the classifiers'
+    # majority flags it. Needs state_db. At most max_recoveries rollbacks per episode.
+    recovery: bool = False
+    max_recoveries: int = 2
     # MCP hardening + telemetry toggles (JSON config; default: security off, telemetry on).
     hardening: HardeningConfig = field(default_factory=HardeningConfig)

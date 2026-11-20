@@ -134,6 +134,8 @@ def _cmd_run(args: argparse.Namespace) -> None:
         operator_weights=weights,
         state_db=args.state_db,
         recovery_classifiers=_classifier_specs(args.recovery_classifiers),
+        recovery=args.recovery,
+        max_recoveries=args.max_recoveries,
         hardening=load_config(args.hardening_config),
     )
     summary = asyncio.run(run_episodes(config, Path(args.out)))
@@ -232,6 +234,20 @@ def main() -> None:
         help="Replace artifacts in --out if they already exist (default: create a new timestamped directory)",
     )
     run.add_argument(
+        "--recovery",
+        action="store_true",
+        help="Agent mode: roll a call back to the step before it when hardening rejects its response or the "
+             "recovery classifiers' majority flags it; the agent is told and carries on. Needs --state-db "
+             "and ../recovery installed",
+    )
+    run.add_argument(
+        "--max-recoveries",
+        type=int,
+        default=2,
+        metavar="N",
+        help="With --recovery: at most N rollbacks per episode (default 2)",
+    )
+    run.add_argument(
         "--concurrency",
         type=int,
         default=1,
@@ -261,7 +277,7 @@ def main() -> None:
         default=None,
         metavar="JSON",
         help="Agent mode: classifiers to ask about every tool call: a JSON list (or a .json file holding one) "
-             "of names or {\"name\", ...} specs, e.g. '[\"oracle\", \"rules\"]'; needs ../recovery_classifiers",
+             "of names or {\"name\", ...} specs, e.g. '[\"oracle\", \"rules\"]'; needs ../recovery",
     )
     run.add_argument(
         "--state-db",
