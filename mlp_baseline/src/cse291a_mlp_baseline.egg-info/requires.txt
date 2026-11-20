@@ -1,8 +1,0 @@
-torch>=2.6
-numpy>=1.24
-scikit-learn>=1.5
-pyarrow>=18
-huggingface-hub>=0.20
-
-[dev]
-pytest>=8

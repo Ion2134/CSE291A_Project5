@@ -33,8 +33,8 @@ from mlp_baseline.variants import rule_cause_plus, rule_probabilities
 ROOT = Path(__file__).resolve().parent.parent  # the repo root; relative paths in specs start here
 # logreg and kNN are script folders, not installed packages.
 for _folder in ("logreg_baseline", "knn_baseline"):
-    if str(ROOT / _folder) not in sys.path:
-        sys.path.append(str(ROOT / _folder))
+    if str(ROOT / "classifiers" / _folder) not in sys.path:
+        sys.path.append(str(ROOT / "classifiers" / _folder))
 
 
 class Classifier(Protocol):

@@ -9,17 +9,20 @@ Everything about undoing bad tool calls while an agent runs, in two modules:
 | `interpret_results.py` | Breaks a recovery run down: outcomes, false positives, why each rollback happened ([commands](COMMANDS.md)) |
 | `FINDINGS.md` | Known classifier and recovery issues seen in runs, for reports |
 
-`agent_env` uses them with `--recovery-classifiers` (score and vote) and `--recovery` (act on it). The
-state a rollback restores lives in the [state DB](../state_db/README.md). `recovery.py` uses only the
-standard library; `recovery_classifiers.py` needs [`mlp_baseline`](../mlp_baseline/) and finds
-`logreg_baseline/` and `knn_baseline/` from the repo checkout.
+Two packages it relies on live inside this folder: [`state_db/`](state_db/README.md) (the recorded
+state) and [`mcp_hardening/`](mcp_hardening/README.md) (request/response signing and telemetry).
+
+`sim/agent_env` uses them with `--recovery-classifiers` (score and vote) and `--recovery` (act on it). The
+state a rollback restores lives in the [state DB](state_db/README.md). `recovery.py` uses only the
+standard library; `recovery_classifiers.py` needs [`mlp_baseline`](../classifiers/mlp_baseline/) and finds
+`classifiers/logreg_baseline/` and `classifiers/knn_baseline/` from the repo checkout.
 
 ## Setup
 
 ```bash
 python3.12 -m venv recovery/.venv      # an arm64 Python: torch has no Intel-Mac builds past 2.2
-recovery/.venv/bin/pip install -e mlp_baseline -e state_db -e "recovery[dev]"
-agent_env/.venv/bin/pip install -e mlp_baseline -e recovery     # so the simulator can import it
+recovery/.venv/bin/pip install -e classifiers/mlp_baseline -e recovery/state_db -e "recovery[dev]"
+sim/agent_env/.venv/bin/pip install -e classifiers/mlp_baseline -e recovery     # so the simulator can import it
 ```
 
 Tests: `cd recovery && .venv/bin/python -m pytest -q`.
@@ -42,8 +45,8 @@ no `received_args`) unless their spec sets `"view": "full"`.
 | `oracle` | nothing | the true label (a perfect classifier: the recovery upper bound) |
 | `rules` | nothing | `mlp_baseline.checks.rule_cause` |
 | `rules_plus` | `train` | `mlp_baseline.variants.rule_cause_plus` |
-| `logreg_checks`, `logreg_memory` | `train` | `logreg_baseline/logreg.py` (`fit_logreg`) |
-| `knn`, `knn_embed` | `train` | `knn_baseline/knn.py` (`fit_knn`); `knn_embed` also needs `transformers` |
+| `logreg_checks`, `logreg_memory` | `train` | `classifiers/logreg_baseline/logreg.py` (`fit_logreg`) |
+| `knn`, `knn_embed` | `train` | `classifiers/knn_baseline/knn.py` (`fit_knn`); `knn_embed` also needs `transformers` |
 | `mlp`, `mlp_embed`, `stacking` | `checkpoint` | a model folder saved by `mlp-baseline` (`load_mlp`, `load_stacker`) |
 
 `laya` isn't wrapped yet (it needs its own environment). To add a classifier, write a class with
@@ -62,8 +65,8 @@ JSON list. Each entry is a name, or a dict with the name and its inputs:
 [
   "oracle",
   "rules",
-  {"name": "logreg_checks", "train": "testing/results/agent-v8-logreg/data/p42/f0/train.jsonl"},
-  {"name": "logreg_checks", "label": "logreg_ngram", "train": "testing/results/agent-v8-logreg/data/p42/f0/train.jsonl",
+  {"name": "logreg_checks", "train": "sim/testing/results/agent-v8-logreg/data/p42/f0/train.jsonl"},
+  {"name": "logreg_checks", "label": "logreg_ngram", "train": "sim/testing/results/agent-v8-logreg/data/p42/f0/train.jsonl",
    "injection_detector": "char_ngram"}
 ]
 ```
@@ -76,7 +79,7 @@ A classifier **flags** a call when its most likely cause is `agent` or `adversar
 "recover" when **more than half** of the classifiers flag the call (`decide`). With an empty list,
 no classifiers are called.
 
-Classifiers aren't asked about calls [MCP hardening](../mcp_hardening/README.md) already rejected.
+Classifiers aren't asked about calls [MCP hardening](mcp_hardening/README.md) already rejected.
 Those are an error with empty output, which they never trained on, so `classifier_outputs` is `null`
 for them.
 

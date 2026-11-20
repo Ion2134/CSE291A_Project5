@@ -4,8 +4,8 @@ version = "0.1.0"
 description = "Recovery classifiers, the rules for undoing a tool call, and the rollback of recorded state"
 readme = "README.md"
 requires-python = ">=3.10"
-# recovery.py needs only the standard library. recovery_classifiers.py also needs ../mlp_baseline
-# (pip install -e mlp_baseline); logreg_baseline and knn_baseline are found from the repo checkout.
+# recovery.py needs only the standard library. recovery_classifiers.py also needs ../classifiers/mlp_baseline
+# (pip install -e classifiers/mlp_baseline); logreg_baseline and knn_baseline are found from the repo checkout.
 dependencies = ["numpy", "scikit-learn"]
 
 [project.optional-dependencies]
@@ -23,4 +23,4 @@ testpaths = ["tests"]
 
 [tool.pyright]
 # logreg_baseline and knn_baseline are script folders put on sys.path at runtime; tell the checker too.
-extraPaths = ["../logreg_baseline", "../knn_baseline", "../mlp_baseline/src", "../state_db"]
+extraPaths = ["../classifiers/logreg_baseline", "../classifiers/knn_baseline", "../classifiers/mlp_baseline/src", "state_db"]

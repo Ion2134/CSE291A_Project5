@@ -5,7 +5,7 @@ Observed behaviour of the recovery classifiers and recovery, kept for reports. N
 
 ## 2026-11-19: Classifiers flag correct "derived amount" transfers (false positives)
 
-**Run:** `agent_env/data/runs/recovery-triton` (`api-glm-5.3-flash`, t0.7, 50 hard episodes; classifiers
+**Run:** `sim/agent_env/data/runs/recovery-triton` (`api-glm-5.3-flash`, t0.7, 50 hard episodes; classifiers
 `rules`, `logreg_checks`, `logreg_memory` trained on agent-v8 `p42/f0`; hardening `all_on`; max 2 recoveries).
 
 **What we saw:** 13 correct calls were rolled back by the classifier vote, and 4 more were flagged again
@@ -33,5 +33,5 @@ episode, or requiring every classifier to agree before rolling back a transfer.
 the call was correct, but it was labelled `adversary`.
 
 **Fix:** labels and `hidden_adversary` now apply io_mismatch only to the tools it changes
-(`IO_MISMATCH_TOOLS` in `agent_env/src/discovery_sim/mcp/hacked.py`). Runs made before the fix still
+(`IO_MISMATCH_TOOLS` in `sim/agent_env/src/discovery_sim/mcp/hacked.py`). Runs made before the fix still
 contain these rows; `interpret_results.py` lists them as label quirks rather than misses.

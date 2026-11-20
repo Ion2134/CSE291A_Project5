@@ -1,6 +1,6 @@
 # Recovery commands
 
-Run from `agent_env/`. Each flag is on its own line so you can see (and change) every setting.
+Run from `sim/agent_env/`. Each flag is on its own line so you can see (and change) every setting.
 
 ## Quick check: oracle (no API)
 
@@ -37,8 +37,8 @@ shows recovery working on its own.
   --max-recoveries 2 \
   --recovery-classifiers '[
       "rules",
-      {"name": "logreg_checks", "train": "testing/results/agent-v8-logreg/data/p42/f0/train.jsonl"},
-      {"name": "logreg_memory", "train": "testing/results/agent-v8-logreg/data/p42/f0/train.jsonl"}
+      {"name": "logreg_checks", "train": "sim/testing/results/agent-v8-logreg/data/p42/f0/train.jsonl"},
+      {"name": "logreg_memory", "train": "sim/testing/results/agent-v8-logreg/data/p42/f0/train.jsonl"}
     ]' \
   --hardening-config all_on \
   --out data/runs/recovery-triton
@@ -67,7 +67,7 @@ rollbacks by reason, false positives by task family, and for each rollback or mi
 the model called, why it was faulty, why it was (or wasn't) rolled back, and what the agent did next:
 
 ```bash
-python3 ../recovery/interpret_results.py \
+python3 ../../recovery/interpret_results.py \
   data/runs/recovery-triton \
   --details some \
   --out data/runs/recovery-triton/recovery_report.md

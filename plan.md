@@ -6,7 +6,7 @@ score uses fields a real middleware may not have (`ledger_snapshot`, `received_a
 the agent does. The end goal is to run the monitor in the middleware (between the agent and the tool client) and
 have the agent recover.
 
-**Success = the environment's own numbers.** Each run's `agent_env/data/runs/*/baseline.json` is the no-monitor
+**Success = the environment's own numbers.** Each run's `sim/agent_env/data/runs/*/baseline.json` is the no-monitor
 baseline for the env + its agent: `task_correct_rate` 0.15–0.82 (0.23 on `triton49-agentheavy`, 0.15 on
 `oracle49-agentheavy`), `silent_wrong_rate` up to 0.84, per-operator and per-hop breakdowns. We re-run the same
 seeds with the monitor on and move those numbers. Decisions made: middleware sits between agent and tool client;
@@ -29,7 +29,7 @@ on a flag the call/output is blocked with an error message and the agent retries
 
 ## Steps
 
-**1. Deployable view of the state (`mlp_baseline/src/mlp_baseline/checks.py`).**
+**1. Deployable view of the state (`classifiers/mlp_baseline/src/mlp_baseline/checks.py`).**
 Add `middleware_view(state)` that drops `ledger_snapshot` and `received_args`, and compute the output checks
 against `model_call` instead of `received_args`; balance checks use consistency with prior reads in `prior_calls`
 instead of the ledger. Add a `view` option to `comparison_features` / `rule_cause`. New `agent-v7.json` sweep
@@ -51,15 +51,15 @@ for a low false-block rate on benign calls, since a blocked benign call costs a 
   and continue the loop (don't consume the fault round, so the fault still fires once). On a post-call flag of a
   completed transfer, call `cancel_payment` on the ledger and return an error to the agent.
 - `sim/run_config.py`, `cli.py`: `--monitor-checkpoint`, `--monitor-threshold`. Keep `mlp_baseline` out of
-  `agent_env`: the sim only sees a callable, and a thin adapter in `testing/closed_loop/` loads the checkpoint.
+  `agent_env`: the sim only sees a callable, and a thin adapter in `sim/testing/closed_loop/` loads the checkpoint.
 
-**4. Closed-loop A/B (`testing/closed_loop/`).**
+**4. Closed-loop A/B (`sim/testing/closed_loop/`).**
 Run the same seeds with the monitor off and on, and write a `baseline.json`-compatible report with:
 `task_correct_rate`, `silent_wrong_rate`, `hard_fail_rate` by operator and hop; plus blocks, retries, voided
 transfers, **false-block rate on benign episodes**, and mean extra steps. Fix the metric: compute task
 correctness over executed, un-voided calls and final ledger state (`mandate_satisfied`), recording blocked calls
 separately. Develop on `--llm-backend oracle` (deterministic, on-mandate retries, so any remaining failure is the
-monitor's), then confirm on `triton` (needs keys in `agent_env/.env`).
+monitor's), then confirm on `triton` (needs keys in `sim/agent_env/.env`).
 
 **5. Close the gap iteratively.** Mine missed/false-blocked cases from the A/B. Retrain on closed-loop
 trajectories too, because post-block states (error messages, retries) are not in the current data. Then the
@@ -72,13 +72,13 @@ rows (`_repair_and_deduplicate` in `agent_runs.py`), and a second real planner m
 - Laya stays out of scope until the MLP loop works (OOM on this machine).
 
 ## Critical files
-- `mlp_baseline/src/mlp_baseline/checks.py`, `monitor_training.py`, `cli.py`, `banking_dev.py` (checkpoint loading)
-- `agent_env/src/discovery_sim/sim/harness.py`, `orchestrator.py`, `run_config.py`; `agent_env/src/discovery_sim/cli.py`
-- new `testing/closed_loop/` (adapter + A/B runner), new `testing/configs/agent-v7.json`
+- `classifiers/mlp_baseline/src/mlp_baseline/checks.py`, `monitor_training.py`, `cli.py`, `banking_dev.py` (checkpoint loading)
+- `sim/agent_env/src/discovery_sim/sim/harness.py`, `orchestrator.py`, `run_config.py`; `sim/agent_env/src/discovery_sim/cli.py`
+- new `sim/testing/closed_loop/` (adapter + A/B runner), new `sim/testing/configs/agent-v7.json`
 - existing to reuse: `AgentContext.record_call`, `mandate_satisfied`, `label_call`, `cancel_payment` tool, `baseline.json` writer
 
 ## Verification
-- `python -m pytest -q` for `agent_env/tests`, `mlp_baseline/tests`, `testing/tests` (using `agent_env/.venv`, the only venv with torch);
+- `python -m pytest -q` for `sim/agent_env/tests`, `classifiers/mlp_baseline/tests`, `sim/testing/tests` (using `sim/agent_env/.venv`, the only venv with torch);
   add tests for `middleware_view` and for the hook (blocked call leaves the ledger unchanged).
 - Offline: `sweep.py run --config agent-v7.json` for mlp/stacking/rules; per-operator recall under the deployable view.
 - Closed loop, oracle backend: monitor-off vs monitor-on on seed 49 (`llm_wrong_*` heavy). Target: `task_correct_rate`

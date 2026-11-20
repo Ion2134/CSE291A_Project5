@@ -5,3 +5,6 @@
 # Python bytecode
 __pycache__/
 *.py[cod]
+
+# Build metadata from editable installs
+*.egg-info/
