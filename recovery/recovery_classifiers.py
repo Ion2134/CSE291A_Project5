@@ -152,9 +152,9 @@ CLASSIFIERS: dict[str, tuple[Callable[..., Classifier], bool]] = {
     "logreg_memory": (lambda **options: Logreg(memory=True, options=options), True),
     "knn": (lambda **options: Knn(embedding=False, options=options), True),
     "knn_embed": (lambda **options: Knn(embedding=True, options=options), True),
-    "mlp": (lambda checkpoint=None, **_: Checkpoint("mlp", _path(checkpoint)), False),
-    "mlp_embed": (lambda checkpoint=None, **_: Checkpoint("mlp_embed", _path(checkpoint)), False),
-    "stacking": (lambda checkpoint=None, **_: Checkpoint("stacking", _path(checkpoint)), False),
+    "mlp": (lambda checkpoint=None, **_: Checkpoint("mlp", _optional_path(checkpoint)), False),
+    "mlp_embed": (lambda checkpoint=None, **_: Checkpoint("mlp_embed", _optional_path(checkpoint)), False),
+    "stacking": (lambda checkpoint=None, **_: Checkpoint("stacking", _optional_path(checkpoint)), False),
 }
 SPEC_KEYS = ("name", "label", "train", "view")  # every other key is passed to the classifier
 
@@ -202,15 +202,22 @@ def build(spec) -> Member:
     return Member(spec.get("label", name), classifier, view)
 
 
+def top_cause(probabilities: dict[str, float]) -> str:
+    """The most likely cause (ties go to the earlier label: none, agent, adversary)."""
+    return max(probabilities.items(), key=lambda item: item[1])[0]
+
+
 def decide(outputs: dict[str, dict[str, float]]) -> dict:
     """Recover when more than half of the classifiers flag the call (their top cause is not ``none``)."""
-    flagged = [label for label, probabilities in outputs.items()
-               if max(probabilities, key=probabilities.get) != "none"]
+    flagged = [label for label, probabilities in outputs.items() if top_cause(probabilities) != "none"]
     return {"recover": bool(outputs) and len(flagged) * 2 > len(outputs), "flagged_by": flagged}
 
 
-def _path(value) -> Path | None:
-    if value is None:
-        return None
+def _path(value: str | Path) -> Path:
+    """A spec path: absolute as given, otherwise relative to the repo root."""
     path = Path(value)
     return path if path.is_absolute() else ROOT / path
+
+
+def _optional_path(value: str | Path | None) -> Path | None:
+    return None if value is None else _path(value)

@@ -3,7 +3,7 @@
 A SQLite record of an agent run's **internal** state (the conversation, what the model sent, what came
 back) and **external** state (what the tool received, the full ledger) after every step. It is the
 groundwork for recovery: when a classifier flags a call, everything after the step before it can be
-deleted and the state read back as of that step. Recovery itself is not built yet.
+deleted and the state read back as of that step. [`../recovery`](../recovery/README.md) does exactly that with `--recovery`.
 
 Standard library only (`sqlite3`). It takes plain dicts and knows nothing about the simulator;
 `agent_env` calls it when a run uses `--state-db`.
@@ -11,7 +11,7 @@ Standard library only (`sqlite3`). It takes plain dicts and knows nothing about 
 ## Setup
 
 ```bash
-python3 -m venv state_db/.venv
+python3.12 -m venv state_db/.venv     # an arm64 Python, like the other venvs
 state_db/.venv/bin/pip install -e "state_db[dev]"
 agent_env/.venv/bin/pip install -e state_db        # so the simulator can import it
 ```
@@ -33,7 +33,7 @@ share the file and are told apart by `episode_id`.
 | --- | --- | --- |
 | `steps` | `seq`, `episode_id`, `wall_time`, `kind` (`start` / `message` / `tool_call`) | the timeline |
 | `messages` | `seq`, `episode_id`, `position`, `role`, `content` (JSON) | internal: the conversation |
-| `tool_calls` | `seq`, `episode_id`, `call_index`, `tool`, `model_call`, `received_args`, `output`, `cause`, `output_correct`, `classifier_outputs`, `recover` | internal: `model_call`, `output`; external: `received_args`; the run's classifier outputs and recovery decision (empty without classifiers) |
+| `tool_calls` | `seq`, `episode_id`, `call_id`, `call_index`, `tool`, `model_call`, `received_args`, `output`, `cause`, `output_correct`, `classifier_outputs`, `recover` | internal: `model_call`, `output`; external: `received_args`; the run's classifier outputs and recovery decision (empty without classifiers) |
 | `accounts`, `payees`, `payments`, `transactions` | `seq`, `episode_id` + the ledger's fields | external: the full ledger after that step |
 
 The ledger is snapshotted at the episode's `start` and after every tool call, so the ledger as of any

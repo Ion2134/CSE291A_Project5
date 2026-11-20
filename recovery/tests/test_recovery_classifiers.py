@@ -3,7 +3,7 @@ import json
 import numpy as np
 import pytest
 
-from recovery_classifiers import CLASSIFIERS, Panel, decide
+from recovery_classifiers import CLASSIFIERS, Panel, decide, top_cause
 from mlp_baseline.checks import rule_cause
 
 OK = {"from_account_id": "a1", "payee_id": "p1", "amount_cents": 2500}
@@ -42,8 +42,8 @@ def test_oracle_and_rules_give_what_they_should(train_file):
     panel = Panel(["oracle", "rules"])
     for r in TEST:
         outputs = panel.classify(r)
-        assert max(outputs["oracle"], key=outputs["oracle"].get) == r["expected"]["cause"]
-        assert max(outputs["rules"], key=outputs["rules"].get) == rule_cause(r["state"])
+        assert top_cause(outputs["oracle"]) == r["expected"]["cause"]
+        assert top_cause(outputs["rules"]) == rule_cause(r["state"])
 
 
 def test_trained_classifiers_need_training_rows_and_checkpoints_need_a_path():
