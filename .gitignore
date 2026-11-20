@@ -8,3 +8,8 @@ __pycache__/
 
 # Build metadata from editable installs
 *.egg-info/
+
+# Shared root virtualenv (and saved package lists from old venvs)
+.venv/
+.venv-backup/
+*.env

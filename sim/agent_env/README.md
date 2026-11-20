@@ -144,6 +144,7 @@ cell, each with its own seed. A budget picks a random subset that still covers e
 | `sample_seed`, `base_seed` | Which cells the budget picks; cell *i* uses seed `base_seed + i` |
 | `task_sample`, `backend`, `base_url`, `concurrency`, `max_agent_steps` | As for `run` |
 | `state_db`, `recovery_classifiers`, `recovery`, `max_recoveries` | As for `run` |
+| `hardening` | As `--hardening-config` for `run`: a preset name from `recovery/mcp_hardening/src/mcp_hardening/configs/` (`all_on`, `all_off`, `default`, `request_only`, `response_only`) or a JSON file path relative to `agent_env/`. Default: `$MCP_HARDENING_CONFIG`, else built-in defaults (security off, telemetry on) |
 
 Raising the budget keeps earlier picks; finished runs are skipped, so a batch can be resumed. The
 batch also writes `data/batches/<name>.json`, whose `runs` list works as a `--config` for

@@ -16,6 +16,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from mcp_hardening import HardeningConfig, load_config
+
 from discovery_sim.sim.episode import run_episodes
 from discovery_sim.sim.run_config import RunConfig
 from discovery_sim.sim.run_output import RUN_MARKER
@@ -63,6 +65,9 @@ class BatchConfig:
     recovery_classifiers: tuple = ()  # classifier specs asked about every tool call (needs ../../recovery)
     recovery: bool = False  # roll flagged calls back (needs state_db and ../../recovery)
     max_recoveries: int = 2
+    # MCP hardening for every run: a preset in recovery/mcp_hardening/src/mcp_hardening/configs/ (e.g. "all_on")
+    # or a JSON file path (relative to agent_env/). None = $MCP_HARDENING_CONFIG, else built-in defaults.
+    hardening: str | None = None
     runs_dir: str = "data/runs"
     batches_dir: str = "data/batches"
     extra: dict = field(default_factory=dict, compare=False)
@@ -93,6 +98,14 @@ class BatchConfig:
             raise ValueError("episodes must be at least 1")
         if self.max_episodes is not None and self.max_episodes < self.episodes:
             raise ValueError("max_episodes must allow at least one run of `episodes` episodes")
+        self.hardening_config()  # a missing preset or a bad file fails here, before any run starts
+
+    def hardening_config(self) -> HardeningConfig:
+        """The hardening config every run in this batch uses."""
+        target = self.hardening
+        if target is not None and (AGENT_ENV / target).is_file():
+            target = str(AGENT_ENV / target)  # paths in a batch config are relative to agent_env/
+        return load_config(target)
 
     def grid(self) -> list[Cell]:
         """Every cell, in a fixed order (models, then temperatures, then task sets)."""
@@ -173,8 +186,9 @@ def _coverage_score(cell: Cell, remaining: list[Cell], covered: set, all_values:
 async def run_batch(config: BatchConfig, *, dry_run: bool = False) -> dict:
     """Write the batch file, then run every planned run that hasn't finished yet."""
     planned = plan_batch(config)
+    hardening = config.hardening_config()
     if not dry_run:
-        _write_batch_file(config, planned)
+        _write_batch_file(config, planned, hardening)
 
     statuses = {}
     for run in planned:
@@ -183,7 +197,7 @@ async def run_batch(config: BatchConfig, *, dry_run: bool = False) -> dict:
         elif dry_run:
             statuses[run.name] = "would run"
         else:
-            await run_episodes(_run_config(config, run), run.out_dir)
+            await run_episodes(_run_config(config, run, hardening), run.out_dir)
             statuses[run.name] = "done"
         print(f"{run.name} (seed {run.seed}): {statuses[run.name]}", flush=True)
 
@@ -191,16 +205,17 @@ async def run_batch(config: BatchConfig, *, dry_run: bool = False) -> dict:
             "episodes": len(planned) * config.episodes, "statuses": statuses}
 
 
-def _run_config(config: BatchConfig, run: PlannedRun) -> RunConfig:
+def _run_config(config: BatchConfig, run: PlannedRun, hardening: HardeningConfig | None = None) -> RunConfig:
     return RunConfig(episodes=config.episodes, seed=run.seed, mode="agent", max_agent_steps=config.max_agent_steps,
                      llm_backend=config.backend, llm_base_url=config.base_url, llm_model=run.cell.model,
                      concurrency=max(1, config.concurrency), temperature=run.cell.temperature,
                      task_set=run.cell.task_set, task_sample=config.task_sample, state_db=config.state_db,
                      recovery_classifiers=tuple(config.recovery_classifiers), recovery=config.recovery,
-                     max_recoveries=config.max_recoveries)
+                     max_recoveries=config.max_recoveries,
+                     hardening=hardening if hardening is not None else config.hardening_config())
 
 
-def _write_batch_file(config: BatchConfig, planned: list[PlannedRun]) -> None:
+def _write_batch_file(config: BatchConfig, planned: list[PlannedRun], hardening: HardeningConfig) -> None:
     """``data/batches/<name>.json``; its ``runs`` list works as a ``--config`` for the MLP/Laya prepare steps."""
     path = AGENT_ENV / config.batches_dir / f"{config.name}.json"
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -213,4 +228,6 @@ def _write_batch_file(config: BatchConfig, planned: list[PlannedRun]) -> None:
         "max_episodes": config.max_episodes,
         "sample_seed": config.sample_seed,
         "grid_size": len(config.grid()),
+        "hardening": config.hardening,
+        "hardening_config": hardening.to_dict(),
     }, indent=2) + "\n")

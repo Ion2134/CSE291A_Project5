@@ -157,3 +157,50 @@ def test_dry_run_calls_no_model_and_writes_nothing(tmp_path, monkeypatch):
     assert summary["runs"] == 6 and summary["episodes"] == 300
     assert set(summary["statuses"].values()) == {"would run"}
     assert not (tmp_path / "data").exists()
+
+
+# ---------------------------------------------------------------- hardening
+
+def test_hardening_preset_reaches_every_run(tmp_path, monkeypatch):
+    from mcp_hardening import load_config
+
+    monkeypatch.setattr(episode, "make_chat_client", lambda backend, **kw: _CheckBalanceChat(**kw))
+    monkeypatch.setattr(batch, "AGENT_ENV", tmp_path)
+    config = _config(models=["model-a", "model-b"], temperatures=[0.5], episodes=2, max_episodes=None,
+                     hardening="all_on")
+    asyncio.run(run_batch(config))
+
+    expected = load_config("all_on").to_dict()
+    for name in ("unit-model-a-t0.5-core", "unit-model-b-t0.5-core"):
+        manifest = json.loads((tmp_path / "data/runs" / name / "run_manifest.json").read_text())
+        assert manifest["hardening"] == expected and manifest["hardening_key"]["kid"]
+    batch_file = json.loads((tmp_path / "data/batches/unit.json").read_text())
+    assert batch_file["hardening"] == "all_on" and batch_file["hardening_config"] == expected
+
+
+def test_hardening_file_path_is_relative_to_agent_env(tmp_path, monkeypatch):
+    from mcp_hardening import load_config
+
+    monkeypatch.setattr(batch, "AGENT_ENV", tmp_path)
+    (tmp_path / "configs").mkdir()
+    custom = {**load_config("all_off").to_dict(), "request_auth": {"enabled": True}}
+    (tmp_path / "configs/mine.json").write_text(json.dumps(custom))
+    config = _config(hardening="configs/mine.json")
+    assert config.hardening_config().request_auth.enabled
+    assert not config.hardening_config().response_auth.enabled
+    run = plan_batch(config)[0]
+    assert batch._run_config(config, run).hardening.request_auth.enabled
+
+
+def test_hardening_defaults_and_bad_names(tmp_path, monkeypatch):
+    from mcp_hardening import HardeningConfig, load_config
+
+    monkeypatch.delenv("MCP_HARDENING_CONFIG", raising=False)
+    assert _config().hardening_config() == HardeningConfig()  # no key: built-in defaults, as for `run`
+    monkeypatch.setenv("MCP_HARDENING_CONFIG", "all_on")
+    assert _config().hardening_config() == load_config("all_on")  # ...or the env var, as for `run`
+
+    path = tmp_path / "batch.json"
+    path.write_text(json.dumps({**GRID, "hardening": "no_such_preset"}))
+    with pytest.raises(FileNotFoundError, match="no_such_preset"):
+        BatchConfig.from_file(path)  # rejected when the config is loaded, before any run
