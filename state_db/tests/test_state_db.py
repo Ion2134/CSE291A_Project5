@@ -55,14 +55,6 @@ def test_delete_after_removes_only_that_episodes_later_steps(store):
     assert store.record_message("ep1", 1, {"role": "tool", "content": "blocked"}) > other_reply
 
 
-def test_text_log_keeps_everything_including_deletions(store):
-    _, message, _, _ = run_episode(store, "ep1")
-    store.delete_after("ep1", message)
-    lines = [json.loads(line) for line in store.log_path.read_text().splitlines()]
-    assert [line["kind"] for line in lines] == ["start", "message", "tool_call", "message", "delete_after"]
-    assert lines[2]["call"]["tool"] == "initiate_transfer" and lines[-1]["deleted_steps"] == 2
-
-
 def test_seq_at_maps_wall_time_to_the_last_step(store):
     start, message, call, reply = run_episode(store, "ep1")
     times = dict(store._db.execute("SELECT seq, wall_time FROM steps"))

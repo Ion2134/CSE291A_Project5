@@ -490,12 +490,12 @@ async def _run_episodes(
 
 
 def _open_state_db(out_dir: Path):
-    """A fresh ``state.db`` (and ``state.log``) for this run; imported here so the package stays optional."""
+    """A fresh ``state.db`` for this run; imported here so the package stays optional."""
     try:
         from state_db import StateStore
     except ImportError as exc:
         raise SystemExit("--state-db needs the state_db package: agent_env/.venv/bin/pip install -e ../state_db") from exc
-    for name in ("state.db", "state.log"):
+    for name in ("state.db",):
         (out_dir / name).unlink(missing_ok=True)  # a rerun into the same folder starts a new record
     return StateStore(out_dir / "state.db")
 

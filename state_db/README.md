@@ -20,12 +20,9 @@ Tests: `cd state_db && .venv/bin/python -m pytest -q`.
 
 ## Files
 
-A run with `--state-db` writes two files to its run folder:
-
-| File | What it is |
-| --- | --- |
-| `state.db` | The SQLite DB below. `delete_after` removes rows from it. |
-| `state.log` | One JSON line per write, plus one per `delete_after`. Only ever appended to, so it keeps everything that ever happened. |
+A run with `--state-db` writes `state.db` to its run folder. It holds the run's **current** state, and
+`delete_after` removes rows from it. The full history of a run (including anything later deleted here)
+is the telemetry `mcp_hardening` writes to `telemetry/*.parquet`, which is append-only.
 
 ## Tables
 

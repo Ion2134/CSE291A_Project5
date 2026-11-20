@@ -267,7 +267,7 @@ def main() -> None:
         "--state-db",
         action="store_true",
         help="Agent mode: record every step's internal and external state to <out>/state.db "
-             "(+ state.log); needs ../state_db installed",
+             "(needs ../state_db installed)",
     )
     run.add_argument(
         "--operators",

@@ -5,8 +5,8 @@ step stores what changed: a conversation message, a tool call (internal: what th
 came back; external: what the tool received), and a full snapshot of the ledger after it.
 ``delete_after`` removes everything an episode did after a given step, which is what recovery will use.
 
-Alongside the DB, every write is appended as one JSON line to a text log (``state.log`` next to the DB).
-Nothing edits or truncates that file, so it keeps everything that ever happened, deletions included.
+The DB is the *current* state and may be cut back. The full history of a run lives in the telemetry
+(``mcp_hardening``'s append-only Parquet spans), not here.
 
 This module knows nothing about the simulator: it takes plain dicts. The ledger dict has four lists,
 ``accounts``, ``payees``, ``payments`` and ``transactions``, with the fields in ``LEDGER_TABLES``.
@@ -54,12 +54,11 @@ DATA_TABLES = ("messages", "tool_calls", *LEDGER_TABLES)
 
 
 class StateStore:
-    """One SQLite file (plus its text log) for a whole run; episodes are told apart by ``episode_id``."""
+    """One SQLite file for a whole run; episodes are told apart by ``episode_id``."""
 
-    def __init__(self, path: str | Path, log_path: str | Path | None = None) -> None:
+    def __init__(self, path: str | Path) -> None:
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.log_path = Path(log_path) if log_path is not None else self.path.with_suffix(".log")
         self._db = sqlite3.connect(self.path)
         self._db.executescript(SCHEMA)
 
@@ -73,7 +72,6 @@ class StateStore:
         with self._db:
             seq = self._step(episode_id, "start")
             self._write_ledger(seq, episode_id, ledger)
-        self._log(seq, episode_id, "start", {"ledger": ledger})
         return seq
 
     def record_message(self, episode_id: str, position: int, message: dict) -> int:
@@ -82,7 +80,6 @@ class StateStore:
             seq = self._step(episode_id, "message")
             self._db.execute("INSERT INTO messages VALUES (?, ?, ?, ?, ?)",
                              (seq, episode_id, position, message.get("role"), _dump(message)))
-        self._log(seq, episode_id, "message", {"position": position, "message": message})
         return seq
 
     def record_tool_call(self, episode_id: str, call: dict, ledger: dict) -> int:
@@ -94,17 +91,15 @@ class StateStore:
             self._db.execute(f"INSERT INTO tool_calls VALUES (?, ?, {', '.join('?' * len(values))})",
                              (seq, episode_id, *values))
             self._write_ledger(seq, episode_id, ledger)
-        self._log(seq, episode_id, "tool_call", {"call": call, "ledger": ledger})
         return seq
 
     def delete_after(self, episode_id: str, seq: int) -> int:
-        """Delete every step this episode wrote after ``seq``; returns how many steps went. The log keeps them."""
+        """Delete every step this episode wrote after ``seq``; returns how many steps went."""
         with self._db:
             for table in DATA_TABLES:
                 self._db.execute(f"DELETE FROM {table} WHERE episode_id = ? AND seq > ?", (episode_id, seq))
             deleted = self._db.execute("DELETE FROM steps WHERE episode_id = ? AND seq > ?",
                                        (episode_id, seq)).rowcount
-        self._log(seq, episode_id, "delete_after", {"deleted_steps": deleted})
         return deleted
 
     # Reads -----------------------------------------------------------------------------------------
@@ -142,21 +137,14 @@ class StateStore:
     # Helpers ---------------------------------------------------------------------------------------
 
     def _step(self, episode_id: str, kind: str) -> int:
-        self._wall_time = time.time()
         return self._db.execute("INSERT INTO steps (episode_id, wall_time, kind) VALUES (?, ?, ?)",
-                                (episode_id, self._wall_time, kind)).lastrowid # type: ignore
+                                (episode_id, time.time(), kind)).lastrowid  # type: ignore
 
     def _write_ledger(self, seq: int, episode_id: str, ledger: dict) -> None:
         for table, columns in LEDGER_TABLES.items():
             self._db.executemany(
                 f"INSERT INTO {table} VALUES (?, ?, {', '.join('?' * len(columns))})",
                 [(seq, episode_id, *(row.get(column) for column in columns)) for row in ledger.get(table, [])])
-
-    def _log(self, seq: int, episode_id: str, kind: str, payload: dict) -> None:
-        line = {"wall_time": time.time() if kind == "delete_after" else self._wall_time,
-                "seq": seq, "episode_id": episode_id, "kind": kind, **payload}
-        with self.log_path.open("a") as log:
-            log.write(json.dumps(line, default=str) + "\n")
 
 
 def _dump(value: Any) -> str | None:

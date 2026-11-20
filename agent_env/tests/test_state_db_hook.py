@@ -34,7 +34,6 @@ def test_agent_run_records_every_step(tmp_path):
     assert sorted(starts) == sorted(episodes)  # the DB uses the same episode ids as the run files
     assert db.execute("SELECT COUNT(*) FROM tool_calls").fetchone()[0] == len(examples)
     assert json.loads((out / "run_manifest.json").read_text())["state_db"] == "state.db"
-    assert (out / "state.log").read_text().count("\n") == db.execute("SELECT COUNT(*) FROM steps").fetchone()[0]
 
     # After a completed transfer, that step's ledger snapshot has the payment and the lower balance.
     store = state_db.StateStore(out / "state.db")
@@ -55,7 +54,7 @@ def test_agent_run_records_every_step(tmp_path):
 def test_runs_without_the_flag_write_no_state_files(tmp_path):
     out = tmp_path / "run"
     asyncio.run(run_episodes(RunConfig(episodes=2, seed=3, mode="agent", llm_backend="oracle"), out))
-    assert not (out / "state.db").exists() and not (out / "state.log").exists()
+    assert not (out / "state.db").exists()
     assert "state_db" not in json.loads((out / "run_manifest.json").read_text())
 
 
