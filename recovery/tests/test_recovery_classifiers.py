@@ -53,8 +53,8 @@ def test_trained_classifiers_need_training_rows_and_checkpoints_need_a_path():
         Panel(["mlp"])
     with pytest.raises(ValueError, match="unknown classifier"):
         Panel(["nope"])
-    assert set(CLASSIFIERS) == {"oracle", "rules", "rules_plus", "logreg_checks", "logreg_memory", "knn",
-                                "knn_embed", "mlp", "mlp_embed", "stacking"}
+    assert set(CLASSIFIERS) == {"oracle", "rules", "rules_plus", "logreg_checks", "logreg_memory", "gbm_checks",
+                                "gbm_memory", "knn", "knn_embed", "mlp", "mlp_embed", "stacking"}
 
 
 def test_labels_let_one_classifier_appear_twice(train_file):

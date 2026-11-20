@@ -31,8 +31,8 @@ from mlp_baseline.common import LABELS, cause_of, read_jsonl
 from mlp_baseline.variants import rule_cause_plus, rule_probabilities
 
 ROOT = Path(__file__).resolve().parent.parent  # the repo root; relative paths in specs start here
-# logreg and kNN are script folders, not installed packages.
-for _folder in ("logreg_baseline", "knn_baseline"):
+# logreg, GBM and kNN are script folders, not installed packages.
+for _folder in ("logreg_baseline", "gbm_baseline", "knn_baseline"):
     if str(ROOT / "classifiers" / _folder) not in sys.path:
         sys.path.append(str(ROOT / "classifiers" / _folder))
 
@@ -98,6 +98,23 @@ class Logreg:
 
 
 @dataclass
+class Gbm:
+    """``gbm_checks`` (``memory=False``) or ``gbm_memory``: logreg's features, gradient-boosted trees."""
+
+    memory: bool = False
+    options: dict = field(default_factory=dict)
+    model: Any = None
+
+    def fit(self, train_rows):
+        from gbm import fit_gbm
+        self.model = fit_gbm(train_rows, memory=self.memory, **self.options)
+        return self
+
+    def predict(self, rows):
+        return self.model.predict(rows)
+
+
+@dataclass
 class Knn:
     """``knn`` (TF-IDF) or ``knn_embed``; extra spec keys go to ``fit_knn`` (default: checks on, 5 neighbours)."""
 
@@ -150,6 +167,8 @@ CLASSIFIERS: dict[str, tuple[Callable[..., Classifier], bool]] = {
     "rules_plus": (lambda **_: RulesPlus(), True),
     "logreg_checks": (lambda **options: Logreg(memory=False, options=options), True),
     "logreg_memory": (lambda **options: Logreg(memory=True, options=options), True),
+    "gbm_checks": (lambda **options: Gbm(memory=False, options=options), True),
+    "gbm_memory": (lambda **options: Gbm(memory=True, options=options), True),
     "knn": (lambda **options: Knn(embedding=False, options=options), True),
     "knn_embed": (lambda **options: Knn(embedding=True, options=options), True),
     "mlp": (lambda checkpoint=None, **_: Checkpoint("mlp", _optional_path(checkpoint)), False),

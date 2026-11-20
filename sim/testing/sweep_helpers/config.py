@@ -14,7 +14,8 @@ REPO = Path(__file__).resolve().parents[3]  # repo root (sweep_helpers -> testin
 # The tester reuses mlp_baseline's merge, grouping and scoring code (never its training code).
 sys.path.insert(0, str(REPO / "classifiers" / "mlp_baseline" / "src"))
 
-MODELS = ("mlp", "mlp_embed", "stacking", "rules", "rules_plus", "knn", "knn_embed", "logreg_checks", "logreg_memory", "laya")
+MODELS = ("mlp", "mlp_embed", "stacking", "rules", "rules_plus", "knn", "knn_embed", "logreg_checks", "logreg_memory",
+          "gbm_checks", "gbm_memory", "laya")
 
 
 # ---------------------------------------------------------------- config

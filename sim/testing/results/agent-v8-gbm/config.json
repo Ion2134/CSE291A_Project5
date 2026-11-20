@@ -1,0 +1,71 @@
+{
+  "name": "agent-v8-gbm",
+  "runs_dir": "sim/agent_env/data/runs",
+  "runs": [
+    "agent-qwen36a3b",
+    "agent42",
+    "agent42-v2",
+    "triton42",
+    "triton42-v2",
+    "triton44",
+    "triton45",
+    "triton46",
+    "triton47",
+    "triton48",
+    "oracle49-agentheavy",
+    "triton49-agentheavy",
+    "hard2-api-deepseek-4.1-flash-t0.2-hard",
+    "hard2-api-deepseek-4.1-flash-t0.7-hard",
+    "hard2-api-glm-5.3-flash-t0.7-hard",
+    "hard2-api-glm-5.3-flash-t1-hard",
+    "hard2-api-muse-glimmer-30b-t0.2-hard",
+    "hard2-api-muse-glimmer-30b-t1-hard",
+    "hard3-api-deepseek-4.1-flash-t0.2-hard",
+    "hard3-api-deepseek-4.1-flash-t0.7-hard",
+    "hard3-api-deepseek-4.1-flash-t1-hard",
+    "hard3-api-glm-5.3-flash-t0.2-hard",
+    "hard3-api-glm-5.3-flash-t0.7-hard",
+    "hard3-api-glm-5.3-flash-t1-hard",
+    "hard3-api-muse-glimmer-30b-t0.2-hard",
+    "hard3-api-muse-glimmer-30b-t0.7-hard",
+    "hard3-api-muse-glimmer-30b-t1-hard"
+  ],
+  "split": {
+    "seeds": [
+      42,
+      43
+    ],
+    "k": 2,
+    "max_test_fraction": 0.65,
+    "laya_val_fraction": 0.2
+  },
+  "training_seeds": [
+    42
+  ],
+  "models": {
+    "logreg_checks": {
+      "args": [
+        "--view",
+        "middleware"
+      ]
+    },
+    "logreg_memory": {
+      "args": [
+        "--view",
+        "middleware"
+      ]
+    },
+    "gbm_checks": {
+      "args": [
+        "--view",
+        "middleware"
+      ]
+    },
+    "gbm_memory": {
+      "args": [
+        "--view",
+        "middleware"
+      ]
+    }
+  }
+}

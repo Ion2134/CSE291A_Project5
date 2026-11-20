@@ -11,6 +11,7 @@ The tester **does not train anything itself**. For each fold it calls the model'
 | `mlp`, `mlp_embed`, `stacking` | `mlp-baseline fit-predict --model <name> …` | `classifiers/mlp_baseline/` |
 | `rules`, `rules_plus` | `mlp-baseline fit-predict --model <name> …` | `classifiers/mlp_baseline/` |
 | `logreg_checks`, `logreg_memory` | `classifiers/logreg_baseline/fit_predict.py --model <name> …` | `classifiers/logreg_baseline/` |
+| `gbm_checks`, `gbm_memory` | `classifiers/gbm_baseline/fit_predict.py --model <name> …` | `classifiers/gbm_baseline/` |
 | `knn`, `knn_embed` | `classifiers/knn_baseline/fit_predict.py --model <name> …` | `classifiers/knn_baseline/` |
 | `laya` | `classifiers/laya_finetuning/train_laya.py --task banking …` | `classifiers/laya_finetuning/` |
 

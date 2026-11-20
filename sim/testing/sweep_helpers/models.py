@@ -3,7 +3,7 @@
 The tester never trains anything itself:
 
 - ``mlp`` / ``stacking`` / ``rules`` ... run ``mlp-baseline fit-predict`` in the mlp_baseline environment
-- ``logreg_*`` and ``knn*`` run their own folder's ``fit_predict.py`` (same environment)
+- ``logreg_*``, ``gbm_*`` and ``knn*`` run their own folder's ``fit_predict.py`` (same environment)
 - ``laya`` runs ``laya_finetuning/train_laya.py --task banking`` in the Laya environment
 
 Rerunning the sweep skips every unit that already finished.
@@ -31,7 +31,9 @@ NATIVE_PREDICTIONS = "test_predictions.jsonl"
 # Models that have their own folder and fit-predict script instead of ``mlp-baseline fit-predict``.
 SCRIPT_MODELS = {"logreg_checks": "classifiers/logreg_baseline/fit_predict.py",
                  "logreg_memory": "classifiers/logreg_baseline/fit_predict.py",
-                 "knn": "classifiers/knn_baseline/fit_predict.py", "knn_embed": "classifiers/knn_baseline/fit_predict.py"}
+                 "knn": "classifiers/knn_baseline/fit_predict.py", "knn_embed": "classifiers/knn_baseline/fit_predict.py",
+                 "gbm_checks": "classifiers/gbm_baseline/fit_predict.py",
+                 "gbm_memory": "classifiers/gbm_baseline/fit_predict.py"}
 # Checkpoint folders train_laya.py saves; removed after scoring unless keep_checkpoints is set.
 LAYA_CHECKPOINTS = ("model", "last_model")
 # run_unit's status for a unit that finished in an earlier sweep.

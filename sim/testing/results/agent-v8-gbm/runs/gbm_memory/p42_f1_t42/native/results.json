@@ -1,0 +1,100 @@
+{
+  "model": "gbm_memory",
+  "view": "middleware",
+  "seed": 42,
+  "train_rows": 915,
+  "test_rows": 1259,
+  "details": {
+    "kind": "gbm_memory",
+    "features": [
+      "parse_ok",
+      "call_account_mismatch",
+      "call_payee_mismatch",
+      "call_amount_mismatch",
+      "call_any_mismatch",
+      "args_differ_from_call",
+      "output_differs_from_args",
+      "output_has_private_key",
+      "output_injection_text",
+      "balance_differs_from_ledger",
+      "tool_is_transfer",
+      "tool_is_read",
+      "account_described",
+      "payee_described",
+      "amount_described",
+      "call_id_unseen",
+      "balance_unseen",
+      "empty_transfer_output"
+    ],
+    "params": {
+      "max_iter": 200,
+      "learning_rate": 0.05,
+      "max_depth": 3,
+      "max_leaf_nodes": 8,
+      "min_samples_leaf": 10,
+      "l2_regularization": 1.0
+    },
+    "injection_detector": "keyword",
+    "trees_per_class": 200
+  },
+  "test": {
+    "samples": 1259,
+    "cause_labels": [
+      "none",
+      "agent",
+      "adversary"
+    ],
+    "cause_accuracy": 0.931691818903892,
+    "cause_macro_f1": 0.8692028597090921,
+    "cause_per_class": {
+      "none": {
+        "precision": 0.9712820512820513,
+        "recall": 0.9517587939698492,
+        "f1": 0.9614213197969543,
+        "support": 995
+      },
+      "agent": {
+        "precision": 1.0,
+        "recall": 0.847682119205298,
+        "f1": 0.9175627240143369,
+        "support": 151
+      },
+      "adversary": {
+        "precision": 0.6282051282051282,
+        "recall": 0.8672566371681416,
+        "f1": 0.7286245353159851,
+        "support": 113
+      }
+    },
+    "cause_confusion_matrix": [
+      [
+        947,
+        0,
+        48
+      ],
+      [
+        13,
+        128,
+        10
+      ],
+      [
+        15,
+        0,
+        98
+      ]
+    ],
+    "error_type_accuracy": 0.8560606060606061,
+    "error_type_support": 264,
+    "error_type_accuracy_when_detected": 0.9576271186440678,
+    "error_type_detected_support": 236,
+    "correctness_accuracy": 0.9396346306592533,
+    "error_detection_f1": 0.8613138686131386,
+    "error_auroc": 0.9767511801431399,
+    "false_alarm_rate": 0.04824120603015075,
+    "missed_error_rate": 0.10606060606060606,
+    "correctness_brier": 0.05598775991954388,
+    "correctness_ece": 0.09304286833486311,
+    "inconsistent_answers": 0
+  },
+  "elapsed_seconds": 2.6635990829963703
+}
