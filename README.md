@@ -6,15 +6,14 @@ injects attacks into some calls. A **monitor** reads one tool call at a time and
 - **output_correct**: did this call produce the result the user's mandate called for?
 - **cause**: if not, was it the `agent`'s mistake or an `adversary`'s tampering (`none` if correct)?
 
-We generate labeled data with the simulator, train two kinds of monitors (small MLPs and a
-fine-tuned Laya model), and compare them on the same cross-validation splits.
+We generate labeled data with the simulator, train and compare monitors on the same
+cross-validation splits, and use them in the loop to roll bad calls back while the agent runs.
 
 ## Layout
 
-The repo is grouped into three folders: the simulator and tester (`sim/`), the monitors (`classifiers/`),
-and everything for undoing bad calls while an agent runs (`recovery/`). Each subfolder is its own
-project with its own README (and venv where it has one); `CSE291A_Project5.code-workspace` opens them
-all in VS Code with the right interpreter per folder.
+Three groups: the simulator and tester (`sim/`), the monitors (`classifiers/`), and everything for
+undoing bad calls while an agent runs (`recovery/`). Each subfolder is its own project with its own
+README; `CSE291A_Project5.code-workspace` opens them all in VS Code with the right interpreter per folder.
 
 | Folder | What it does | Details |
 | --- | --- | --- |
@@ -28,78 +27,59 @@ all in VS Code with the right interpreter per folder.
 | [`recovery/state_db/`](recovery/state_db/) | SQLite record of every step's internal and external state | [README](recovery/state_db/README.md) |
 | [`recovery/mcp_hardening/`](recovery/mcp_hardening/) | Per-call request/response signing and turn-level telemetry | [README](recovery/mcp_hardening/README.md) |
 
-Data flows left to right: `sim/agent_env/data/runs/<run>/` → merged by `mlp_baseline` → split by
-`testing` → each model's own training command → one shared scorer.
+Data flows: `sim/agent_env/data/runs/<run>/` → merged by `mlp_baseline` → split by `sim/testing` →
+each model's own training command → one shared scorer.
 
 ## Setup
 
-Each folder has its own Python 3.12 venv (they pin different packages). From the repository root:
+Use an **arm64** Python 3.12 (torch has no Intel-Mac builds past 2.2). From the repository root:
 
 ```bash
-python3.12 -m venv sim/agent_env/.venv && sim/agent_env/.venv/bin/pip install -e "sim/agent_env[dev]"
-python3.12 -m venv classifiers/mlp_baseline/.venv && (cd classifiers/mlp_baseline && .venv/bin/pip install -r requirements.txt -r ../../sim/testing/requirements.txt)
-python3.12 -m venv classifiers/laya_finetuning/.venv && classifiers/laya_finetuning/.venv/bin/pip install -r classifiers/laya_finetuning/requirements.txt
+python3.12 -m venv classifiers/mlp_baseline/.venv     # also runs logreg, knn and the tester
+classifiers/mlp_baseline/.venv/bin/pip install -e "classifiers/mlp_baseline[dev]" -r sim/testing/requirements.txt
+
+python3.12 -m venv sim/agent_env/.venv
+sim/agent_env/.venv/bin/pip install -e recovery/mcp_hardening -e recovery/state_db -e classifiers/mlp_baseline \
+  -e recovery -e "sim/agent_env[dev]"
+
+python3.12 -m venv recovery/.venv
+recovery/.venv/bin/pip install -e classifiers/mlp_baseline -e recovery/state_db -e "recovery[dev]"
+
+python3.12 -m venv recovery/state_db/.venv && recovery/state_db/.venv/bin/pip install -e "recovery/state_db[dev]"
 ```
 
-On a GPU machine, install the CUDA build of torch before Laya's requirements (see its README).
-The tester runs in the `mlp_baseline` venv.
+Laya has its own venv and a GPU setup: see [its README](classifiers/laya_finetuning/README.md).
+For the hosted LLM, copy `sim/agent_env/.env.example` to `.env` ([backends](sim/agent_env/README.md#model-backends)).
 
 ## Run each part
 
-**1. Generate data** (`sim/agent_env/`; the agent needs an LLM, picked with `--llm-backend`)
-
-| Backend | Where the model runs | Settings |
-| --- | --- | --- |
-| `lmstudio` (default) | Local [LM Studio](https://lmstudio.ai) server; load a model with tool calling and start the server | Shell env vars: `LMSTUDIO_MODEL` (the loaded model's id), `LMSTUDIO_BASE_URL` (default `http://127.0.0.1:1234/v1`) |
-| `triton` | Hosted TritonAI API | `sim/agent_env/.env` (gitignored): `cp .env.example .env`, then fill in `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `OPENAI_MODEL` |
-| `oracle` | No model: always makes the correct (on-mandate) tool calls; offline and free | None |
-
-`--llm-model` and `--llm-base-url` override either backend's settings. LM Studio's settings are read
-from the shell only, not from `.env`.
-
 ```bash
-cd sim/agent_env
+# 1. Generate data (agent + attacks); flags and backends: sim/agent_env/README.md
+cd sim/agent_env && .venv/bin/discovery-sim run --llm-backend triton --task-set hard --episodes 50 --out data/runs/my-run
 
-# LM Studio (local)
-export LMSTUDIO_MODEL=qwen/qwen3.6-35b-a3b
-.venv/bin/discovery-sim run --llm-backend lmstudio --episodes 50 --seed 42 --out data/runs/my-local-run
-
-# TritonAI (hosted; reads .env)
-.venv/bin/discovery-sim run --llm-backend triton --episodes 50 --seed 42 --concurrency 2 --out data/runs/my-triton-run
-
-# A model × temperature grid with a 300-episode budget ("backend" and "models" are set in the config)
-.venv/bin/discovery-sim batch --config configs/batch-example.json --dry-run
+# 2. Score the monitors over many splits (from the repo root); configs: sim/testing/configs/
+classifiers/mlp_baseline/.venv/bin/python sim/testing/sweep.py run --config sim/testing/configs/agent-v8-logreg.json --model all
+classifiers/mlp_baseline/.venv/bin/python sim/testing/sweep.py summarize --config sim/testing/configs/agent-v8-logreg.json
 ```
 
-**2. Evaluate the monitors over many splits** (`sim/testing/`). `agent-v5.json` is the latest config (12 agent runs); to add runs, copy it under a new `name` and extend its `runs` list.
-
-```bash
-classifiers/mlp_baseline/.venv/bin/python sim/testing/sweep.py run --config sim/testing/configs/agent-v5.json --model mlp
-classifiers/mlp_baseline/.venv/bin/python sim/testing/sweep.py run --config sim/testing/configs/agent-v5.json --model stacking
-classifiers/mlp_baseline/.venv/bin/python sim/testing/sweep.py run --config sim/testing/configs/agent-v5.json --model laya   # GPU
-classifiers/mlp_baseline/.venv/bin/python sim/testing/sweep.py summarize --config sim/testing/configs/agent-v5.json
-```
-
-Results: `sim/testing/results/<config name>/summary/results.csv` (median, mean and std per model and metric).
-
-**3. Train a model directly** (optional; the tester calls these for you)
-
-```bash
-cd classifiers/mlp_baseline && .venv/bin/mlp-baseline train-injection --data data/injection --out runs/seed42
-classifiers/laya_finetuning/.venv/bin/python classifiers/laya_finetuning/train_laya.py --task banking --device cuda --output classifiers/laya_finetuning/runs/bank
-```
+**3. Recovery in the loop** (classifiers vote on each call, flagged calls are rolled back): the full
+commands and how to read the results are in [`recovery/COMMANDS.md`](recovery/COMMANDS.md).
 
 ## Tests
 
 ```bash
-sim/agent_env/.venv/bin/python -m pytest -q sim/agent_env/tests
-classifiers/mlp_baseline/.venv/bin/python -m pytest -q classifiers/mlp_baseline/tests sim/testing/tests
-classifiers/laya_finetuning/.venv/bin/python -m pytest -q classifiers/laya_finetuning/tests      # offline, tiny model
+M=classifiers/mlp_baseline/.venv/bin/python
+(cd sim/agent_env && .venv/bin/python -m pytest -q)
+$M -m pytest -q classifiers/mlp_baseline/tests classifiers/logreg_baseline/tests classifiers/knn_baseline/tests sim/testing/tests
+(cd recovery && .venv/bin/python -m pytest -q)
+(cd recovery/state_db && .venv/bin/python -m pytest -q)
+(cd recovery/mcp_hardening && ../../sim/agent_env/.venv/bin/python -m pytest -q)
+classifiers/laya_finetuning/.venv/bin/python -m pytest -q classifiers/laya_finetuning/tests   # offline, tiny model
 ```
 
 ## Notes
 
-- Data is small: 10 request types and few agent-error rows, so single splits swing a lot. Report
+- The data is small (few request groups, few agent-error rows), so single splits swing a lot. Report
   the tester's medians, not one split.
 - Superseded experiments are kept in `classifiers/mlp_baseline/archive/` and `classifiers/laya_finetuning/archive/`.
 

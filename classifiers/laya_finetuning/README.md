@@ -1,8 +1,8 @@
-# Laya fine-tuning handoff
+# Laya fine-tuning
 
-Clone this branch, create a venv, run the dry run, then start training on a CUDA GPU. All new Laya code lives here. The branch also contains `classifiers/mlp_baseline/`, including the shared public dataset and the completed MLP results.
+Fine-tunes the Laya monitor on a CUDA GPU: create the venv, run the dry run, then train.
 
-This uses the **English `convaiinnovations/laya` checkpoint**, approximately **421M parameters**, with a ModernBERT-large encoder and Laya's decision head. It is the locally available Jev equivalent discussed in Discord. The base weights are pinned to `7b928d828b7b0e022f929d9bd2e44165aa270148`. Training uses the native `laya==0.4.21` API. [Model card](https://huggingface.co/convaiinnovations/laya), [native fine-tuning documentation](https://github.com/NandhaKishorM/laya/blob/main/docs/finetune.md).
+This uses the **English `convaiinnovations/laya` checkpoint**, approximately **421M parameters**, with a ModernBERT-large encoder and Laya's decision head. The base weights are pinned to `7b928d828b7b0e022f929d9bd2e44165aa270148`. Training uses the native `laya==0.4.21` API. [Model card](https://huggingface.co/convaiinnovations/laya), [native fine-tuning documentation](https://github.com/NandhaKishorM/laya/blob/main/docs/finetune.md).
 
 ## Layout
 
@@ -14,15 +14,13 @@ This uses the **English `convaiinnovations/laya` checkpoint**, approximately **4
 | `data/agent-combined-v4/` | Default banking data (`--task banking`) |
 | `results/injection-seed42/` | The completed GPU injection run: reports, predictions and logs (no checkpoint) |
 | `tests/` | Offline tests on a tiny random checkpoint |
-| `archive/` | `banking-dev/` (the old single-run schema example) and `handoff-verification/` (dry runs and test log from the original handoff) |
+| `archive/` | `banking-dev/` (the old single-run schema example) and `handoff-verification/` (early dry runs and test log) |
 
 ## Setup on the GPU machine
 
 Python **3.12** is the tested version. Commands below assume Linux and one NVIDIA GPU. Multiple available GPUs are fine; this script uses one selected device.
 
 ```bash
-git clone --branch laya-finetuning-handoff https://github.com/Ion2134/CSE291A_Project5.git
-cd CSE291A_Project5
 python3.12 -m venv classifiers/laya_finetuning/.venv
 source classifiers/laya_finetuning/.venv/bin/activate
 python -m pip install --upgrade pip
@@ -54,7 +52,7 @@ python classifiers/laya_finetuning/prepare_banking_data.py \
 
 That merges/repairs/dedups the named runs, freezes the same test split the MLP uses, and carves val from the train pool. `train_laya.py --task banking` defaults to that directory. The old single-run schema example is in `archive/banking-dev/`. Agent-error support is still thin; treat banking results as development checks. The script never combines banking and injection.
 
-For multi-split comparisons with the MLP, use [`../../sim/testing/`](../../sim/testing/): it builds the folds, calls `train_laya.py --task banking --train … --validation … --test …` for each one, and scores Laya and the MLP the same way. `prepare_banking_data.py --config ../../sim/testing/configs/agent-v4.json` reads the run list from that config.
+For multi-split comparisons with the other monitors, use [`../../sim/testing/`](../../sim/testing/): it builds the folds, calls `train_laya.py --task banking --train … --validation … --test …` for each one, and scores every model the same way.
 
 ## Validate first; this does not train
 
@@ -128,8 +126,6 @@ with open("classifiers/mlp_baseline/data/injection/test.jsonl") as handle:
 print(agent.predict(row["state"], row["questions"])["answers"])
 ```
 
-## What was checked before handoff
+## Checks
 
-The isolated project venv passed **10 tests**, including real native training on a tiny random local encoder, encoder/head weight updates, frozen-encoder behavior, checkpoint export/reload, metrics, rejected duplicate/group leakage, invalid labels/schema, rejected truncation, calibration eligibility, and a dry run that cannot load weights or train. Real datasets also passed dry runs with the pinned pretrained tokenizer: no truncated states and no skipped questions. Machine-readable evidence is in [`archive/handoff-verification/`](archive/handoff-verification/).
-
-**No pretrained Laya fine-tuning or GPU training was run for this handoff.** Tiny-model tests establish pipeline wiring, not Laya quality or CUDA behavior. The injection run has since been completed on a GPU; its reports are in [`results/injection-seed42/`](results/injection-seed42/).
+The 10 offline tests cover native training on a tiny random encoder, checkpoint export/reload, metrics, leakage and schema rejection, calibration eligibility, and a dry run that loads no weights (evidence in [`archive/handoff-verification/`](archive/handoff-verification/)). They show the pipeline is wired, not Laya's quality. The completed GPU injection run is in [`results/injection-seed42/`](results/injection-seed42/).

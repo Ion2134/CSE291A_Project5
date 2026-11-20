@@ -5,13 +5,12 @@ Middleware for MCP-shaped tool calls with two parts:
 1. **Two-way per-call signing.** It uses an API key stored encrypted. Each call costs two HMAC-SHA256 checks, with no I/O and no asymmetric crypto.
 2. **Turn-level telemetry.** It follows the OpenTelemetry GenAI semantic conventions and writes **append-only Parquet**.
 
-The package doesn't depend on the simulator. `agent_env` (`discovery-sim`) imports everything it needs from here.
+The package doesn't depend on the simulator; `sim/agent_env` imports it.
 
 ## Install
 
 ```bash
-pip install -e ./mcp_hardening          # from the repo root
-pip install -e "./mcp_hardening[dev]"   # + pytest
+sim/agent_env/.venv/bin/pip install -e "recovery/mcp_hardening[dev]"   # agent_env's venv, from the repo root
 ```
 
 ## Toggles: one JSON config
@@ -137,5 +136,5 @@ The server middleware records its verification results on the **active span**, s
 ## Tests
 
 ```bash
-cd recovery/mcp_hardening && pytest
+cd recovery/mcp_hardening && ../../sim/agent_env/.venv/bin/python -m pytest -q
 ```

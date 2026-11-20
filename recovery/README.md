@@ -10,11 +10,11 @@ Everything about undoing bad tool calls while an agent runs, in two modules:
 | `FINDINGS.md` | Known classifier and recovery issues seen in runs, for reports |
 
 Two packages it relies on live inside this folder: [`state_db/`](state_db/README.md) (the recorded
-state) and [`mcp_hardening/`](mcp_hardening/README.md) (request/response signing and telemetry).
+state a rollback restores) and [`mcp_hardening/`](mcp_hardening/README.md) (request/response signing
+and telemetry).
 
-`sim/agent_env` uses them with `--recovery-classifiers` (score and vote) and `--recovery` (act on it). The
-state a rollback restores lives in the [state DB](state_db/README.md). `recovery.py` uses only the
-standard library; `recovery_classifiers.py` needs [`mlp_baseline`](../classifiers/mlp_baseline/) and finds
+`sim/agent_env` uses them with `--recovery-classifiers` (score and vote) and `--recovery` (act on it).
+`recovery.py` uses only the standard library; `recovery_classifiers.py` needs [`mlp_baseline`](../classifiers/mlp_baseline/) and finds
 `classifiers/logreg_baseline/` and `classifiers/knn_baseline/` from the repo checkout.
 
 ## Setup

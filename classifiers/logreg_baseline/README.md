@@ -1,8 +1,8 @@
 # Logistic-regression baseline
 
 A small CPU monitor: multinomial logistic regression on the banking monitor's **comparison
-features**. It is a learned version of the hand-written `rules` cascade, so it reaches the same
-accuracy with real probabilities and weights you can read. It needs only numpy and scikit-learn,
+features**: a learned version of the hand-written `rules` cascade, with real probabilities and
+weights you can read. It needs only numpy and scikit-learn,
 and reuses the features and metrics from [`../mlp_baseline/`](../mlp_baseline/) (`checks.py`,
 `metrics.py`, `common.py`).
 
@@ -13,7 +13,7 @@ and reuses the features and metrics from [`../mlp_baseline/`](../mlp_baseline/) 
 | `logreg_checks` | The 12 comparison flags (call vs mandate, args vs call, output vs args and ledger, tool kind) plus the 4 hard-task flags below | The one to headline. No dependence on simulator constants. |
 | `logreg_memory` | The same 16 flags plus `balance_unseen` and `empty_transfer_output` | Read as an upper bound: the extra checks were found by inspecting the folds, and the balance check relies on the simulator reusing the same seeded balances. |
 
-The 12 comparison flags are defined in [`classifiers/mlp_baseline/README.md`](../mlp_baseline/README.md#comparison-features-checkspy).
+The 12 comparison flags are defined in [`mlp_baseline`](../mlp_baseline/README.md#comparison-features-checkspy).
 
 ### Hard-task flags
 
@@ -30,6 +30,7 @@ earlier calls, so they work in the middleware view.
 They do not check that a described field was resolved correctly. For "pay from whichever account has
 more money", a pick of the smaller account still uses an id the agent saw. Fraction amounts are also
 only marked as described, not recomputed.
+
 Classes are weighted equally in the loss (`class_weight="balanced"`), `C=1`, and the weights learned
 for each cause are saved in `results.json` under `details.weights`.
 
@@ -44,7 +45,7 @@ computed from the tool output's text alone.
 
 | Detector | What it is |
 | --- | --- |
-| `keyword` (default) | The original regex from `classifiers/mlp_baseline/checks.py` (0 or 1). Same results as before. |
+| `keyword` (default) | The regex from `mlp_baseline/checks.py` (0 or 1). |
 | `char_ngram` | Character 2–5-gram TF-IDF + logistic regression, fit on the training rows only. |
 
 Training label: a row counts as injected if it is labelled `adversary` and its output has a private
@@ -53,11 +54,7 @@ sentence, so both detectors score perfectly; telling them apart needs reworded i
 To add a detector (e.g. sentence embeddings), write a class with `fit(texts, labels)` and
 `score(texts)` in `injection.py` and add it to `DETECTORS`.
 
-## Views
-
-`--view middleware` removes `ledger_snapshot` and `received_args` before the features are computed
-(see [the views](../mlp_baseline/README.md#what-the-monitor-sees-the-state-string-and-the-two-views));
-`--view full` keeps them. Use `middleware` for anything you want to deploy.
+Use `--view middleware` (no privileged fields, [the views](../mlp_baseline/README.md#what-the-monitor-sees-the-state-string-and-the-two-views)) for anything deployable.
 
 ## Run
 

@@ -28,15 +28,13 @@ Every model gets the same files and is scored by the same `mlp_baseline.metrics.
 
 ## Usage
 
-Run from the repository root with the `mlp_baseline` environment, plus `sim/testing/requirements.txt` (it supplies the merge and
-scoring helpers):
+Run from the repository root with the `mlp_baseline` venv ([setup](../../README.md#setup)):
 
 ```bash
-python sim/testing/sweep.py splits    --config sim/testing/configs/agent-v4.json
-python sim/testing/sweep.py run       --config sim/testing/configs/agent-v4.json --model mlp
-python sim/testing/sweep.py run       --config sim/testing/configs/agent-v4.json --model stacking
-python sim/testing/sweep.py run       --config sim/testing/configs/agent-v4.json --model laya
-python sim/testing/sweep.py summarize --config sim/testing/configs/agent-v4.json
+P=classifiers/mlp_baseline/.venv/bin/python
+$P sim/testing/sweep.py splits    --config sim/testing/configs/agent-v8-logreg.json
+$P sim/testing/sweep.py run       --config sim/testing/configs/agent-v8-logreg.json --model all
+$P sim/testing/sweep.py summarize --config sim/testing/configs/agent-v8-logreg.json
 ```
 
 - `--model all` runs every model in the config.
@@ -47,9 +45,9 @@ python sim/testing/sweep.py summarize --config sim/testing/configs/agent-v4.json
 
 ## Config
 
-`configs/agent-v4.json` names the agent runs to pool and how to run each model. Paths are
-relative to the repository root. To test a different pool, copy the file and change `name` and
-`runs`; results go to `results/<name>/`.
+Each `configs/*.json` names the agent runs to pool and how to run each model. Paths are relative
+to the repository root. To test a different pool, copy one and change `name` and `runs`; results go
+to `results/<name>/`.
 
 | Key | Meaning |
 | --- | --- |
@@ -65,8 +63,8 @@ relative to the repository root. To test a different pool, copy the file and cha
 The same file works with `mlp-baseline prepare-agent-data --config …` and
 `classifiers/laya_finetuning/prepare_banking_data.py --config …`, so all tools can share one run list.
 
-The tester refuses to reuse a results folder whose runs or split settings changed, and refuses
-to mix runs of one model made with different model settings.
+The tester refuses to reuse a results folder whose runs or split settings changed (moving the runs
+folder, `runs_dir`, is fine), and refuses to mix runs of one model made with different settings.
 
 ## How splits work
 
@@ -77,8 +75,7 @@ to mix runs of one model made with different model settings.
 3. In each fold, hold out some training groups as `val.jsonl`. Laya uses it for early stopping;
    the MLP and stacking add it back to training and use inner cross-validation instead.
 
-Run counts are `split seeds × k × training seeds` per model: 75 for the MLP and stacking and 25
-for Laya with the default config.
+Each model runs `split seeds × k × training seeds` times.
 
 ## Outputs
 

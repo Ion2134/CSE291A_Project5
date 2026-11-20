@@ -12,17 +12,13 @@ and `torch` for `knn_embed`).
 | `knn` | TF-IDF of the state text (`--max-features`, default 4096) |
 | `knn_embed` | Sentence embedding of the state (`BAAI/bge-small-en-v1.5` from the local Hugging Face cache; nothing is downloaded) |
 
-Both can append the comparison features (`--use-checks`, scaled as in the MLP), see
-[`classifiers/mlp_baseline/README.md`](../mlp_baseline/README.md#comparison-features-checkspy). Distances are
+Both can append the [comparison features](../mlp_baseline/README.md#comparison-features-checkspy)
+(`--use-checks`, scaled as in the MLP). Distances are
 cosine; the `--neighbors` (default 5) closest training rows vote, each weighted by closeness and by
 1 / class frequency so the rare `adversary` class is not outvoted. Probabilities are not calibrated,
 and correctness is `P(cause = none)`.
 
-## Views
-
-`--view middleware` removes `ledger_snapshot` and `received_args` before anything is embedded or
-compared (see [the views](../mlp_baseline/README.md#what-the-monitor-sees-the-state-string-and-the-two-views));
-`--view full` keeps them. Use `middleware` for anything you want to deploy.
+Use `--view middleware` (no privileged fields, [the views](../mlp_baseline/README.md#what-the-monitor-sees-the-state-string-and-the-two-views)) for anything deployable.
 
 ## Run
 
@@ -37,12 +33,10 @@ It writes `test_predictions.jsonl` (the tester's format) and `results.json` to `
 `--validation` rows are added to the index. kNN is deterministic, so one training seed per fold is
 enough.
 
-## Results so far
+## Results
 
-On the middleware view, kNN finds most errors but raises many false alarms on benign calls
-(7–10% of them, against about 0% for the rules and logistic regression). A false alarm blocks a good
-call, so it is not a good blocker on this data. See
-`sim/testing/results/<config>/summary/SUMMARY.md` for current numbers.
+On the core tasks (middleware view) kNN found most errors but raised false alarms on 7–10% of correct
+calls, so it's a poor blocker. Current numbers: `sim/testing/results/<config>/summary/SUMMARY.md`.
 
 ## Layout
 

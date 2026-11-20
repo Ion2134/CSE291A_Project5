@@ -30,7 +30,7 @@ It does not import or edit `agent_env`, and has no Laya dependency.
 Run from this directory:
 
 ```bash
-python3 -m venv .venv
+python3.12 -m venv .venv          # arm64; see the root setup
 source .venv/bin/activate
 python -m pip install -r requirements.txt
 python -m pip check
@@ -165,8 +165,8 @@ mlp-baseline export-laya-banking --data runs/combined --out runs/laya-banking
 ```
 
 `prepare-agent-data` checks each run's `laya_train.jsonl` against its `examples.jsonl`, repairs
-a known legacy labeling bug (an IO-mismatch attack that could not change a correct result was
-labeled an adversary error), merges and deduplicates rows across runs, and writes a
+a legacy labeling bug in old runs (an IO-mismatch attack on a tool it can't change was labeled an
+adversary error; the simulator now labels these correctly), merges and deduplicates rows across runs, and writes a
 group-disjoint train/test split. `export-laya-banking` writes the same split in Laya's
 train/val/test format.
 
