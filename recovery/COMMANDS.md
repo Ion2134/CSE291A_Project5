@@ -62,7 +62,20 @@ shows recovery working on its own.
 
 ## Look at the results
 
-Swap in your run folder.
+The whole breakdown in one go: every call sorted by outcome (caught, blocked, false positive, missed),
+rollbacks by reason, false positives by task family, and for each rollback or miss what was asked, what
+the model called, why it was faulty, why it was (or wasn't) rolled back, and what the agent did next:
+
+```bash
+python3 ../recovery/interpret_results.py \
+  data/runs/recovery-triton \
+  --details some \
+  --out data/runs/recovery-triton/recovery_report.md
+```
+
+`--details` is `none` (summary only), `some` (first 5 rollbacks and misses, the default) or `all`.
+
+The individual queries below show single pieces. Swap in your run folder.
 
 Rollbacks, and how many decisions each reason produced:
 
@@ -76,7 +89,7 @@ Each rolled-back call, with its true cause, the reason and who flagged it:
 ```bash
 python3 -c "
 import json
-for line in open('data/runs/recovery-oracle/examples.jsonl'):
+for line in open('data/runs/recovery-triton/examples.jsonl'):
     r = json.loads(line)
     rec = r['meta']['recovery']
     if rec.get('rolled_back'):

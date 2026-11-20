@@ -6,6 +6,8 @@ Everything about undoing bad tool calls while an agent runs, in two modules:
 | --- | --- |
 | `recovery_classifiers.py` | The banking monitors as plug-in **classifiers** the simulator asks about every tool call, plus the majority vote (`decide`) |
 | `recovery.py` | The **rules** for when a call is rolled back (`RecoveryPolicy`), and the **rollback** of the recorded state (`rollback`) |
+| `interpret_results.py` | Breaks a recovery run down: outcomes, false positives, why each rollback happened ([commands](COMMANDS.md)) |
+| `FINDINGS.md` | Known classifier and recovery issues seen in runs, for reports |
 
 `agent_env` uses them with `--recovery-classifiers` (score and vote) and `--recovery` (act on it). The
 state a rollback restores lives in the [state DB](../state_db/README.md). `recovery.py` uses only the
