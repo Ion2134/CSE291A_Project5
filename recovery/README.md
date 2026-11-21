@@ -85,12 +85,15 @@ for them.
 
 ## When a call is rolled back (`recovery.py`)
 
-`RecoveryPolicy.decide(hardening_failure_stage, classifier_vote)` applies these rules in order:
+`RecoveryPolicy.decide(hardening_failure_stage, classifier_vote, mandate_verified, single_use, own_call_refused, retry_refused)` applies these rules in order:
 
 | Situation | Rolled back? | `reason` |
 | --- | --- | --- |
-| Hardening rejected the call **before** the tool ran (`bad_request_sig`, replay, stale timestamp) | no: nothing changed | `blocked_before_tool` |
+| The user's signed mandate refused the agent's **own** call (`mandate_violation` with a valid request signature, so nothing changed it on the way), and `--retry-refused` is on | no: nothing ran. The agent gets the refusal reason and may correct the call; this counts toward the cap | `retry_allowed` |
+| Hardening rejected the call **before** the tool ran (`bad_request_sig`, replay, stale timestamp, or a signed-mandate refusal such as `mandate_violation`) | no: nothing changed | `blocked_before_tool` |
+| The response failed its check, but the call passed a **single-use** signed mandate (hardening `mandate_binding.single_use`) | no: it is what the user signed for and can't be repeated; the agent gets `VERIFIED_REPLY` instead of the untrusted output | `verified_reply_withheld` |
 | Hardening rejected the **response** after the tool ran (`bad_response_sig`) | yes: the tool's effect is undone | `response_sig_failed` |
+| The call passed the user's signed mandate (hardening `mandate_binding`) | no: a hard rule outranks the classifiers, which aren't asked about it | `mandate_verified` |
 | The classifiers' vote says recover | yes | `classifiers` |
 | It doesn't | no | `not_flagged` |
 | No classifiers configured | no | `no_classifiers` |

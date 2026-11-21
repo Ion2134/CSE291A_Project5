@@ -56,6 +56,7 @@ shows recovery working on its own.
 | `--state-db` | Record every step to `state.db` (required by `--recovery`) |
 | `--recovery` | Roll flagged calls back and let the agent carry on |
 | `--max-recoveries` | At most this many rollbacks per episode (default 2) |
+| `--retry-refused` | With `--recovery` and a mandate preset (`all_on_mandate`): when the user's signed mandate refuses the agent's own call, tell it why and let it try again. Calls refused for tampering or replay are never retried. Retries count toward `--max-recoveries` |
 | `--recovery-classifiers` | JSON list of classifiers that vote on each call (see `README.md`) |
 | `--hardening-config` | MCP signing preset: `default`, `all_on`, `all_off`, `request_only`, `response_only`, or a file |
 | `--out` | Run folder |

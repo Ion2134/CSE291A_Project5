@@ -8,6 +8,12 @@ REPLAYED_NONCE = "replayed_nonce"
 STALE_TIMESTAMP = "stale_timestamp"
 BAD_RESPONSE_SIG = "bad_response_sig"
 MISSING_RESPONSE_SIG = "missing_response_sig"
+# Signed user mandates (mandate.py)
+MISSING_MANDATE = "missing_mandate"
+BAD_MANDATE_SIG = "bad_mandate_sig"
+MANDATE_EXPIRED = "mandate_expired"
+MANDATE_VIOLATION = "mandate_violation"
+MANDATE_USED = "mandate_used"
 
 FAILURE_REASONS = (
     MISSING_ENVELOPE,
@@ -17,6 +23,11 @@ FAILURE_REASONS = (
     STALE_TIMESTAMP,
     BAD_RESPONSE_SIG,
     MISSING_RESPONSE_SIG,
+    MISSING_MANDATE,
+    BAD_MANDATE_SIG,
+    MANDATE_EXPIRED,
+    MANDATE_VIOLATION,
+    MANDATE_USED,
 )
 
 

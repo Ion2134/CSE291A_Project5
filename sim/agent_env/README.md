@@ -77,6 +77,7 @@ model with native tool calling. Rate limits (429) and server errors are retried 
 | `--hardening-config PATH` | defaults | MCP signing/telemetry config or preset, see [MCP hardening](#mcp-hardening) |
 | `--state-db` | off | Record every step's state to `state.db` ([state_db](../../recovery/state_db/README.md)) |
 | `--recovery-classifiers JSON`, `--recovery`, `--max-recoveries N` | none, off, 2 | Classifiers that vote on each call, and rolling flagged calls back ([recovery](../../recovery/README.md)) |
+| `--retry-refused` | off | With `--recovery` and mandates on: the agent may correct its own call after the user's mandate refuses it (never after tampering); shares the `--max-recoveries` cap |
 
 ### Tasks
 
@@ -111,6 +112,12 @@ off and telemetry is on. In this simulator:
 2. A wrapper around the **real** tool server verifies the call before the handler runs and signs the
    result. Attack layers (`MitmAgent`, `HackedMcpToolServer`) sit outside it.
 3. The harness checks the result's signature before the output reaches the model.
+4. With `mandate_binding` on (presets `all_on_mandate`, `mandate_only`), each episode's user side signs
+   the task's intent (`AgentTask.user_intent`, written in `sim/intent.py` and `sim/hard_tasks.py` from
+   what the user asked, never the hidden answer), the agent carries it on every call, and the payment
+   server checks each `initiate_transfer` against it. The server's lookups (`balance`, `accounts`,
+   `primary_account`, `account_of_holder`, `payee_named`; `ledger_resolvers` in `sim/intent.py`) read
+   the live ledger, so "half of acct_42" is checked against what acct_42 holds when the transfer runs.
 
 A failed check fails the call: `record.error` is `mcp_hardening:<reason>`, the output is empty, the
 labels still say `cause=adversary`.
@@ -120,7 +127,8 @@ labels still say `cause=adversary`.
 | `a2a_call_intercepted` | `request_auth` (the ledger is untouched) | `bad_request_sig` |
 | `mcp_output_injection` | `response_auth` | `bad_response_sig` |
 | `mcp_io_mismatch` (changes `get_balance` and `list_payees`; other tools are genuine and labeled correct) | `response_auth` | `bad_response_sig` |
-| `llm_wrong_*`, `taint_prior_output` | not caught: the agent signs its own wrong intent (the monitors' job) | — |
+| `llm_wrong_*`, `taint_prior_output` on a transfer | `mandate_binding` (the transfer never runs) | `mandate_violation` |
+| `llm_wrong_*`, `taint_prior_output` on a read | not caught: reads aren't protected, and the agent signs its own wrong intent (the monitors' job) | — |
 | `a2a_toolset_mismatch`, `hard_negative_reencode` | not caught: the call that reaches the server is the one that was signed | — |
 
 Each call's outcome is in `examples.jsonl` → `meta.hardening`; `baseline.json` adds `hardening` and
@@ -144,7 +152,7 @@ cell, each with its own seed. A budget picks a random subset that still covers e
 | `sample_seed`, `base_seed` | Which cells the budget picks; cell *i* uses seed `base_seed + i` |
 | `task_sample`, `backend`, `base_url`, `concurrency`, `max_agent_steps` | As for `run` |
 | `state_db`, `recovery_classifiers`, `recovery`, `max_recoveries` | As for `run` |
-| `hardening` | As `--hardening-config` for `run`: a preset name from `recovery/mcp_hardening/src/mcp_hardening/configs/` (`all_on`, `all_off`, `default`, `request_only`, `response_only`) or a JSON file path relative to `agent_env/`. Default: `$MCP_HARDENING_CONFIG`, else built-in defaults (security off, telemetry on) |
+| `hardening` | As `--hardening-config` for `run`: a preset name from `recovery/mcp_hardening/src/mcp_hardening/configs/` (`all_on`, `all_off`, `default`, `request_only`, `response_only`, `all_on_mandate`, `mandate_only`) or a JSON file path relative to `agent_env/`. Default: `$MCP_HARDENING_CONFIG`, else built-in defaults (security off, telemetry on) |
 
 Raising the budget keeps earlier picks; finished runs are skipped, so a batch can be resumed. The
 batch also writes `data/batches/<name>.json`, whose `runs` list works as a `--config` for

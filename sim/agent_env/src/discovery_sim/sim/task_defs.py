@@ -19,6 +19,15 @@ class AgentTask:
     instruction: dict[str, Any] | None = None
     # The on-mandate calls ``[(openai tool name, arguments), ...]``, for the oracle backend only.
     plan: tuple[tuple[str, dict[str, Any]], ...] | None = None
+    # The user's request as signed-mandate rules (sim/intent.py); enforced only when the hardening
+    # config turns ``mandate_binding`` on. None means "derive it from the literal mandate".
+    intent: dict[str, Any] | None = None
+
+    @property
+    def user_intent(self) -> dict[str, Any]:
+        from discovery_sim.sim.intent import literal_intent
+
+        return self.intent if self.intent is not None else literal_intent(self.mandate)
 
     @property
     def visible_mandate(self) -> dict[str, Any]:

@@ -19,6 +19,7 @@ from dataclasses import asdict, dataclass
 from typing import Any
 
 from discovery_sim.ledger.store import SEED_PAYEE_IDS, SyntheticLedger
+from discovery_sim.sim.intent import arg, equals, fn, op, transfer_intent
 from discovery_sim.sim.task_defs import AgentTask
 
 CAP_CENTS = 100_000
@@ -164,6 +165,7 @@ def derived_transfer(rng: random.Random, ledger: SyntheticLedger) -> AgentTask:
         wording = FRACTION.pick(rng)
         message = wording.say(payee=payee, fraction=share.words, account=account)
         rule = f"{share.words} of the balance of {account}"
+        amount_rule = op("//", op("*", fn("balance", account), share.numerator), share.denominator)
     else:
         account, keep = rng.choice(keep_options)
         amount = balances[account] - keep
@@ -171,12 +173,15 @@ def derived_transfer(rng: random.Random, ledger: SyntheticLedger) -> AgentTask:
         wording = KEEP.pick(rng)
         message = wording.say(payee=payee, account=account, keep=_dollars(keep))
         rule = f"the balance of {account} above ${_dollars(keep)}"
+        amount_rule = op("-", fn("balance", account), keep)
 
     return _transfer_task(
         wording, "derived_transfer", message, Transfer(account, payee, amount),
         reads=[account],
         instruction={"from_account_id": account, "payee_id": payee, "amount": rule},
         plan_reads=[_get_balance(account)],
+        intent=_pay(equals("from_account_id", account), equals("payee_id", payee),
+                    equals("amount_cents", amount_rule)),
     )
 
 
@@ -195,15 +200,19 @@ def conditional_transfer(rng: random.Random, ledger: SyntheticLedger) -> AgentTa
     message = wording.say(account=account, threshold=_dollars(threshold), payee=payee, dollars=_dollars(amount))
     instruction = {"account_id": account, "pay_only_if_balance_above_cents": threshold, "payee_id": payee,
                    "amount_cents": amount, "otherwise": "do not pay; report the balance"}
+    # The same rules whether or not the condition holds: the server checks the balance when paying.
+    intent = _pay(op("gt", fn("balance", account), threshold), equals("from_account_id", account),
+                  equals("payee_id", payee), equals("amount_cents", amount))
 
     if should_pay:
         return _transfer_task(wording, "conditional_transfer", message, Transfer(account, payee, amount),
-                              reads=[account], instruction=instruction, plan_reads=[_get_balance(account)])
+                              reads=[account], instruction=instruction, plan_reads=[_get_balance(account)],
+                              intent=intent)
 
     # The condition fails: the correct behaviour is to read the balance and pay nothing.
     return AgentTask(task_id=wording.task_id, template="conditional_transfer", user_message=message,
                      mandate={"account_id": account, "read_accounts": [account], "no_transfer": True},
-                     instruction=instruction, plan=(_get_balance(account),))
+                     instruction=instruction, plan=(_get_balance(account),), intent=intent)
 
 
 def named_account_transfer(rng: random.Random, ledger: SyntheticLedger) -> AgentTask:
@@ -217,6 +226,7 @@ def named_account_transfer(rng: random.Random, ledger: SyntheticLedger) -> Agent
         holder = ""
         wording = PRIMARY.pick(rng)
         named = "my primary account"
+        source_rule = fn("primary_account")
     else:
         # Only holders with exactly one account, so the name is unambiguous.
         source = rng.choice([account.account_id for account in accounts
@@ -224,6 +234,7 @@ def named_account_transfer(rng: random.Random, ledger: SyntheticLedger) -> Agent
         holder = ledger.accounts[source].holder_name
         wording = HOLDER.pick(rng)
         named = f"the account held by {holder}"
+        source_rule = fn("account_of_holder", holder)
 
     amount = rng.choice(_affordable_amounts(ledger.accounts[source].balance_cents))
     message = wording.say(payee=payee, dollars=_dollars(amount), holder=holder)
@@ -233,6 +244,7 @@ def named_account_transfer(rng: random.Random, ledger: SyntheticLedger) -> Agent
         reads=list(ledger.accounts),
         instruction={"from_account": named, "payee_id": payee, "amount_cents": amount},
         plan_reads=[_list_accounts()],
+        intent=_pay(equals("from_account_id", source_rule), equals("payee_id", payee), equals("amount_cents", amount)),
     )
 
 
@@ -248,6 +260,7 @@ def compare_then_transfer(rng: random.Random, ledger: SyntheticLedger) -> AgentT
         reads = [first, second]
         named = f"whichever of {first} and {second} has more money"
         plan_reads = [_get_balance(first), _get_balance(second)]
+        source_rule = op("argmax", [first, second], key="balance")
     else:
         first = second = ""
         source = max(balances, key=balances.get) # type: ignore
@@ -255,6 +268,7 @@ def compare_then_transfer(rng: random.Random, ledger: SyntheticLedger) -> AgentT
         reads = list(balances)
         named = "my account with the most money"
         plan_reads = [_list_accounts()]
+        source_rule = op("argmax", fn("accounts"), key="balance")
 
     amount = rng.choice(_affordable_amounts(balances[source]))
     message = wording.say(account_a=first, account_b=second, payee=payee, dollars=_dollars(amount))
@@ -264,6 +278,7 @@ def compare_then_transfer(rng: random.Random, ledger: SyntheticLedger) -> AgentT
         reads=reads,
         instruction={"from_account": named, "payee_id": payee, "amount_cents": amount},
         plan_reads=plan_reads,
+        intent=_pay(equals("from_account_id", source_rule), equals("payee_id", payee), equals("amount_cents", amount)),
     )
 
 
@@ -287,6 +302,8 @@ def named_payee_transfer(rng: random.Random, ledger: SyntheticLedger) -> AgentTa
         reads=[account],
         instruction={"from_account_id": account, "payee": named, "amount_cents": amount},
         plan_reads=[_list_payees()],
+        intent=_pay(equals("from_account_id", account), equals("payee_id", fn("payee_named", payee_name)),
+                    equals("amount_cents", amount)),
     )
 
 
@@ -302,12 +319,17 @@ HARD_FAMILIES: dict[str, Callable[[random.Random, SyntheticLedger], AgentTask]] 
 # ---------------------------------------------------------------- helpers
 
 def _transfer_task(wording: Wording, template: str, message: str, transfer: Transfer, *, reads: list[str],
-                   instruction: dict[str, Any], plan_reads: list[PlanStep]) -> AgentTask:
+                   instruction: dict[str, Any], plan_reads: list[PlanStep], intent: dict[str, Any]) -> AgentTask:
     """A task that ends in one correct ``transfer``, after reading any of the accounts in ``reads``."""
     mandate = {"read_accounts": list(reads), **transfer.arguments(), "cap_cents": CAP_CENTS}
     plan = (*plan_reads, ("payment__initiate_transfer", transfer.arguments()))
     return AgentTask(task_id=wording.task_id, template=template, user_message=message, mandate=mandate,
-                     instruction=instruction, plan=plan)
+                     instruction=instruction, plan=plan, intent=intent)
+
+
+def _pay(*rules: dict[str, Any]) -> dict[str, Any]:
+    """The signed-mandate rules for a request (``sim/intent.py``), with the per-transfer cap."""
+    return transfer_intent(*rules, op("le", arg("amount_cents"), CAP_CENTS))
 
 
 def _threshold(rng: random.Random, balance: int, should_pay: bool) -> int:

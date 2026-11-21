@@ -1,4 +1,4 @@
-"""MCP hardening: per-call two-way signing middleware + OpenTelemetry GenAI Parquet telemetry."""
+"""MCP hardening: per-call two-way signing, signed user mandates, and OpenTelemetry GenAI Parquet telemetry."""
 
 from mcp_hardening.config import (
     CONFIG_ENV_VAR,
@@ -8,6 +8,7 @@ from mcp_hardening.config import (
 )
 from mcp_hardening.errors import FAILURE_REASONS, HardeningError
 from mcp_hardening.keys import Keyring, generate_encrypted_api_key
+from mcp_hardening.mandate import MANDATE_KEY, sign_mandate, verify_mandate
 from mcp_hardening.middleware import (
     ENVELOPE_KEY,
     ClientMiddleware,
@@ -33,6 +34,7 @@ __all__ = [
     "HardeningError",
     "HardeningRuntime",
     "Keyring",
+    "MANDATE_KEY",
     "NonceCache",
     "ServerMiddleware",
     "envelope_from",
@@ -42,4 +44,6 @@ __all__ = [
     "preset_names",
     "read_telemetry",
     "semconv",
+    "sign_mandate",
+    "verify_mandate",
 ]

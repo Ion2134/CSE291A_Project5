@@ -65,6 +65,7 @@ class BatchConfig:
     recovery_classifiers: tuple = ()  # classifier specs asked about every tool call (needs ../../recovery)
     recovery: bool = False  # roll flagged calls back (needs state_db and ../../recovery)
     max_recoveries: int = 2
+    retry_refused: bool = False  # with recovery: let the agent retry a call the user's mandate refused
     # MCP hardening for every run: a preset in recovery/mcp_hardening/src/mcp_hardening/configs/ (e.g. "all_on")
     # or a JSON file path (relative to agent_env/). None = $MCP_HARDENING_CONFIG, else built-in defaults.
     hardening: str | None = None
@@ -211,7 +212,7 @@ def _run_config(config: BatchConfig, run: PlannedRun, hardening: HardeningConfig
                      concurrency=max(1, config.concurrency), temperature=run.cell.temperature,
                      task_set=run.cell.task_set, task_sample=config.task_sample, state_db=config.state_db,
                      recovery_classifiers=tuple(config.recovery_classifiers), recovery=config.recovery,
-                     max_recoveries=config.max_recoveries,
+                     max_recoveries=config.max_recoveries, retry_refused=config.retry_refused,
                      hardening=hardening if hardening is not None else config.hardening_config())
 
 

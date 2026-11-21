@@ -6,6 +6,9 @@ Response (server → client): ``result["_meta"]["mcp_hardening"] = {v, kid, nonc
     sig = HMAC-SHA256(k_resp, "v1|resp|kid|tool|nonce|canonical(structuredContent)|isError")
 
 The response is bound to the request nonce, so a response can't be replayed onto another call.
+Mandate  (user → server, carried by the agent): ``params["_meta"]["mcp_hardening_mandate"]``; for a
+    protected tool the server checks the call against the user's signed rules (``mandate.py``).
+
 Each check runs only when its toggle in ``HardeningConfig`` is on; any combination is valid.
 All checks are constant-time HMAC compares plus a dict lookup - no I/O, no asymmetric crypto.
 """
@@ -27,6 +30,7 @@ from mcp_hardening.canonical import request_mac_input, response_mac_input
 from mcp_hardening.config import HardeningConfig
 from mcp_hardening.errors import HardeningError
 from mcp_hardening.keys import Keyring
+from mcp_hardening.mandate import MANDATE_KEY, MandateUses, Resolvers, sign_mandate, verify_mandate
 from mcp_hardening.replay import NonceCache
 from mcp_hardening.telemetry import semconv
 
@@ -165,6 +169,7 @@ class ServerMiddleware:
     keyring: Keyring | None
     nonces: NonceCache | None
     clock: Callable[[], float] = time.time
+    mandate_uses: MandateUses | None = None  # set when mandates are single-use
 
     def verify_request(self, params: dict[str, Any]) -> dict[str, Any] | None:
         """Run every enabled request check. Returns the envelope (if any). Raises HardeningError."""
@@ -209,6 +214,35 @@ class ServerMiddleware:
 
         _span_set(**{semconv.HARDENING_REQUEST_VERIFIED: True})
         return env
+
+    def verify_mandate(self, params: dict[str, Any], resolvers: Resolvers) -> bool:
+        """Check a protected tool call against the user's signed mandate. Returns whether a check ran.
+
+        Raises HardeningError (stage ``request``) when the mandate is missing, forged, stale, or does
+        not allow this call. Unprotected tools pass through untouched.
+        """
+        cfg = self.config.mandate_binding
+        tool = str(params.get("name", ""))
+        if not cfg.enabled or tool not in cfg.protected_tools:
+            return False
+        assert self.keyring is not None
+        meta = params.get("_meta")
+        token = meta.get(MANDATE_KEY) if isinstance(meta, dict) else None
+        try:
+            verify_mandate(token, tool, dict(params.get("arguments") or {}), key=self.keyring.mandate_key,
+                           kid=self.keyring.kid, resolvers=resolvers, max_age_s=cfg.max_age_s, clock=self.clock,
+                           uses=self.mandate_uses)
+        except HardeningError as exc:
+            self._fail(exc.reason, exc.detail)
+        _span_set(**{semconv.HARDENING_MANDATE_VERIFIED: True})
+        return True
+
+    def record_mandate_use(self, params: dict[str, Any]) -> None:
+        """Count one use of the call's mandate. Call only after the protected tool actually ran."""
+        if self.mandate_uses is None:
+            return
+        token = (params.get("_meta") or {}).get(MANDATE_KEY) or {}
+        self.mandate_uses.record(str(token.get("id")), str(params.get("name", "")), int(token.get("iat", 0)))
 
     def sign_response(
         self, tool: str, request_envelope: dict[str, Any] | None, result: dict[str, Any]
@@ -258,7 +292,9 @@ class HardeningRuntime:
 
     def __post_init__(self) -> None:
         self.client = ClientMiddleware(self.config, self.keyring, self.clock)
-        self.server = ServerMiddleware(self.config, self.keyring, self.nonces, self.clock)
+        mandates = self.config.mandate_binding
+        uses = MandateUses(mandates.max_age_s, self.clock) if mandates.enabled and mandates.single_use else None
+        self.server = ServerMiddleware(self.config, self.keyring, self.nonces, self.clock, uses)
 
     @classmethod
     def build(
@@ -294,17 +330,29 @@ class HardeningRuntime:
     def enabled(self) -> bool:
         return self.config.security_enabled
 
-    def wrap(self, server: ToolServer) -> ToolServer:
-        """Put the server-side middleware in front of ``server`` (identity when security is off)."""
-        return HardenedToolServer(server, self) if self.enabled else server
+    def wrap(self, server: ToolServer, resolvers: Resolvers | None = None) -> ToolServer:
+        """Put the server-side middleware in front of ``server`` (identity when security is off).
+
+        ``resolvers`` are the lookups (name -> function) a user mandate's rules may call; the tool
+        server owns them, so the hardening layer holds no domain rules of its own.
+        """
+        return HardenedToolServer(server, self, resolvers) if self.enabled else server
+
+    def sign_mandate(self, mandate: dict[str, Any] | None) -> dict[str, Any] | None:
+        """The user's side: sign ``mandate`` for the agent to carry (None when mandate binding is off)."""
+        if mandate is None or not self.config.mandate_binding.enabled:
+            return None
+        assert self.keyring is not None
+        return sign_mandate(self.keyring.mandate_key, self.keyring.kid, mandate, clock=self.clock)
 
 
 class HardenedToolServer:
     """Duck-typed MCP tool server wrapper: verify request → inner handler → sign response."""
 
-    def __init__(self, inner: ToolServer, runtime: HardeningRuntime) -> None:
+    def __init__(self, inner: ToolServer, runtime: HardeningRuntime, resolvers: Resolvers | None = None) -> None:
         self._inner = inner
         self._runtime = runtime
+        self._resolvers = dict(resolvers or {})
 
     @property
     def inner(self) -> ToolServer:
@@ -315,5 +363,8 @@ class HardenedToolServer:
 
     def tools_call(self, params: dict[str, Any]) -> dict[str, Any]:
         env = self._runtime.server.verify_request(params)
-        result = self._inner.tools_call(params)
+        checked = self._runtime.server.verify_mandate(params, self._resolvers)
+        result = self._inner.tools_call(params)  # a failed tool raises, so it never counts as a use
+        if checked:
+            self._runtime.server.record_mandate_use(params)
         return self._runtime.server.sign_response(str(params.get("name", "")), env, result)

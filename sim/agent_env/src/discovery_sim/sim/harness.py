@@ -3,7 +3,7 @@ from __future__ import annotations
 import random
 from typing import Any
 
-from mcp_hardening import ENVELOPE_KEY, HardeningError, HardeningRuntime
+from mcp_hardening import ENVELOPE_KEY, MANDATE_KEY, HardeningError, HardeningRuntime
 
 from discovery_sim.a2a.types import Message, SendMessageRequest, data_part
 from discovery_sim.agents.bank import BankAgent
@@ -20,6 +20,7 @@ from discovery_sim.sim.operators import (
     mcp_mode_for_operator,
 )
 from discovery_sim.sim.context import AgentContext
+from discovery_sim.sim.intent import ledger_resolvers
 from discovery_sim.sim.labels import llm_call_matches_task
 from discovery_sim.sim.types import AttackSpec, BaseTask, CallRecord, OperatorId, ToolCall
 
@@ -33,14 +34,21 @@ class AgentPool:
         self.ledger = ledger or SyntheticLedger()
         # Shared MCP hardening middleware (None or all-off = no hardening).
         self.runtime = runtime
+        # The user's signed mandate for this episode (``authorize``); None when mandate binding is off.
+        self.mandate_token: dict[str, Any] | None = None
         self._bank: BankAgent | None = None
         self._payment: PaymentAgent | None = None
+
+    def authorize(self, intent: dict[str, Any] | None) -> None:
+        """The user's side signs what they asked for; the agent carries it on every call."""
+        self.mandate_token = self.runtime.sign_mandate(intent) if self.runtime is not None else None
 
     def _server(self, mcp: Any, mcp_mode: str | None) -> Any:
         # Hardening wraps the *real* server first; an attack wraps on top of that. The genuine server
         # signs its output, so anything the hacked layer changes breaks the response signature.
         if self.runtime is not None:
-            mcp = self.runtime.wrap(mcp)
+            # The bank side's lookups a user mandate's rules may call, read from the live ledger.
+            mcp = self.runtime.wrap(mcp, resolvers=ledger_resolvers(self.ledger))
         if mcp_mode:
             mcp = HackedMcpToolServer(mcp, mcp_mode, ledger_getter=lambda: self.ledger)
         return mcp
@@ -125,6 +133,8 @@ async def execute_tool_call(
     metadata: dict[str, Any] = {"skillId": a2a_tool}
     if envelope is not None:
         metadata[ENVELOPE_KEY] = envelope
+    if pool.mandate_token is not None:
+        metadata[MANDATE_KEY] = pool.mandate_token  # passed along unchanged; the agent can't re-sign it
     hardening = _hardening_record(runtime, envelope)
 
     request = SendMessageRequest(
@@ -165,6 +175,8 @@ async def execute_tool_call(
             error = _hardening_failed(hardening, exc, "response")
             output = {}
 
+    _record_mandate(runtime, llm_effective.tool_name, hardening)
+
     if (attack.hop == "mcp" and attack.operator == OperatorId.MCP_IO_MISMATCH
             and llm_effective.tool_name in IO_MISMATCH_TOOLS):
         hidden_adversary = True
@@ -191,6 +203,33 @@ def _hardening_failed(hardening: dict[str, Any], exc: HardeningError, stage: str
     return str(exc)
 
 
+# The rejections that come from the mandate check itself (not from the request signature before it).
+MANDATE_FAILURES = ("missing_mandate", "bad_mandate_sig", "mandate_expired", "mandate_violation")
+
+
+def _record_mandate(runtime: HardeningRuntime | None, tool: str, hardening: dict[str, Any]) -> None:
+    """``mandate_verified``: True if a protected call passed the user's mandate and ran, False if the
+    mandate refused it, None if no mandate check ran (off, an unprotected tool, or refused before it)."""
+    if runtime is None:
+        return
+    cfg = runtime.config.mandate_binding
+    verified = None
+    if cfg.enabled and tool in cfg.protected_tools:
+        reason, stage = hardening.get("failure_reason"), hardening.get("failure_stage")
+        if reason in MANDATE_FAILURES:
+            verified = False
+        elif stage != "request":  # it got past every request check, including the mandate
+            verified = True
+    hardening["mandate_verified"] = verified
+    # Whether that mandate is single-use, i.e. the call can't be repeated under it (recovery reads this).
+    hardening["mandate_single_use"] = cfg.single_use if verified is not None else None
+    # The mandate refused the call exactly as the agent signed it: the request signature was checked
+    # (and passed, since the mandate is checked after it), so nothing changed it on the way. That makes
+    # it the agent's own mistake, not tampering. Without request_auth there's no way to tell, so no.
+    hardening["own_call_refused"] = (hardening.get("failure_reason") == "mandate_violation"
+                                     and runtime.config.request_auth.enabled) if verified is not None else None
+
+
 def _hardening_record(runtime: HardeningRuntime | None, envelope: dict[str, Any] | None) -> dict[str, Any]:
     """Per-call hardening outcome. ``*_verified`` is None when that check is off (or never ran)."""
     if runtime is None:
@@ -198,6 +237,8 @@ def _hardening_record(runtime: HardeningRuntime | None, envelope: dict[str, Any]
     cfg = runtime.config
     request_checks = cfg.request_auth.enabled or cfg.freshness_check.enabled or cfg.replay_protection.enabled
     return {
+        # Whether the user's mandate was carried (it's checked only for protected tools).
+        "mandate_attached": True if cfg.mandate_binding.enabled else None,
         "kid": envelope.get("kid") if envelope else None,
         "request_signed": bool(envelope and "sig" in envelope),
         # Optimistic: flipped to False if the server rejects the call.

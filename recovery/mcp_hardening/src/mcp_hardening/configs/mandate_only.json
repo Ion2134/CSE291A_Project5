@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "request_auth": {
+    "enabled": false
+  },
+  "response_auth": {
+    "enabled": false
+  },
+  "replay_protection": {
+    "enabled": false,
+    "nonce_ttl_s": 300.0,
+    "max_nonces": 100000
+  },
+  "freshness_check": {
+    "enabled": false,
+    "window_s": 120.0
+  },
+  "mandate_binding": {
+    "enabled": true,
+    "protected_tools": [
+      "initiate_transfer"
+    ],
+    "max_age_s": 3600.0,
+    "single_use": true
+  },
+  "telemetry": {
+    "enabled": false,
+    "capture_content": true,
+    "flush_rows": 500,
+    "dir": "telemetry"
+  }
+}

@@ -103,9 +103,12 @@ class AgentOrchestrator:
         telemetry: GenAITelemetry | None = None,
         recovery: bool = False,
         max_recoveries: int = 2,
+        retry_refused: bool = False,
     ) -> None:
         if recovery and store is None:
             raise ValueError("recovery needs a state store (state_db) to roll back to")
+        if retry_refused and not recovery:
+            raise ValueError("retry_refused needs recovery (the retries share its max_recoveries cap)")
         self.chat = chat
         self.max_steps = max_steps
         self.store = store  # optional state_db.StateStore
@@ -113,6 +116,8 @@ class AgentOrchestrator:
         # Roll a call back (../../recovery) when hardening or the classifiers say so; needs ``store``.
         self.recovery = recovery
         self.max_recoveries = max_recoveries
+        # Let the agent try again when the user's mandate refused its own signed call (not tampering).
+        self.retry_refused = retry_refused
         self.tools = all_openai_tools()
         # Turn-level OTel GenAI spans; a disabled instance records nothing.
         self.telemetry = telemetry or GenAITelemetry(TelemetryConfig(enabled=False))
@@ -315,6 +320,19 @@ class AgentOrchestrator:
                     example.meta["recovery"]["to_seq"] = before_call
                     messages.append({"role": "tool", "tool_call_id": tc.id, "content": json.dumps(reply)})
                     continue  # the agent carries on from the restored state
+                if decision is not None and decision.reason == "retry_allowed":
+                    # Nothing ran, so nothing to undo: tell the agent why and let it correct the call.
+                    from recovery import RETRY_NOTE
+                    example.meta["recovery"]["retried"] = True
+                    messages.append({"role": "tool", "tool_call_id": tc.id,
+                                     "content": json.dumps({"error": record.error, "note": RETRY_NOTE})})
+                    continue
+                if decision is not None and decision.reason == "verified_reply_withheld":
+                    # Kept: the call is what the user signed for. The untrusted output never reaches the agent.
+                    from recovery import VERIFIED_REPLY
+                    example.meta["recovery"]["reply_withheld"] = True
+                    messages.append({"role": "tool", "tool_call_id": tc.id, "content": json.dumps(VERIFIED_REPLY)})
+                    continue
                 messages.append(
                     {
                         "role": "tool",
@@ -335,8 +353,13 @@ class AgentOrchestrator:
         if not result.task_completed and result.failure_call_index is None and result.records:
             result.task_completed = bool(result.records[-1].output)
 
-        # Rolled-back calls were undone, so the episode is judged on the calls that stand.
-        kept = [ex for ex in result.examples if not ex.meta.get("recovery", {}).get("rolled_back")]
+        # Rolled-back calls were undone, and a withheld reply never reached the agent (the call itself
+        # was verified against the user's mandate), so the episode is judged on the rest; the ledger
+        # check below still requires the right end state.
+        # A refused call that the agent then retried never ran, so it doesn't count either.
+        kept = [ex for ex in result.examples if not ex.meta.get("recovery", {}).get("rolled_back")
+                and not ex.meta.get("recovery", {}).get("reply_withheld")
+                and not ex.meta.get("recovery", {}).get("retried")]
         labels_ok = all(ex.labels.output_correct for ex in kept) if kept else False
         ledger_ok = mandate_satisfied(pool.ledger, task.mandate, task.template)
         result.task_correct = result.task_completed and labels_ok and ledger_ok
@@ -406,6 +429,10 @@ class AgentOrchestrator:
                 # Hardening already rejected it: an error + empty output the classifiers never trained on.
                 example.meta["classifier_outputs"] = None
                 example.meta["recovery"] = {"recover": False, "flagged_by": []}
+            elif record.hardening.get("mandate_verified"):
+                # The call passed the user's signed mandate: a hard rule, so the classifiers aren't asked.
+                example.meta["classifier_outputs"] = None
+                example.meta["recovery"] = {"recover": False, "flagged_by": [], "reason": "mandate_verified"}
             else:
                 self._classify(example)
         return record, example
@@ -416,7 +443,10 @@ class AgentOrchestrator:
             return None
         stage = record.hardening.get("failure_stage") if record.hardening.get("failure_reason") else None
         vote = example.meta.get("recovery") if example.meta.get("classifier_outputs") is not None else None
-        decision = policy.decide(stage, vote)
+        decision = policy.decide(stage, vote, mandate_verified=bool(record.hardening.get("mandate_verified")),
+                                 single_use=bool(record.hardening.get("mandate_single_use")),
+                                 own_call_refused=bool(record.hardening.get("own_call_refused")),
+                                 retry_refused=self.retry_refused)
         example.meta["recovery"] = {**decision.to_dict(), "rolled_back": decision.recover, "to_seq": None}
         return decision
 

@@ -15,6 +15,7 @@ from discovery_sim.ledger.store import SyntheticLedger
 from discovery_sim.llm.chat import CHAT_BACKENDS, DEFAULT_TEMPERATURE, load_dotenv
 from discovery_sim.mcp.server import bank_mcp_server, payment_mcp_server
 from discovery_sim.sim.episode import run_episodes
+from discovery_sim.sim.intent import ledger_resolvers
 from discovery_sim.sim.operators import parse_operator_ids, parse_operator_weights
 from discovery_sim.sim.prompt_data import PromptGenConfig, generate_prompt_data
 from discovery_sim.sim.run_config import RunConfig
@@ -34,12 +35,12 @@ def _agents_runtime(config_path: str | None) -> HardeningRuntime | None:
 
 def _bank_agent(url: str, ledger: SyntheticLedger, runtime: HardeningRuntime | None) -> BankAgent:
     mcp = bank_mcp_server(ledger)
-    return BankAgent(url, ledger=ledger, mcp=runtime.wrap(mcp) if runtime else mcp)
+    return BankAgent(url, ledger=ledger, mcp=runtime.wrap(mcp, ledger_resolvers(ledger)) if runtime else mcp)
 
 
 def _payment_agent(url: str, ledger: SyntheticLedger, runtime: HardeningRuntime | None) -> PaymentAgent:
     mcp = payment_mcp_server(ledger)
-    return PaymentAgent(url, ledger=ledger, mcp=runtime.wrap(mcp) if runtime else mcp)
+    return PaymentAgent(url, ledger=ledger, mcp=runtime.wrap(mcp, ledger_resolvers(ledger)) if runtime else mcp)
 
 
 async def _serve_all(
@@ -136,6 +137,7 @@ def _cmd_run(args: argparse.Namespace) -> None:
         recovery_classifiers=_classifier_specs(args.recovery_classifiers),
         recovery=args.recovery,
         max_recoveries=args.max_recoveries,
+        retry_refused=args.retry_refused,
         hardening=load_config(args.hardening_config),
     )
     summary = asyncio.run(run_episodes(config, Path(args.out)))
@@ -246,6 +248,13 @@ def main() -> None:
         default=2,
         metavar="N",
         help="With --recovery: at most N rollbacks per episode (default 2)",
+    )
+    run.add_argument(
+        "--retry-refused",
+        action="store_true",
+        help="With --recovery: when the user's signed mandate (hardening mandate_binding) refuses the agent's "
+             "own call (its request signature was valid, so it wasn't tampered with), tell the agent why and let "
+             "it try again. Tampered or replayed calls are never retried. Retries count toward --max-recoveries",
     )
     run.add_argument(
         "--concurrency",

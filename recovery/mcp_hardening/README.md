@@ -1,9 +1,10 @@
 # mcp-hardening
 
-Middleware for MCP-shaped tool calls with two parts:
+Middleware for MCP-shaped tool calls with three parts:
 
 1. **Two-way per-call signing.** It uses an API key stored encrypted. Each call costs two HMAC-SHA256 checks, with no I/O and no asymmetric crypto.
-2. **Turn-level telemetry.** It follows the OpenTelemetry GenAI semantic conventions and writes **append-only Parquet**.
+2. **Signed user mandates** (optional). The user's side signs rules for what a protected tool call may do; the tool server checks each call against them before it runs. See [Signed user mandates](#signed-user-mandates).
+3. **Turn-level telemetry.** It follows the OpenTelemetry GenAI semantic conventions and writes **append-only Parquet**.
 
 The package doesn't depend on the simulator; `sim/agent_env` imports it.
 
@@ -24,6 +25,7 @@ Each mechanism is its own block, and **any combination is valid**:
   "response_auth":     {"enabled": true},
   "replay_protection": {"enabled": true, "nonce_ttl_s": 300, "max_nonces": 100000},
   "freshness_check":   {"enabled": true, "window_s": 120},
+  "mandate_binding":   {"enabled": true, "protected_tools": ["initiate_transfer"], "max_age_s": 3600, "single_use": true},
   "telemetry":         {"enabled": true, "capture_content": true, "flush_rows": 500, "dir": "telemetry"}
 }
 ```
@@ -34,6 +36,7 @@ Each mechanism is its own block, and **any combination is valid**:
 | `response_auth` | The real server signs `structuredContent` bound to the request nonce. The client rejects tampered, injected or stripped output. | `missing_response_sig`, `bad_response_sig` |
 | `replay_protection` | The server rejects a nonce it has already accepted. Checked last, so forged calls can't burn a valid nonce. | `replayed_nonce` |
 | `freshness_check` | The server rejects requests whose timestamp is outside `window_s`. | `stale_timestamp` |
+| `mandate_binding` | A call to a tool in `protected_tools` runs only if it carries the user's signed mandate and satisfies its rules. Other tools are untouched. With `single_use`, each mandate allows a protected tool only `max_uses` times (default 1). | `missing_mandate`, `bad_mandate_sig`, `mandate_expired`, `mandate_violation`, `mandate_used` |
 | `telemetry` | Writes OTel GenAI spans to `<run>/<dir>/part-*.parquet`. `capture_content` controls whether messages and tool arguments/results are recorded. | n/a |
 
 **Rules for blocks and validation:**
@@ -45,7 +48,9 @@ Each mechanism is its own block, and **any combination is valid**:
 2. `$MCP_HARDENING_CONFIG`.
 3. Built-in defaults.
 
-A path can also name a packaged preset: `default`, `all_on`, `all_off`, `request_only` or `response_only` (see `src/mcp_hardening/configs/`).
+A path can also name a packaged preset: `default`, `all_on`, `all_off`, `request_only`, `response_only`,
+`all_on_mandate` (everything, including mandates) or `mandate_only` (see `src/mcp_hardening/configs/`).
+The older presets don't list `mandate_binding`, so it stays off in them and runs made with them are unchanged.
 
 ```bash
 mcp-hardening show-config all_on        # validate + print a config
@@ -65,7 +70,7 @@ mcp-hardening keygen     # prints two lines; put them in sim/agent_env/.env (git
 
 **How the key is used:**
 - The key is decrypted once when the runtime is built.
-- HKDF-SHA256 derives separate request and response HMAC subkeys from it.
+- HKDF-SHA256 derives separate request, response and mandate HMAC subkeys from it.
 - The `kid` (first 8 hex characters of the key's sha256) identifies the key in every envelope.
 - If hardening is on and no key is configured:
   - In-process simulation falls back to an **ephemeral** in-memory key and logs a warning.
@@ -82,7 +87,65 @@ response result._meta.mcp_hardening = {v, kid, nonce, sig}
          sig = HMAC(k_resp, "v1|resp|kid|tool|nonce|canonical(structuredContent)|isError")
 ```
 
+A signed user mandate travels next to it, unchanged from the user's side to the tool server:
+
+```
+mandate  params._meta.mcp_hardening_mandate = {v, kid, id, iat, mandate, sig}
+         sig = HMAC(k_mandate, "v1|mandate|kid|id|iat|canonical(mandate)")
+```
+
 `canonical()` means JSON with sorted keys and no whitespace.
+
+## Signed user mandates
+
+Request and response signing prove that a call came from the agent and wasn't changed on the way. They
+can't tell whether the call is what the **user** asked for: an agent that gets the amount wrong signs the
+wrong amount honestly. With `mandate_binding` on:
+
+1. The user's side (the app taking the request) signs a **mandate**: rules a protected call must satisfy.
+2. The agent carries the token on its calls. It can't change the rules without breaking the signature.
+3. Right before a protected tool runs, the server evaluates the rules against the call's arguments. If
+   any rule is false, the call is refused and nothing happens; the error names the rule and the values
+   it compared, so the agent can correct the call.
+
+**The package holds no domain rules.** The rules are data inside the mandate, written in a small JSON
+expression language (never `eval`). The only facts they can use are lookup functions the tool server
+registers when it is wrapped (`rt.wrap(server, resolvers={...})`), evaluated at execution time:
+
+```json
+{"tools": {"initiate_transfer": {"require": [
+  {"op": "eq", "args": [{"arg": "payee_id"}, "payee_7"]},
+  {"op": "eq", "args": [{"arg": "amount_cents"},
+                        {"op": "//", "args": [{"fn": "balance", "args": ["acct_42"]}, 2]}]},
+  {"op": "le", "args": [{"arg": "amount_cents"}, 100000]}]}}}
+```
+
+| Expression | Meaning |
+|---|---|
+| a number, string, bool, null or list | a literal |
+| `{"arg": name}` | the call's argument `name` |
+| `{"fn": name, "args": [...]}` | a lookup the tool server registered (`resolvers`) |
+| `{"op": name, "args": [...]}` | `eq ne lt le gt ge in`, `and or not`, `+ - * //`, `min max` |
+| `{"op": "argmax" \| "argmin", "args": [list], "key": name}` | the item with the largest/smallest value of lookup `name` |
+
+A protected tool that the mandate doesn't list is refused. An unknown lookup or op, or a lookup that
+raises, fails closed. Tokens older than `max_age_s` are refused.
+
+**Single use (`single_use`).** Replay protection stops the same *message* being resent, but an agent
+retrying a payment sends a new message with a new nonce. With `single_use` on, the server also counts
+how many times each mandate has been used for each protected tool and refuses calls past that rule's
+`max_uses` (`mandate_used`). Only calls that actually ran count: a call refused by the rules, or one the
+tool itself failed, doesn't use up the mandate. Each user request gets a new mandate (a new `id`), so
+later requests, even identical ones, are unaffected. A request that needs several calls says so:
+
+```json
+{"tools": {"initiate_transfer": {"require": [...], "max_uses": 2}}}
+```
+
+**Limits.** It checks calls, not the absence of one: if the agent wrongly decides not to pay, there is
+nothing to refuse. It also doesn't replace response signing: a correct transfer whose *reply* is tampered
+with still needs `response_auth`. In this repo both sides share one key; in a real deployment the user's
+side would hold its own (ideally asymmetric) key that the agent never sees.
 
 ## API
 
@@ -96,7 +159,15 @@ result = server.tools_call(params)
 rt.client.verify_response("get_balance", env, result)
 ```
 
-`rt.wrap()` returns the server unchanged when all four security toggles are off. Wrap the **real** server first, and put any proxy or attack layer outside it. That way anything changed after signing fails `bad_response_sig`.
+With mandates on, the server side also takes its lookups, and the user's side signs the mandate:
+
+```python
+server = rt.wrap(real_tool_server, resolvers={"balance": lambda account: ledger[account]})
+token = rt.sign_mandate({"tools": {"initiate_transfer": {"require": [...]}}})
+params["_meta"]["mcp_hardening_mandate"] = token          # MANDATE_KEY
+```
+
+`rt.wrap()` returns the server unchanged when every security toggle is off. Wrap the **real** server first, and put any proxy or attack layer outside it. That way anything changed after signing fails `bad_response_sig`.
 
 ## Telemetry
 

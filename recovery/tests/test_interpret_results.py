@@ -52,7 +52,7 @@ def test_each_call_lands_in_the_right_cell(run):
 
 def test_report_explains_why(run):
     text = report(run, "all")
-    assert "errors stopped (rolled back or blocked): 1/2 (50%)" in text
+    assert "errors stopped (rolled back, blocked or withheld): 1/2 (50%)" in text
     assert "correct calls wrongly flagged: 1/2 (50%)" in text
     assert "derived_transfer / initiate_transfer: 1" in text
     assert "adversary: mcp_output_injection at the mcp hop" in text

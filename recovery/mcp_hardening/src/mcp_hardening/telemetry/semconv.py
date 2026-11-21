@@ -36,6 +36,7 @@ HARDENING_REQUEST_VERIFIED = "mcp_hardening.request.verified"
 HARDENING_RESPONSE_VERIFIED = "mcp_hardening.response.verified"
 HARDENING_FAILURE_REASON = "mcp_hardening.failure_reason"
 HARDENING_FAILURE_STAGE = "mcp_hardening.failure_stage"
+HARDENING_MANDATE_VERIFIED = "mcp_hardening.mandate.verified"
 
 # --- discovery_sim extensions (set by the simulator) ---
 SIM_EPISODE_INDEX = "discovery_sim.episode.index"

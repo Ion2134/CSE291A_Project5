@@ -38,5 +38,8 @@ class RunConfig:
     # majority flags it. Needs state_db. At most max_recoveries rollbacks per episode.
     recovery: bool = False
     max_recoveries: int = 2
+    # With recovery: when the user's signed mandate refuses the agent's own call (its request signature
+    # was valid, so it wasn't tampered with), tell the agent why and let it try again (shares the cap).
+    retry_refused: bool = False
     # MCP hardening + telemetry toggles (JSON config; default: security off, telemetry on).
     hardening: HardeningConfig = field(default_factory=HardeningConfig)

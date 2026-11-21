@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any
 
-from mcp_hardening import ENVELOPE_KEY
+from mcp_hardening import ENVELOPE_KEY, MANDATE_KEY
 from starlette.applications import Starlette
 
 from discovery_sim.a2a.server import create_a2a_app
@@ -108,8 +108,10 @@ class McpBackedAgent(A2AAgent):
         arguments = extract_json_from_message(request.message) or {}
         params: dict[str, Any] = {"name": skill_id, "arguments": arguments}
         envelope = request.message.metadata.get(ENVELOPE_KEY)
-        if envelope is not None:
-            params["_meta"] = {ENVELOPE_KEY: envelope}
+        mandate = request.message.metadata.get(MANDATE_KEY)
+        meta = {key: value for key, value in ((ENVELOPE_KEY, envelope), (MANDATE_KEY, mandate)) if value is not None}
+        if meta:
+            params["_meta"] = meta
         result = self._mcp.tools_call(params)
         payload = result.get("structuredContent") or {}
         task_id = str(uuid.uuid4())

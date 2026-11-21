@@ -19,6 +19,39 @@ def test_decision_rules(stage, classifiers, recover, reason):
     assert (decision.recover, decision.reason) == (recover, reason)
 
 
+def test_a_verified_mandate_outranks_the_classifiers():
+    # Even a unanimous classifier vote can't undo a call the user's signed mandate allowed.
+    decision = RecoveryPolicy().decide(None, FLAGGED, mandate_verified=True)
+    assert (decision.recover, decision.reason) == (False, "mandate_verified")
+    # The other rules are unchanged: a refused call has nothing to undo, a tampered response is rolled back.
+    assert RecoveryPolicy().decide("request", None, mandate_verified=False).reason == "blocked_before_tool"
+    assert RecoveryPolicy().decide("response", None, mandate_verified=True).reason == "response_sig_failed"
+    policy = RecoveryPolicy(max_recoveries=1)
+    policy.decide(None, FLAGGED, mandate_verified=True)
+    assert policy.recoveries == 0  # a skipped vote doesn't use up the cap
+
+
+def test_single_use_mandate_keeps_a_verified_call_whose_reply_failed():
+    # The call is what the user signed for and can't be repeated under that mandate: keep it.
+    kept = RecoveryPolicy().decide("response", None, mandate_verified=True, single_use=True)
+    assert (kept.recover, kept.reason) == (False, "verified_reply_withheld")
+    # Without single use a retry could pay twice, so the call is rolled back as before.
+    assert RecoveryPolicy().decide("response", None, mandate_verified=True).reason == "response_sig_failed"
+    assert RecoveryPolicy().decide("response", None, single_use=True).reason == "response_sig_failed"
+
+
+def test_the_agents_own_refused_call_may_be_retried_only_when_allowed():
+    retry = RecoveryPolicy().decide("request", None, own_call_refused=True, retry_refused=True)
+    assert (retry.recover, retry.reason) == (False, "retry_allowed")
+    # Retries off, or a refusal that isn't the agent's own signed call (tampering, replay): no retry.
+    assert RecoveryPolicy().decide("request", None, own_call_refused=True).reason == "blocked_before_tool"
+    assert RecoveryPolicy().decide("request", None, retry_refused=True).reason == "blocked_before_tool"
+    # Retries share the cap, so an agent that keeps getting it wrong stops.
+    policy = RecoveryPolicy(max_recoveries=2)
+    reasons = [policy.decide("request", None, own_call_refused=True, retry_refused=True).reason for _ in range(3)]
+    assert reasons == ["retry_allowed", "retry_allowed", "cap_reached"]
+
+
 def test_cap_stops_rollbacks_but_still_reports_why():
     policy = RecoveryPolicy(max_recoveries=1)
     assert policy.decide(None, FLAGGED).recover

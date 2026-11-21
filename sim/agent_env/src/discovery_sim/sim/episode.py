@@ -21,6 +21,7 @@ from discovery_sim.ledger.store import SyntheticLedger
 from discovery_sim.sim.agent_tasks import agent_tasks
 from discovery_sim.sim.context import AgentContext
 from discovery_sim.sim.harness import AgentPool, execute_tool_call
+from discovery_sim.sim.intent import literal_intent
 from discovery_sim.sim.labels import example_input_state, label_call
 from discovery_sim.sim.operators import operator_catalog, pick_operator
 from discovery_sim.sim.fault_schedule import pick_agent_fault_call_index
@@ -215,6 +216,7 @@ class EpisodeRunner:
             )
 
         pool = AgentPool(SyntheticLedger(), runtime=self.runtime)
+        pool.authorize(task.user_intent)
         orchestrator = AgentOrchestrator(
             self._chat_for_episode(),
             max_steps=self.config.max_agent_steps,
@@ -223,6 +225,7 @@ class EpisodeRunner:
             telemetry=self.telemetry,
             recovery=self.config.recovery,
             max_recoveries=self.config.max_recoveries,
+            retry_refused=self.config.retry_refused,
         )
         try:
             run = await orchestrator.run_episode(
@@ -272,6 +275,7 @@ class EpisodeRunner:
         fault_call_index = rng.randrange(len(scenario.steps)) if attack.operator != OperatorId.BENIGN else 0
 
         pool = AgentPool(SyntheticLedger(), runtime=self.runtime)
+        pool.authorize(literal_intent(scenario.mandate))
         context = scenario.context or AgentContext.from_mandate(scenario.user_message, scenario.mandate)
         planner = self._planner_for_episode(episode_index)
         use_live_llm = episode_index < self.config.llm_samples
@@ -645,6 +649,7 @@ def _run_manifest(
         **({"state_db": "state.db"} if config.state_db else {}),
         **({"recovery_classifiers": list(config.recovery_classifiers)} if config.recovery_classifiers else {}),
         **({"recovery": True, "max_recoveries": config.max_recoveries} if config.recovery else {}),
+        **({"retry_refused": True} if config.retry_refused else {}),
     }
 
 
