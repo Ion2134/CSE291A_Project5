@@ -1,0 +1,92 @@
+{
+  "name": "agent-v9-current",
+  "runs_dir": "sim/agent_env/data/runs",
+  "runs": [
+    "agent-qwen36a3b",
+    "agent42",
+    "agent42-v2",
+    "triton42",
+    "triton42-v2",
+    "triton44",
+    "triton45",
+    "triton46",
+    "triton47",
+    "triton48",
+    "oracle49-agentheavy",
+    "triton49-agentheavy",
+    "hard2-api-deepseek-4.1-flash-t0.2-hard",
+    "hard2-api-deepseek-4.1-flash-t0.7-hard",
+    "hard2-api-glm-5.3-flash-t0.7-hard",
+    "hard2-api-glm-5.3-flash-t1-hard",
+    "hard2-api-muse-glimmer-30b-t0.2-hard",
+    "hard2-api-muse-glimmer-30b-t1-hard",
+    "hard3-api-deepseek-4.1-flash-t0.2-hard",
+    "hard3-api-deepseek-4.1-flash-t0.7-hard",
+    "hard3-api-deepseek-4.1-flash-t1-hard",
+    "hard3-api-glm-5.3-flash-t0.2-hard",
+    "hard3-api-glm-5.3-flash-t0.7-hard",
+    "hard3-api-glm-5.3-flash-t1-hard",
+    "hard3-api-muse-glimmer-30b-t0.2-hard",
+    "hard3-api-muse-glimmer-30b-t0.7-hard",
+    "hard3-api-muse-glimmer-30b-t1-hard",
+    "hard6-api-deepseek-4.1-flash-t0.2-hard",
+    "hard6-api-muse-glimmer-30b-t1-hard",
+    "hard6-api-glm-5.3-flash-t0.7-hard",
+    "hard6-api-muse-glimmer-30b-t0.2-hard",
+    "core7-api-deepseek-4.1-flash-t0.2-core",
+    "core7-api-muse-glimmer-30b-t1-core",
+    "core7-api-glm-5.3-flash-t0.7-core",
+    "core7-api-muse-glimmer-30b-t0.2-core"
+  ],
+  "test_runs": [
+    "hard6-api-deepseek-4.1-flash-t0.2-hard",
+    "hard6-api-muse-glimmer-30b-t1-hard",
+    "hard6-api-glm-5.3-flash-t0.7-hard",
+    "hard6-api-muse-glimmer-30b-t0.2-hard",
+    "core7-api-deepseek-4.1-flash-t0.2-core",
+    "core7-api-muse-glimmer-30b-t1-core",
+    "core7-api-glm-5.3-flash-t0.7-core",
+    "core7-api-muse-glimmer-30b-t0.2-core"
+  ],
+  "test_exclude_tools": [
+    "initiate_transfer"
+  ],
+  "train_on_test_runs": false,
+  "split": {
+    "seeds": [
+      42,
+      43
+    ],
+    "k": 2,
+    "max_test_fraction": 1.0,
+    "laya_val_fraction": 0.2
+  },
+  "training_seeds": [
+    42
+  ],
+  "models": {
+    "rules": {
+      "args": [
+        "--view",
+        "middleware"
+      ]
+    },
+    "logreg_checks": {
+      "args": [
+        "--view",
+        "middleware"
+      ]
+    },
+    "gbm_checks": {
+      "args": [
+        "--view",
+        "middleware"
+      ]
+    }
+  },
+  "exclude_hardening_blocked": true,
+  "test_required_causes": [
+    "none",
+    "agent"
+  ]
+}

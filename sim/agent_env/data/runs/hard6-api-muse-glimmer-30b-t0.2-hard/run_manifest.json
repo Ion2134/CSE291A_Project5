@@ -1,0 +1,72 @@
+{
+  "seed": 603,
+  "episodes": 50,
+  "mode": "agent",
+  "model": "api-muse-glimmer-30b",
+  "models": [
+    "api-muse-glimmer-30b"
+  ],
+  "max_agent_steps": 8,
+  "multi_step": true,
+  "llm_samples": 0,
+  "concurrency": 1,
+  "temperature": 0.2,
+  "task_set": "hard",
+  "task_sample": "parameterized",
+  "task_count": null,
+  "operators": null,
+  "operator_weights": null,
+  "hardening": {
+    "version": 1,
+    "request_auth": {
+      "enabled": true
+    },
+    "response_auth": {
+      "enabled": true
+    },
+    "replay_protection": {
+      "enabled": true,
+      "nonce_ttl_s": 300.0,
+      "max_nonces": 100000
+    },
+    "freshness_check": {
+      "enabled": true,
+      "window_s": 120.0
+    },
+    "mandate_binding": {
+      "enabled": true,
+      "protected_tools": [
+        "initiate_transfer"
+      ],
+      "max_age_s": 3600.0,
+      "single_use": true
+    },
+    "telemetry": {
+      "enabled": true,
+      "capture_content": true,
+      "flush_rows": 500,
+      "dir": "telemetry"
+    }
+  },
+  "hardening_key": {
+    "kid": "bc8d61ea",
+    "ephemeral": true
+  },
+  "telemetry_dir": "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/sim/agent_env/data/runs/hard6-api-muse-glimmer-30b-t0.2-hard/telemetry",
+  "out_dir": "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/sim/agent_env/data/runs/hard6-api-muse-glimmer-30b-t0.2-hard",
+  "state_db": "state.db",
+  "recovery_classifiers": [
+    "rules",
+    {
+      "name": "logreg_checks",
+      "train": "sim/testing/results/agent-v8-logreg/data/p42/f0/train.jsonl"
+    },
+    {
+      "name": "logreg_memory",
+      "train": "sim/testing/results/agent-v8-logreg/data/p42/f0/train.jsonl"
+    }
+  ],
+  "recovery": true,
+  "max_recoveries": 2,
+  "retry_refused": true
+}

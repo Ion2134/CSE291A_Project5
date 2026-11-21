@@ -1,0 +1,77 @@
+{
+  "name": "core7",
+  "runs": [
+    "core7-api-deepseek-4.1-flash-t0.2-core",
+    "core7-api-muse-glimmer-30b-t1-core",
+    "core7-api-glm-5.3-flash-t0.7-core",
+    "core7-api-muse-glimmer-30b-t0.2-core"
+  ],
+  "cells": [
+    {
+      "run": "core7-api-deepseek-4.1-flash-t0.2-core",
+      "model": "api-deepseek-4.1-flash",
+      "temperature": 0.2,
+      "task_set": "core",
+      "seed": 706
+    },
+    {
+      "run": "core7-api-muse-glimmer-30b-t1-core",
+      "model": "api-muse-glimmer-30b",
+      "temperature": 1.0,
+      "task_set": "core",
+      "seed": 705
+    },
+    {
+      "run": "core7-api-glm-5.3-flash-t0.7-core",
+      "model": "api-glm-5.3-flash",
+      "temperature": 0.7,
+      "task_set": "core",
+      "seed": 701
+    },
+    {
+      "run": "core7-api-muse-glimmer-30b-t0.2-core",
+      "model": "api-muse-glimmer-30b",
+      "temperature": 0.2,
+      "task_set": "core",
+      "seed": 703
+    }
+  ],
+  "episodes_per_run": 50,
+  "task_sample": "parameterized",
+  "max_episodes": 200,
+  "sample_seed": 0,
+  "grid_size": 9,
+  "hardening": "all_on_mandate",
+  "hardening_config": {
+    "version": 1,
+    "request_auth": {
+      "enabled": true
+    },
+    "response_auth": {
+      "enabled": true
+    },
+    "replay_protection": {
+      "enabled": true,
+      "nonce_ttl_s": 300.0,
+      "max_nonces": 100000
+    },
+    "freshness_check": {
+      "enabled": true,
+      "window_s": 120.0
+    },
+    "mandate_binding": {
+      "enabled": true,
+      "protected_tools": [
+        "initiate_transfer"
+      ],
+      "max_age_s": 3600.0,
+      "single_use": true
+    },
+    "telemetry": {
+      "enabled": true,
+      "capture_content": true,
+      "flush_rows": 500,
+      "dir": "telemetry"
+    }
+  }
+}

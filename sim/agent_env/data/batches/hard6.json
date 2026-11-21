@@ -1,0 +1,109 @@
+{
+  "name": "hard6",
+  "runs": [
+    "hard6-api-deepseek-4.1-flash-t0.2-hard",
+    "hard6-api-muse-glimmer-30b-t1-hard",
+    "hard6-api-glm-5.3-flash-t0.7-hard",
+    "hard6-api-muse-glimmer-30b-t0.2-hard",
+    "hard6-api-deepseek-4.1-flash-t0.7-hard",
+    "hard6-api-glm-5.3-flash-t1-hard",
+    "hard6-api-muse-glimmer-30b-t0.7-hard",
+    "hard6-api-deepseek-4.1-flash-t1-hard"
+  ],
+  "cells": [
+    {
+      "run": "hard6-api-deepseek-4.1-flash-t0.2-hard",
+      "model": "api-deepseek-4.1-flash",
+      "temperature": 0.2,
+      "task_set": "hard",
+      "seed": 606
+    },
+    {
+      "run": "hard6-api-muse-glimmer-30b-t1-hard",
+      "model": "api-muse-glimmer-30b",
+      "temperature": 1.0,
+      "task_set": "hard",
+      "seed": 605
+    },
+    {
+      "run": "hard6-api-glm-5.3-flash-t0.7-hard",
+      "model": "api-glm-5.3-flash",
+      "temperature": 0.7,
+      "task_set": "hard",
+      "seed": 601
+    },
+    {
+      "run": "hard6-api-muse-glimmer-30b-t0.2-hard",
+      "model": "api-muse-glimmer-30b",
+      "temperature": 0.2,
+      "task_set": "hard",
+      "seed": 603
+    },
+    {
+      "run": "hard6-api-deepseek-4.1-flash-t0.7-hard",
+      "model": "api-deepseek-4.1-flash",
+      "temperature": 0.7,
+      "task_set": "hard",
+      "seed": 607
+    },
+    {
+      "run": "hard6-api-glm-5.3-flash-t1-hard",
+      "model": "api-glm-5.3-flash",
+      "temperature": 1.0,
+      "task_set": "hard",
+      "seed": 602
+    },
+    {
+      "run": "hard6-api-muse-glimmer-30b-t0.7-hard",
+      "model": "api-muse-glimmer-30b",
+      "temperature": 0.7,
+      "task_set": "hard",
+      "seed": 604
+    },
+    {
+      "run": "hard6-api-deepseek-4.1-flash-t1-hard",
+      "model": "api-deepseek-4.1-flash",
+      "temperature": 1.0,
+      "task_set": "hard",
+      "seed": 608
+    }
+  ],
+  "episodes_per_run": 50,
+  "task_sample": "parameterized",
+  "max_episodes": 400,
+  "sample_seed": 0,
+  "grid_size": 9,
+  "hardening": "all_on_mandate",
+  "hardening_config": {
+    "version": 1,
+    "request_auth": {
+      "enabled": true
+    },
+    "response_auth": {
+      "enabled": true
+    },
+    "replay_protection": {
+      "enabled": true,
+      "nonce_ttl_s": 300.0,
+      "max_nonces": 100000
+    },
+    "freshness_check": {
+      "enabled": true,
+      "window_s": 120.0
+    },
+    "mandate_binding": {
+      "enabled": true,
+      "protected_tools": [
+        "initiate_transfer"
+      ],
+      "max_age_s": 3600.0,
+      "single_use": true
+    },
+    "telemetry": {
+      "enabled": true,
+      "capture_content": true,
+      "flush_rows": 500,
+      "dir": "telemetry"
+    }
+  }
+}

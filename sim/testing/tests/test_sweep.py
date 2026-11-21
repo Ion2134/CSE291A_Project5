@@ -129,3 +129,91 @@ def test_build_command_uses_each_folders_own_entry_point(sweep, tmp_path):
     laya = build_command(sweep, Unit("laya", 1, 0, 7), native)
     assert laya[1:4] == ["classifiers/laya_finetuning/train_laya.py", "--task", "banking"]
     assert "--validation" in laya and "--output" in laya
+
+
+def _tool_rows(groups, tool, source):
+    return [{"state": f"user_message: Handle the {group} request.\ntool: {tool}\nmodel_call: {source}\n"
+                      f"output: {cause} case\n",
+             "questions": QUESTIONS, "expected": {"output_correct": cause == "none", "cause": cause}}
+            for group in groups for cause in ("none", "agent", "adversary")]
+
+
+def _heldout_sweep(tmp_path, **extra):
+    """Old runs cover every group; the new run covers half of them, with its own states."""
+    _write_run(tmp_path / "runs", "old", _tool_rows(GROUPS, "get_balance", "old")
+               + _tool_rows(GROUPS, "initiate_transfer", "old"))
+    _write_run(tmp_path / "runs", "new", _tool_rows(GROUPS[:6], "get_balance", "new"))
+    config = {"name": "heldout", "runs_dir": "runs", "runs": ["old", "new"],
+              "split": {"seeds": [1, 2], "k": 2, "max_test_fraction": 1.0, "laya_val_fraction": 0.2},
+              "training_seeds": [7], "models": {"mlp": {"python": sys.executable}}, **extra}
+    return Sweep(config, repo=tmp_path)
+
+
+def _fold_rows(sweep, split, fold, part):
+    files = sweep.fold_files(split, fold)
+    return [json.loads(line) for line in getattr(files, part).read_text().splitlines()]
+
+
+def test_exclude_tools_drops_those_rows(tmp_path):
+    sweep = _heldout_sweep(tmp_path, exclude_tools=["initiate_transfer"])
+    manifest = make_splits(sweep)
+    assert manifest["pool"]["rows"] == 30 + 18  # the transfer rows are gone
+    for split in manifest["splits"]:
+        for fold in split["folds"]:
+            for part in ("train", "val", "test"):
+                assert not any("tool: initiate_transfer" in row["state"]
+                               for row in _fold_rows(sweep, split["split_seed"], fold["fold"], part))
+
+
+def test_test_runs_tests_only_those_runs_and_keeps_groups_apart(tmp_path):
+    sweep = _heldout_sweep(tmp_path, exclude_tools=["initiate_transfer"], test_runs=["new"])
+    manifest = make_splits(sweep)
+    tested = set()
+    for split in manifest["splits"]:
+        for fold in split["folds"]:
+            test = _fold_rows(sweep, split["split_seed"], fold["fold"], "test")
+            train = (_fold_rows(sweep, split["split_seed"], fold["fold"], "train")
+                     + _fold_rows(sweep, split["split_seed"], fold["fold"], "val"))
+            assert test and all(row["meta"]["source_runs"] == ["new"] for row in test)
+            test_groups = set(fold["test_groups"])
+            from mlp_baseline.common import request_group
+            assert not {request_group(row) for row in train} & test_groups  # no group on both sides
+            assert any(row["meta"]["source_runs"] == ["new"] for row in train) or len(manifest["splits"][0]["folds"]) == 1
+            tested |= {row["meta"]["input_id"] for row in test}
+    new_ids = {row["meta"]["input_id"] for row in _fold_rows(sweep, 1, 0, "test") + _fold_rows(sweep, 1, 1, "test")}
+    assert len(new_ids) == 18  # every new row is tested once per split seed
+    assert manifest["test_runs"] == ["new"] and manifest["exclude_tools"] == ["initiate_transfer"]
+
+
+def test_unknown_test_run_is_an_error(tmp_path):
+    with pytest.raises(ValueError, match="not in runs"):
+        make_splits(_heldout_sweep(tmp_path, test_runs=["missing"]))
+
+
+def test_test_exclude_tools_and_train_on_test_runs(tmp_path):
+    sweep = _heldout_sweep(tmp_path, test_runs=["new"], test_exclude_tools=["initiate_transfer"],
+                           train_on_test_runs=False)
+    manifest = make_splits(sweep)
+    for split in manifest["splits"]:
+        for fold in split["folds"]:
+            test = _fold_rows(sweep, split["split_seed"], fold["fold"], "test")
+            train = (_fold_rows(sweep, split["split_seed"], fold["fold"], "train")
+                     + _fold_rows(sweep, split["split_seed"], fold["fold"], "val"))
+            assert test and not any("tool: initiate_transfer" in row["state"] for row in test)
+            assert any("tool: initiate_transfer" in row["state"] for row in train)  # still trains on them
+            assert not any("new" in row["meta"]["source_runs"] for row in train)  # nothing from the test runs
+
+
+def test_exclude_hardening_blocked_drops_rejected_calls(tmp_path):
+    sweep = _heldout_sweep(tmp_path, test_runs=["new"], exclude_hardening_blocked=True)
+    examples_path = tmp_path / "runs" / "new" / "examples.jsonl"
+    examples = [json.loads(line) for line in examples_path.read_text().splitlines()]
+    examples[2]["meta"]["hardening"] = {"failure_reason": "bad_response_sig"}  # the first group's adversary row
+    examples_path.write_text("".join(json.dumps(example) + "\n" for example in examples))
+    blocked_state = examples[2]["input"]["state_text"]
+    manifest = make_splits(sweep)
+    assert manifest["pool"]["rows"] == 60 + 18 - 1
+    for split in manifest["splits"]:
+        for fold in split["folds"]:
+            for part in ("train", "val", "test"):
+                assert blocked_state not in {row["state"] for row in _fold_rows(sweep, split["split_seed"], fold["fold"], part)}

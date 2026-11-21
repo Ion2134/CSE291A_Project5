@@ -1,0 +1,23 @@
+{
+  "name": "hard6",
+  "models": ["api-glm-5.3-flash", "api-muse-glimmer-30b", "api-deepseek-4.1-flash"],
+  "temperatures": [0.2, 0.7, 1.0],
+  "task_sets": ["hard"],
+  "task_sample": "parameterized",
+  "episodes": 50,
+  "max_episodes": 400,
+  "sample_seed": 0,
+  "base_seed": 600,
+  "backend": "triton",
+  "concurrency": 1,
+  "state_db": true,
+  "recovery": true,
+  "max_recoveries": 2,
+  "retry_refused": true,
+  "hardening": "all_on_mandate",
+  "recovery_classifiers": [
+    "rules",
+    {"name": "logreg_checks", "train": "sim/testing/results/agent-v8-logreg/data/p42/f0/train.jsonl"},
+    {"name": "logreg_memory", "train": "sim/testing/results/agent-v8-logreg/data/p42/f0/train.jsonl"}
+  ]
+}

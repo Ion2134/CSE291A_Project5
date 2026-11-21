@@ -1,0 +1,28 @@
+{
+  "unit": "logreg_checks p42 f1 t42",
+  "command": [
+    "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/.venv/bin/python",
+    "classifiers/logreg_baseline/fit_predict.py",
+    "--model",
+    "logreg_checks",
+    "--train",
+    "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/sim/testing/results/agent-v9-mixed/data/p42/f1/train.jsonl",
+    "--validation",
+    "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/sim/testing/results/agent-v9-mixed/data/p42/f1/val.jsonl",
+    "--test",
+    "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/sim/testing/results/agent-v9-mixed/data/p42/f1/test.jsonl",
+    "--seed",
+    "42",
+    "--out",
+    "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/sim/testing/results/agent-v9-mixed/runs/logreg_checks/p42_f1_t42/native",
+    "--view",
+    "middleware"
+  ],
+  "settings": {
+    "args": [
+      "--view",
+      "middleware"
+    ]
+  },
+  "elapsed_seconds": 0.7921935000049416
+}

@@ -60,6 +60,12 @@ to `results/<name>/`.
 | `training_seeds` | Training seeds run on every split (a model can override this) |
 | `models.<name>.python` | Optional interpreter override; defaults to the Python running the sweep |
 | `models.<name>.args` | Extra flags passed to that model's command, e.g. `--use-checks`, `--view middleware` |
+| `exclude_tools` | Optional: drop these tools' rows from the pool, e.g. `["initiate_transfer"]` when the monitors are never asked about transfers (signed mandates) |
+| `test_runs` | Optional: test only on rows from these runs (they must be in `runs`); every other row is training data. A request group is never on both sides of a fold |
+| `test_exclude_tools` | Optional, with `test_runs`: never test these tools' rows (they can still train) |
+| `train_on_test_runs` | Optional, with `test_runs` (default `true`): `false` keeps all of the test runs' rows out of training |
+| `exclude_hardening_blocked` | Optional: drop calls MCP hardening rejected; with recovery, the monitors are never asked about them (the call already failed, with an empty output) |
+| `test_required_causes` | Optional (default: all three): the causes every test fold must contain; training parts still need all three |
 
 The same file works with `mlp-baseline prepare-agent-data --config …` and
 `classifiers/laya_finetuning/prepare_banking_data.py --config …`, so all tools can share one run list.

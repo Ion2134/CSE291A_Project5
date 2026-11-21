@@ -1,0 +1,5 @@
+{
+  "model": "rules",
+  "test_rows": 299,
+  "predictions": "/Users/neilgrover/Documents/UCSD/CSE291A-systems/CSE291A_Project5/sim/testing/results/agent-v9-current/runs/rules/p42_f0_t42/native/test_predictions.jsonl"
+}

@@ -193,7 +193,12 @@ class Sweep:
     def data_fingerprint(self) -> str:
         """Covers everything that changes the pooled rows or the folds: which runs, and how they're split.
         Not ``runs_dir``: that's where the runs live, so moving the folder doesn't invalidate results."""
-        return fingerprint({key: self.config[key] for key in ("runs", "split")})
+        # The optional row filters join the hash only when set, so older results keep their fingerprint.
+        keys = ("runs", "split", *(key for key in ("exclude_tools", "test_runs", "test_exclude_tools",
+                                                    "train_on_test_runs", "exclude_hardening_blocked",
+                                                    "test_required_causes")
+                                   if key in self.config))
+        return fingerprint({key: self.config[key] for key in keys})
 
     def legacy_data_fingerprint(self, runs_dir: str) -> str:
         """The fingerprint results made before the change above stored (it also hashed ``runs_dir``)."""
